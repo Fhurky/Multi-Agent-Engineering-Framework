@@ -40,3 +40,4 @@ if ($findings.Count -gt 0) {
 }
 
 Write-Host 'Repository security checks passed.'
+exit 0
