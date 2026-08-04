@@ -123,7 +123,7 @@ The primary checkout is the control worktree. Agents must never edit in it or ru
    ./scripts/orchestration/release-task.ps1 -TaskId TASK-123 -Role backend -Llm claude
    ```
 
-Task locks are stored under the shared Git common directory, so all worktrees on the same machine observe the same atomic lock. Never delete another execution's lock unless a human has verified that the owning process and worktree are stale. A task ID may have only one active lock, one owner, and one branch.
+Task locks are stored under the shared Git common directory, so all worktrees in the same clone observe the same atomic lock. The claiming worktree receives an ignored session token and only that session can normally release the lock. Never force-release another execution's lock unless a human has verified that the owning session and worktree are stale. A task ID may have only one active lock, one owner, and one branch.
 
 Governance and enforcement files are human-controlled and cannot be changed from an `agent/*` branch. This includes the root agent adapters, `.agents/`, assignment settings, orchestration and baseline validation scripts, baseline CI/security workflows, CODEOWNERS, and Git policy files. Propose such a change to the user instead of modifying the safeguard that constrains the current execution.
 

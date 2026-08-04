@@ -34,7 +34,7 @@ $WorktreeRoot = [System.IO.Path]::GetFullPath($WorktreeRoot)
 $worktreeName = ((ConvertTo-SafeSegment -Value $Llm) + '-' + (ConvertTo-SafeSegment -Value $Role) + '-' + (ConvertTo-SafeSegment -Value $TaskId))
 $worktreePath = Join-Path $WorktreeRoot $worktreeName
 
-& git rev-parse --verify --quiet $BaseRef
+& git rev-parse --verify --quiet $BaseRef | Out-Null
 if ($LASTEXITCODE -ne 0) {
     throw "Base ref does not exist: $BaseRef"
 }

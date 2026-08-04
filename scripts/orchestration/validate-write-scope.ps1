@@ -24,7 +24,7 @@ elseif ([string]::IsNullOrWhiteSpace($Role) -or [string]::IsNullOrWhiteSpace($Ll
 }
 
 $assignment = Assert-AgentAssignment -Role $Role -Llm $Llm -SettingsPath $SettingsPath
-& git rev-parse --verify --quiet $BaseRef
+& git rev-parse --verify --quiet $BaseRef | Out-Null
 if ($LASTEXITCODE -ne 0) {
     throw "Base ref does not exist: $BaseRef"
 }

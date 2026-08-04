@@ -36,6 +36,7 @@ $lockDirectory = Get-SharedLockDirectory
 New-Item -ItemType Directory -Path $lockDirectory -Force | Out-Null
 $lockName = (ConvertTo-SafeSegment -Value $TaskId) + '.json'
 $lockPath = Join-Path $lockDirectory $lockName
+$sessionId = [Guid]::NewGuid().ToString('n')
 
 $metadata = [ordered]@{
     task_id = $TaskId
@@ -43,7 +44,8 @@ $metadata = [ordered]@{
     llm = $assignment.Llm
     branch = $currentBranch
     worktree = $repositoryRoot
-    process_id = $PID
+    host_name = [System.Environment]::MachineName
+    session_id = $sessionId
     claimed_at_utc = [DateTime]::UtcNow.ToString('o')
 }
 $json = $metadata | ConvertTo-Json -Depth 4
@@ -66,6 +68,22 @@ catch [System.IO.IOException] {
     if (Test-Path -LiteralPath $lockPath -PathType Leaf) {
         $owner = Get-Content -Raw -LiteralPath $lockPath -Encoding UTF8 | ConvertFrom-Json
         throw "Task '$TaskId' is already claimed by role '$($owner.role)' using '$($owner.llm)' in '$($owner.worktree)'."
+    }
+    throw
+}
+
+$runtimeDirectory = Join-Path $repositoryRoot '.agent-runtime'
+$tokenPath = Join-Path $runtimeDirectory ($lockName + '.token')
+try {
+    New-Item -ItemType Directory -Path $runtimeDirectory -Force | Out-Null
+    [System.IO.File]::WriteAllText($tokenPath, $sessionId, (New-Object System.Text.UTF8Encoding($false)))
+}
+catch {
+    if (Test-Path -LiteralPath $lockPath -PathType Leaf) {
+        $createdLock = Get-Content -Raw -LiteralPath $lockPath -Encoding UTF8 | ConvertFrom-Json
+        if ($createdLock.session_id -eq $sessionId) {
+            Remove-Item -LiteralPath $lockPath -Force
+        }
     }
     throw
 }

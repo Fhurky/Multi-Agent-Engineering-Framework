@@ -116,7 +116,7 @@ Before either agent hands off:
 ./scripts/orchestration/release-task.ps1 -TaskId TASK-123 -Role backend -Llm claude
 ```
 
-The lock is shared across all worktrees through Git's common directory. A second session cannot claim the same task, and CI rejects an agent branch that changes files outside its assigned role scope.
+The lock is shared across all worktrees in the same clone through Git's common directory. The claiming worktree receives an ignored session token required for normal release, a second session cannot claim the same task, and CI rejects an agent branch that changes files outside its assigned role scope.
 
 ## Sources of truth
 
