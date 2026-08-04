@@ -1,7 +1,7 @@
 ---
 task_id: TASK-015
-title: Independent architecture review of the autonomous runtime architecture
-status: ready
+title: Independent architecture review of the autonomous runtime architecture, round 1
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-015
@@ -10,22 +10,25 @@ write_scope:
   - reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md
 dependencies:
   - task: TASK-002
-    edge: implementation_published
+    edge: review_ready
 required_gates: []
+pre_merge_gates: []
 gate_for:
   - task: TASK-002
     gate: review
-  - task: TASK-016
-    gate: review
+    round: 1
+    verdict: changes-required
+    verdict_recorded_at: 8632469
 parent_task: TASK-001
-rounds:
-  - round: 1
-    target: TASK-002
-  - round: 2
-    target: TASK-016
+rounds_completed: 1
+published_commit: 8632469
+published_branch: agent/gpt/reviewer/task-015
+publication: local-only
+publication_reason: The executing session recorded that no push or merge was part of this review.
+superseded_by: TASK-020
 ---
 
-# TASK-015: Independent architecture review of the autonomous runtime architecture
+# TASK-015: Independent architecture review of the autonomous runtime architecture, round 1
 
 ## Objective
 
@@ -35,20 +38,27 @@ Perform the independent review gate that TASK-002 declares, on the architecture 
 
 TASK-002 declares `required_gates: [review]` and every runtime implementation task blocks on that gate passing, but the first decomposition contained no Reviewer task for the architecture output. TASK-009 could not fill the role: it runs only after all implementation is complete and it reviews implementation, not architecture. The first implementation wave therefore had a stated exit condition that nothing in the graph could satisfy. This task closes that gap.
 
-## Rounds
+## Completion
 
-This task is re-entrant. It performs the architecture review gate twice against the same reviewer context and the same report file, appending a section per round.
+**This task is complete and its record is `done`.** It performed one round, recorded one durable verdict, and is not re-entered.
 
-| Round | Target | Satisfies |
-|---|---|---|
-| 1 | TASK-002, commit `9576fc9` | `gate_passed(TASK-002)`, which unblocks TASK-003, TASK-004, TASK-016, and TASK-018 |
-| 2 | TASK-016, the agent workspace lifecycle amendment | `gate_passed(TASK-016)`, which unblocks TASK-017 |
+| Round | Target | Verdict | Commit | Findings |
+|---|---|---|---|---|
+| 1 | TASK-002, commit `9576fc9` | `changes-required` | `8632469`, merged at `049158d` | A-001 … A-004, all High |
 
-Round 2 reviews only the amendment's diff and its consistency with the round 1 baseline. Everything below describes round 1; round 2 applies the same criteria to the amended and added documents listed in TASK-016's expected artifacts.
+### Re-entrancy removed
+
+This record previously declared a `rounds` block making the task re-entrant: round 1 against TASK-002 and round 2 against the TASK-016 amendment. Finding F-102 in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md` recorded the defect. The task gated two targets across two rounds while its only dependency was TASK-002; nothing required TASK-016 to publish before round 2 could start, the `rounds` metadata was not machine-readable as a dependency, and the claimed topological order placed TASK-015 before TASK-016.
+
+TASK-013 activation `ACT-001` removed the `rounds` block, reduced `gate_for` to TASK-002 round 1, and created **TASK-020** to review the TASK-016 amendment with an explicit `review_ready(TASK-016)` dependency. TASK-020 also carries TASK-002's review gate at round 2, because TASK-016 is the remediation for this task's verdict and the verdict on that remediation is what closes TASK-002's gate.
+
+The verdict recorded here is durable. A later round supersedes it; nothing rewrites it.
+
+Everything below describes round 1 as it was executed.
 
 ## Review target
 
-Round 1: commit `9576fc9` on branch `agent/claude/architect/task-002`, compared against base ref `agent/claude/orchestrator/task-001`. All 25 files are in scope:
+Commit `9576fc9` on branch `agent/claude/architect/task-002`, compared against base ref `agent/claude/orchestrator/task-001`. All 25 files were in scope:
 
 - `docs/architecture/ARCHITECTURE.md`
 - `docs/architecture/runtime/COMPONENT-BOUNDARIES.md`
@@ -103,9 +113,9 @@ This task's single file is path-disjoint from TASK-009's narrowed scope (`report
 
 This task performs the review gate declared by TASK-002, recorded as a `gate_for` reverse edge rather than as a scheduling dependency. It becomes dispatchable when TASK-002 reaches `review`; TASK-002 reaches `done` only after this task records a verdict. The two directions cannot deadlock.
 
-The reviewer is `gpt` and the architect is `claude`, so author and reviewer are in separate execution contexts and separate LLM families, as `config/agents/settings.yaml` prefers. Findings return to the Orchestrator under TASK-013, which routes an amendment task to the architect; this reviewer then re-reviews. The architect may not close this gate.
+The reviewer is `gpt` and the architect is `claude`, so author and reviewer are in separate execution contexts and separate LLM families, as `config/agents/settings.yaml` prefers. Findings return to the Orchestrator under TASK-013, which routed the amendment to the architect as TASK-016 and created TASK-020 for the next round. The architect may not close this gate, and this reviewer does not re-review its own round.
 
-`gate_passed(TASK-002)` — the edge on which TASK-003 through TASK-008 and TASK-017 wait — is satisfied only when this task records `approved` or `approved-with-findings` and every finding blocking implementation is resolved or formally accepted.
+Because this round recorded `changes-required`, `gate_passed(TASK-002, review)` is not satisfied at round 1 and never will be. TASK-013 activation `ACT-001` therefore retargeted the architecture-approval edge held by TASK-003 through TASK-008, TASK-017, and TASK-018 to `gate_passed(TASK-016, review)`: the approved architecture is `9576fc9` as amended by TASK-016, and TASK-020 is the gate that approves it.
 
 ## Operational steps
 
@@ -121,8 +131,10 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to unblock TASK-003 and TASK-004 on a passing verdict, or to route findings back to the architect
+- Commit or pull request: `8632469` `review: evaluate autonomous runtime architecture` on `agent/gpt/reviewer/task-015`, merged into `integration/autonomous-runtime` at `049158d`. Verdict `changes-required`. `publication: local-only`; the report states that no push or merge was part of this review.
+- Verification, quoted from `reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md`, section "Verification": reviewed `git diff agent/claude/orchestrator/task-001..9576fc9` and every file listed by TASK-015; compared all TASK-002 acceptance criteria against the normative documents rather than the author's checked boxes; compared the architecture's dependency model with the corrected typed-edge and named-resource-lock graph on `integration/autonomous-runtime`; checked module ownership, cross-contract imports, transition legality, crash points, bootstrap output location, ADR structure, language policy, and configured write scopes; `git diff --check agent/claude/orchestrator/task-001..9576fc9` produced no whitespace errors.
+- Criterion judgments recorded: three of seven TASK-002 acceptance criteria `not met`, one `met with blocking inconsistency`, three `met`. All 25 target files were covered.
+- Findings and their routing: A-001 through A-004, all High, all routed to **TASK-016** as scope items 1 through 4. The mapping is recorded in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-001`.
+- Known risks, quoted from the reviewer's handoff: "Unresolved blockers: A-001 through A-004." The report also states that TASK-003 through TASK-008 and TASK-017 must remain `blocked` on the strength of this verdict, and that the stale toolchain gap in `docs/architecture/ARCHITECTURE.md` is resolved by human commit `fb9f45c` and must be reconciled by the Orchestrator — which `ACT-001` did on TASK-018.
+- Next owner: **architect / claude for TASK-016**, then **reviewer / gpt for TASK-020**. The reviewer's own handoff named "Orchestrator through TASK-013 to route an Architect amendment; Architect/Claude to resolve the contracts; this Reviewer/GPT for TASK-015 round 2." The round 2 obligation is carried by TASK-020 rather than by re-entering this task, which is the correction for finding F-102.
 </content>

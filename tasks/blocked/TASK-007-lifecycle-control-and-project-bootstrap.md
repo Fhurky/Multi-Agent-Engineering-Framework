@@ -11,14 +11,16 @@ write_scope:
   - bin/**
   - tests/unit/orchestrator/lifecycle/**
 dependencies:
-  - task: TASK-002
+  - task: TASK-016
     edge: gate_passed
+    gate: review
   - task: TASK-006
-    edge: implementation_published
+    edge: integrated
 required_gates:
   - review
   - security
   - qa
+pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
@@ -27,8 +29,8 @@ gate_tasks:
   - task: TASK-011
     gate: qa
 parent_task: TASK-001
-blocked_reason: The supervisor run loop is not published and the bootstrap contract is not approved.
-exit_condition: TASK-015 records a passing verdict on TASK-002, and TASK-006 is published on main.
+blocked_reason: TASK-015 returned changes-required on the base architecture, so the bootstrap and lifecycle contracts are not approved and finding A-003 adds the live run control protocol this task implements. The supervisor run loop is not integrated.
+exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-006 is integrated into integration/autonomous-runtime.
 ---
 
 # TASK-007: Implement lifecycle control and the one-input project bootstrap
@@ -70,8 +72,8 @@ Implement the single-command entry point and the lifecycle control surface that 
 
 ## Dependency notes
 
-- `gate_passed(TASK-002)` supplies the bootstrap contract, drain, pause, resume, and exit codes from `docs/architecture/runtime/LIFECYCLE-AND-BOOTSTRAP.md`.
-- `implementation_published(TASK-006)` supplies the supervisor loop and terminal states. TASK-006 in turn carries the TASK-003, TASK-004, TASK-005, and TASK-017 edges, so this task does not restate them; the transitive closure is recorded in `tasks/TASK-001-DEPENDENCY-GRAPH.md`.
+- `gate_passed(TASK-016, review)` supplies the bootstrap contract, drain, pause, resume, and exit codes from `docs/architecture/runtime/LIFECYCLE-AND-BOOTSTRAP.md`.
+- `integrated(TASK-006)` supplies the supervisor loop and terminal states. TASK-006 in turn carries the TASK-003, TASK-004, TASK-005, and TASK-017 edges, so this task does not restate them; the transitive closure is recorded in `tasks/TASK-001-DEPENDENCY-GRAPH.md`.
 - May execute in parallel with TASK-008; their write scopes do not overlap.
 - Required by TASK-011 for end-to-end validation.
 - This task composes the object graph at the composition root. It constructs the workspace lifecycle from TASK-017 and the adapter registry from TASK-004 by injection; it does not reimplement either.

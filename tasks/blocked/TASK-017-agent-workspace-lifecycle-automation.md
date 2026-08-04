@@ -12,24 +12,37 @@ write_scope:
 dependencies:
   - task: TASK-016
     edge: gate_passed
+    gate: review
   - task: TASK-003
-    edge: implementation_published
+    edge: integrated
   - task: TASK-018
-    edge: implementation_published
+    edge: integrated
 required_gates:
   - review
   - security
   - qa
+pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
+    round: 1
+    verdict: pending
   - task: TASK-010
     gate: security
+    round: 1
+    verdict: pending
   - task: TASK-011
     gate: qa
+    round: 1
+    verdict: pending
 parent_task: TASK-001
-blocked_reason: The workspace lifecycle contract does not exist yet, and neither the durable state store nor the toolchain is published.
-exit_condition: TASK-016 passes its review gate, and TASK-003 and TASK-018 are published on main.
+remediates:
+  - finding: F-001
+    source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
+  - finding: F-105
+    source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
+blocked_reason: The workspace lifecycle contract does not exist yet, and neither the durable state store nor the toolchain is integrated.
+exit_condition: TASK-020 records a passing verdict on TASK-016, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
 ---
 
 # TASK-017: Implement automated agent workspace lifecycle and crash-safe cleanup
@@ -51,6 +64,9 @@ Implement the module that performs the repository's mandatory concurrent-executi
 - **Agent execution boundary** — hand the prepared workspace handle to the caller so the TASK-004 worker runs the provider with its working directory inside that worktree. This module does not invoke providers.
 - **Write-scope validation** — run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree` in the worktree after the agent returns and before any handoff is persisted. A validation failure is a task failure with a recorded reason; it never falls through to a commit.
 - **Commit and handoff persistence** — commit the agent's changes on the task branch with an English message naming the task ID, and persist the handoff record durably through the TASK-003 state store so it survives a crash.
+- **Branch publication** — push the task branch to the configured remote. The push refspec targets only `refs/heads/agent/<llm>/<role>/<task-id>`; no code path may construct a push to `main` or to any other branch. Record the published commit SHA as the immutable `review_ready` artifact.
+- **Pull-request creation** — create a pull request for the task branch, or update the existing open one, so that re-running after a crash, a retry, or a resume never produces a second pull request for the same task and branch. Persist the pull-request identity durably.
+- **Publication failure is an outcome, not a fallback** — when the remote is unreachable, credentials are absent, or pull-request creation is unauthorized, return an explicit `blocked` outcome carrying the typed failure class and the reason. Never report success on a local-only commit, never retry into a different target, and never fall back to pushing `main`.
 - **Lock release** — release the lock by invoking `scripts/orchestration/release-task.ps1` on every terminal path, including failure and cancellation.
 - **Crash-safe cleanup** — implement `reconcile`, which after an abrupt termination detects orphaned worktrees, orphaned branches, and locks held by a dead session, and returns each to a known state. Use an intent-then-commit record so every workspace operation is replayable and no operation is applied twice.
 - **Session-token discipline** — release only a lock this session claimed. Never force-release another session's lock. When a lock cannot be released, record it for human attention and leave it held rather than breaking it.
@@ -72,6 +88,17 @@ The orchestration and hook scripts this module drives are human-controlled enfor
 - [ ] The handoff is persisted through the TASK-003 state store before the lock is released, so a crash between the two leaves the handoff readable.
 - [ ] No dispatch path can reach provider invocation without a prepared workspace; a test asserts this by attempting to dispatch with preparation stubbed to fail.
 
+### Publication and pull request
+
+The mandatory handoff in `AGENTS.md` includes pushing the task branch and opening a pull request. Finding F-105 records that this task previously required only a local commit.
+
+- [ ] `finalize` publishes the task branch to the configured remote and records the published commit SHA, the branch name, and the pull-request identity as one durable record through the TASK-003 state store, written before the lock is released.
+- [ ] Pull-request creation is idempotent: when an open pull request already exists for the task branch, it is updated rather than duplicated. A test runs `finalize` twice, and after a simulated crash between publication and lock release, and asserts exactly one pull request per task and branch.
+- [ ] The published commit is immutable for review purposes. A later `finalize` on the same task publishes a new commit SHA, updates the same pull request, and records both SHAs in order; it never opens a second pull request.
+- [ ] When the remote is unreachable, credentials are absent, or pull-request creation is unauthorized, `finalize` returns an explicit `blocked` outcome with a typed failure class and a recorded reason. A test asserts that no `succeeded` outcome is produced for a local-only commit and that no alternative push target is attempted.
+- [ ] Every constructed push command vector is asserted to target only `refs/heads/agent/<llm>/<role>/<task-id>`. A test feeds a task record whose fields would produce another ref and asserts the dispatch is refused before any process is spawned.
+- [ ] A crash after publication and before lock release leaves the branch, commit, and pull-request identity readable by `reconcile`, which does not republish or reopen.
+
 ### Crash safety
 
 - [ ] `reconcile` after a simulated abrupt termination detects an orphaned worktree, an orphaned branch, and a lock held by a dead session, and returns each to a known state, asserted against a real temporary repository.
@@ -81,7 +108,7 @@ The orchestration and hook scripts this module drives are human-controlled enfor
 
 ### Safety boundaries
 
-- [ ] The module cannot produce a push to `main`; a test asserts that the push path targets only the task branch and that the pre-push hook remains installed.
+- [ ] The module cannot produce a push to `main`; a test asserts that every push path targets only the task branch and that the pre-push hook remains installed. This holds for the publication path added above as well as for any other push the module constructs.
 - [ ] The module never sets `ALLOW_MAIN_PUSH` and never passes a force flag to a release; both are asserted by inspecting the constructed command vectors.
 - [ ] The module never writes a human-controlled governance path; a test asserts that its own committed diff in a fixture run contains no such path.
 - [ ] Branch and worktree names are derived only from task-record fields and never from agent output; a test feeds hostile agent output containing a path traversal sequence and a shell metacharacter and asserts neither reaches a command vector or a filesystem path.
@@ -95,13 +122,13 @@ The orchestration and hook scripts this module drives are human-controlled enfor
 ## Expected artifacts
 
 - Workspace lifecycle implementation under `src/orchestrator/workspace/`.
-- Unit tests under `tests/unit/orchestrator/workspace/`, including the real-temporary-repository crash reconciliation tests.
+- Unit tests under `tests/unit/orchestrator/workspace/`, including the real-temporary-repository crash reconciliation tests and the publication, idempotent pull-request, and blocked-outcome tests.
 
 ## Dependency notes
 
-- `gate_passed(TASK-016)` supplies the workspace lifecycle contract and the crash-safe cleanup specification. Implementation cannot start before the module is part of the architecture.
-- `implementation_published(TASK-003)` supplies the durable state store and the intent-then-commit substrate used for replayable workspace operations.
-- `implementation_published(TASK-018)` supplies the toolchain.
+- `gate_passed(TASK-016, review)` supplies the workspace lifecycle contract, the publication and pull-request contract, and the crash-safe cleanup specification. Implementation cannot start before the module is part of the approved architecture. That gate is owned by TASK-020.
+- `integrated(TASK-003)` supplies the durable state store and the intent-then-commit substrate used for replayable workspace operations. It is `integrated` and not `review_ready` because this is a compile-time import.
+- `integrated(TASK-018)` supplies the toolchain.
 - May execute in parallel with TASK-005; `src/orchestrator/workspace/**` and `src/orchestrator/scheduling/**` do not overlap.
 - Blocks TASK-006 and TASK-008, both of which now carry an explicit edge to this task.
 

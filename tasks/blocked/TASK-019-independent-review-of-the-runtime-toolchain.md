@@ -10,14 +10,15 @@ write_scope:
   - reports/code-review/TASK-018-TOOLCHAIN-REVIEW.md
 dependencies:
   - task: TASK-018
-    edge: implementation_published
+    edge: review_ready
 required_gates: []
+pre_merge_gates: []
 gate_for:
   - task: TASK-018
     gate: review
 parent_task: TASK-001
 blocked_reason: The toolchain has not been published.
-exit_condition: TASK-018 has reached status review with its branch available. This task does not wait for TASK-018 to reach done, because it is the gate that lets it reach done.
+exit_condition: TASK-018 is review_ready, with an immutable published commit on agent/claude/devops/task-018. This task does not wait for TASK-018 to be integrated or to reach done, because it is the pre-merge gate that lets it be integrated.
 ---
 
 # TASK-019: Independent review of the runtime toolchain bootstrap
@@ -40,7 +41,7 @@ Branch `agent/claude/devops/task-018`, compared against `main` at the commit whe
 - Verify that the four configuration files are mutually consistent and that the recorded type-check, test, and lint commands actually run against an empty runtime tree.
 - Verify that the CI workflow runs on `windows-latest` and fails on a type error, a failing test, or a lint error.
 - Verify that no human-controlled governance path was modified, specifically `.github/workflows/ci.yml`, `.github/workflows/security.yml`, `config/agents/settings.yaml`, `scripts/orchestration/**`, `scripts/ci/validate-framework.ps1`, `scripts/ci/test-orchestration.ps1`, and `.githooks/**`.
-- Verify that every changed path is inside the devops write scope as extended by decision HUMAN-001, and report any path that is not.
+- Verify that every changed path is inside the devops role's configured write scope in `config/agents/settings.yaml` as it stands at commit `fb9f45c`, where decision HUMAN-001 added `package.json`, `package-lock.json`, `tsconfig.json`, and `scripts/quality/**`. Report any path that is not.
 - Report every added devDependency with its purpose, so the security gate at TASK-010 has an inventory to assess.
 - Exclude authoring or fixing the toolchain, deciding the platform, reviewing runtime source code, and approving any other role's gate.
 
@@ -65,9 +66,9 @@ This task's single file is path-disjoint from TASK-009's `reports/code-review/RE
 
 ## Gate and remediation path
 
-This task performs the review gate declared by TASK-018, recorded as a `gate_for` reverse edge rather than a scheduling dependency. It becomes dispatchable when TASK-018 reaches `review`; TASK-018 reaches `done` only after this task and TASK-010 both record verdicts.
+This task performs the review gate declared by TASK-018, recorded as a `gate_for` reverse edge rather than a scheduling dependency. TASK-018 declares `pre_merge_gates: [review]`, so this task becomes dispatchable when TASK-018 is `review_ready` — an immutable published commit, no merge required — and TASK-018 becomes integrable only after this task's verdict closes the gate. That ordering is the correction for finding F-101: the gate no longer waits for a merge that waits for the gate. TASK-018 reaches `done` only after this task and TASK-010 both record verdicts.
 
-TASK-018's security gate is owned by TASK-010 and is retrospective: the toolchain merges at Wave 2 while TASK-010 runs at Wave 7. That is a recorded and accepted consequence of needing a toolchain before any code exists to threat-model, and it is why this task must inventory every dependency it adds. The repository's baseline security CI workflow runs on the pull request in the meantime.
+TASK-018's security gate is owned by TASK-010 and is an assembly gate, retrospective: the toolchain integrates at Wave 2 while TASK-010 runs at Wave 7. That is a recorded and accepted consequence of needing a toolchain before any code exists to threat-model, and it is why this task must inventory every dependency it adds. The repository's baseline security CI workflow runs on the pull request in the meantime.
 
 Findings return to the Orchestrator under TASK-013, which reopens TASK-018 for the devops owner. The reviewer does not implement the fix.
 

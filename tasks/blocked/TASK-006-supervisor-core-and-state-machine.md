@@ -10,21 +10,23 @@ write_scope:
   - src/orchestrator/supervisor/**
   - tests/unit/orchestrator/supervisor/**
 dependencies:
-  - task: TASK-002
+  - task: TASK-016
     edge: gate_passed
+    gate: review
   - task: TASK-003
-    edge: implementation_published
+    edge: integrated
   - task: TASK-004
-    edge: implementation_published
+    edge: integrated
   - task: TASK-005
-    edge: implementation_published
+    edge: integrated
   - task: TASK-017
-    edge: implementation_published
+    edge: integrated
 required_gates:
   - review
   - security
   - qa
   - performance
+pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
@@ -35,8 +37,8 @@ gate_tasks:
   - task: TASK-012
     gate: performance
 parent_task: TASK-001
-blocked_reason: The state machine contract is not approved, and the state store, worker contract, scheduler, and workspace lifecycle are not published.
-exit_condition: TASK-015 records a passing verdict on TASK-002, and TASK-003, TASK-004, TASK-005, and TASK-017 are published on main.
+blocked_reason: TASK-015 returned changes-required on the base architecture, so the state machine contract is not approved and finding A-002 changes the recovery transitions this task implements. The state store, worker contract, scheduler, and workspace lifecycle are not integrated.
+exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-003, TASK-004, TASK-005, and TASK-017 are integrated into integration/autonomous-runtime.
 ---
 
 # TASK-006: Implement the supervisor core and deterministic state machine
@@ -74,10 +76,10 @@ Implement the supervisor run loop and the deterministic task state machine that 
 
 ## Dependency notes
 
-- `gate_passed(TASK-002)` supplies the transition function, run events, and dynamic admission guards from `docs/architecture/runtime/STATE-MACHINE.md`.
-- `implementation_published(TASK-003)` supplies the state store and its contract root; `implementation_published(TASK-005)` supplies the scheduler and lease grant.
-- `implementation_published(TASK-004)` supplies the `AgentWorker` and `WorkerResult` contract that this loop invokes. This edge was missing in the first decomposition; the supervisor invokes agent workers and cannot be built or tested against a contract that has not been published.
-- `implementation_published(TASK-017)` supplies the workspace lifecycle interface the supervisor calls before and after each dispatch.
+- `gate_passed(TASK-016, review)` supplies the transition function, run events, and dynamic admission guards from `docs/architecture/runtime/STATE-MACHINE.md`.
+- `integrated(TASK-003)` supplies the state store and its contract root; `integrated(TASK-005)` supplies the scheduler and lease grant.
+- `integrated(TASK-004)` supplies the `AgentWorker` and `WorkerResult` contract that this loop invokes. This edge was missing in the first decomposition; the supervisor invokes agent workers and cannot be built or tested against a contract that has not been published.
+- `integrated(TASK-017)` supplies the workspace lifecycle interface the supervisor calls before and after each dispatch.
 - Imports from `src/agents/contracts/` only; never modifies `src/agents/`.
 - Blocks TASK-007 and TASK-008.
 

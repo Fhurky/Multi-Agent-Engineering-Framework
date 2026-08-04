@@ -10,14 +10,16 @@ write_scope:
   - src/agents/**
   - tests/unit/agents/**
 dependencies:
-  - task: TASK-002
+  - task: TASK-016
     edge: gate_passed
+    gate: review
   - task: TASK-018
-    edge: implementation_published
+    edge: integrated
 required_gates:
   - review
   - security
   - qa
+pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
@@ -26,8 +28,8 @@ gate_tasks:
   - task: TASK-011
     gate: qa
 parent_task: TASK-001
-blocked_reason: The provider adapter interface and error taxonomy are not approved yet and no toolchain exists to compile or test against.
-exit_condition: TASK-015 records a passing verdict on TASK-002, and TASK-018 has published a compiling toolchain.
+blocked_reason: TASK-015 returned changes-required on the base architecture, so the adapter interface is not approved and finding A-003 adds a process-tree ownership contract this task implements. No toolchain is integrated to compile or test against.
+exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-018 is integrated into integration/autonomous-runtime with a compiling toolchain.
 ---
 
 # TASK-004: Implement provider adapters and agent worker execution
@@ -120,10 +122,10 @@ An adapter is "working" only when it can discover its executable, construct a no
 
 ## Dependency notes
 
-- `gate_passed(TASK-002)` supplies the adapter interface, the closed error taxonomy, the timeout layering, and the credential rules from `docs/architecture/runtime/PROVIDER-ADAPTERS.md` and `docs/architecture/runtime/INTERFACE-CONTRACTS.md`.
-- `implementation_published(TASK-018)` supplies the toolchain required by ADR-0001.
+- `gate_passed(TASK-016, review)` supplies the adapter interface, the closed error taxonomy, the timeout layering, and the credential rules from `docs/architecture/runtime/PROVIDER-ADAPTERS.md` and `docs/architecture/runtime/INTERFACE-CONTRACTS.md`.
+- `integrated(TASK-018)` supplies the toolchain required by ADR-0001.
 - May execute in parallel with TASK-003; their write scopes do not overlap and neither contract root imports the other.
-- **Consumed by TASK-005, TASK-006, TASK-008, and TASK-011.** Those tasks now carry an explicit `implementation_published(TASK-004)` edge; none of them may start or claim to validate this task's behavior before it is published.
+- **Consumed by TASK-005, TASK-006, TASK-008, and TASK-011.** Those tasks now carry an explicit `integrated(TASK-004)` edge; none of them may start or claim to validate this task's behavior before it is published.
 
 ## Contract root ownership
 
