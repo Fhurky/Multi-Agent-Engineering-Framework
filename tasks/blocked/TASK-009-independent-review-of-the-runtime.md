@@ -11,20 +11,21 @@ write_scope:
   - reports/code-review/runtime/**
 dependencies:
   - task: TASK-003
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-004
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-005
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-006
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-007
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-008
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-017
-    edge: implementation_published
+    edge: review_ready
 required_gates: []
+pre_merge_gates: []
 gate_for:
   - task: TASK-003
     gate: review
@@ -42,7 +43,7 @@ gate_for:
     gate: review
 parent_task: TASK-001
 blocked_reason: The runtime implementation tasks have not published their branches.
-exit_condition: TASK-003 through TASK-008 and TASK-017 have reached status review with their branches available for review. This task does not wait for those tasks to reach done, because it is the gate that lets them reach done.
+exit_condition: TASK-003 through TASK-008 and TASK-017 are review_ready, each with an immutable published commit. This task does not wait for those tasks to be integrated or to reach done, because it is the gate that lets them reach done.
 ---
 
 # TASK-009: Independent code review of the autonomous runtime

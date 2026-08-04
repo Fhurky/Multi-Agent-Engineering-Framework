@@ -12,16 +12,17 @@ write_scope:
   - tests/performance/**
 dependencies:
   - task: TASK-005
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-006
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-008
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-017
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-011
     edge: gate_recorded
 required_gates: []
+pre_merge_gates: []
 gate_for:
   - task: TASK-005
     gate: performance
@@ -31,7 +32,7 @@ gate_for:
     gate: performance
 parent_task: TASK-001
 blocked_reason: The scheduler, supervisor, recovery layer, and workspace lifecycle are not published, and QA validation has not established a working baseline.
-exit_condition: TASK-005, TASK-006, TASK-008, and TASK-017 have reached status review, and TASK-011 has recorded a passing end-to-end baseline verdict. TASK-011 is depended on by its recorded verdict, not by its terminal state, because TASK-011 also cannot reach done until its own findings are routed.
+exit_condition: TASK-005, TASK-006, TASK-008, and TASK-017 are review_ready, and TASK-011 has recorded a passing end-to-end baseline verdict. TASK-011 is depended on by its recorded verdict, not by its terminal state, because TASK-011 also cannot reach done until its own findings are routed.
 ---
 
 # TASK-012: Performance validation of scheduling, checkpointing, and recovery

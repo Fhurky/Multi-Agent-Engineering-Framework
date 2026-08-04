@@ -10,14 +10,16 @@ write_scope:
   - src/orchestrator/state/**
   - tests/unit/orchestrator/state/**
 dependencies:
-  - task: TASK-002
+  - task: TASK-016
     edge: gate_passed
+    gate: review
   - task: TASK-018
-    edge: implementation_published
+    edge: integrated
 required_gates:
   - review
   - security
   - qa
+pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
@@ -26,8 +28,8 @@ gate_tasks:
   - task: TASK-011
     gate: qa
 parent_task: TASK-001
-blocked_reason: The durable state contract is not approved yet and no toolchain exists to compile or test against.
-exit_condition: TASK-015 records a passing verdict on TASK-002, and TASK-018 has published a compiling toolchain.
+blocked_reason: TASK-015 returned changes-required on the base architecture, so the durable state contract is not approved and finding A-001 changes the journal batch contract this task implements. No toolchain is integrated to compile or test against.
+exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-018 is integrated into integration/autonomous-runtime with a compiling toolchain.
 ---
 
 # TASK-003: Implement durable run state and checkpointing
@@ -64,8 +66,8 @@ Implement the durable run state store that persists run and task records, writes
 
 ## Dependency notes
 
-- `gate_passed(TASK-002)` supplies the state machine, checkpoint contract, and record schema. The normative source is `docs/architecture/runtime/DURABLE-STATE-AND-CHECKPOINTS.md`, `docs/architecture/runtime/INTERFACE-CONTRACTS.md`, and `docs/architecture/runtime/STATE-MACHINE.md` from commit `9576fc9`.
-- `implementation_published(TASK-018)` supplies the TypeScript and Node.js toolchain required by ADR-0001. Without it this task cannot compile or run a test without writing outside its declared scope.
+- `gate_passed(TASK-016, review)` supplies the state machine, checkpoint contract, and record schema. The normative source is `docs/architecture/runtime/DURABLE-STATE-AND-CHECKPOINTS.md`, `docs/architecture/runtime/INTERFACE-CONTRACTS.md`, and `docs/architecture/runtime/STATE-MACHINE.md` from commit `9576fc9`.
+- `integrated(TASK-018)` supplies the TypeScript and Node.js toolchain required by ADR-0001. Without it this task cannot compile or run a test without writing outside its declared scope.
 - May execute in parallel with TASK-004; their write scopes do not overlap.
 - Blocks TASK-005, TASK-006, TASK-008, and TASK-017.
 

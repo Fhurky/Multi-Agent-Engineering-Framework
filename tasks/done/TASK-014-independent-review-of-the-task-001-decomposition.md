@@ -1,7 +1,7 @@
 ---
 task_id: TASK-014
 title: Independent review of the TASK-001 decomposition
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-014
@@ -10,13 +10,27 @@ write_scope:
   - reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
 dependencies:
   - task: TASK-001
-    edge: implementation_published
+    edge: review_ready
 required_gates: []
+pre_merge_gates: []
 gate_for:
   - task: TASK-001
     gate: review
+    round: 1
+    verdict: changes-required
+    verdict_recorded_at: 8ac0dbd
+  - task: TASK-001
+    gate: review
+    round: 2
+    verdict: changes-required
+    verdict_recorded_at: abb85d9
 parent_task: TASK-001
-review_round: 2
+rounds_completed: 2
+published_commit: abb85d9
+published_branch: agent/gpt/reviewer/task-014
+publication: local-only
+publication_reason: The executing session recorded that no push or merge was part of TASK-014.
+superseded_by: TASK-021
 ---
 
 # TASK-014: Independent review of the TASK-001 decomposition
@@ -25,7 +39,20 @@ review_round: 2
 
 Perform the independent review gate required by TASK-001 on the decomposition artifacts it produced, and record actionable findings that return to the Orchestrator for correction. TASK-001 declares `required_gates: [review]` but no Reviewer task record existed for that gate; this task closes that omission.
 
-This task is **re-entrant across rounds**. Round 1 is complete. Round 2 re-reviews the corrected decomposition. Both rounds write the same report file; round 2 appends a new dated section rather than discarding round 1, so the finding history stays traceable.
+## Completion
+
+**This task is complete and its record is `done`.** Both declared rounds recorded a verdict, and this task has no gates of its own. Its verdicts are durable: they are superseded by a later round, never rewritten.
+
+| Round | Target | Verdict | Commit | Findings |
+|---|---|---|---|---|
+| 1 | `agent/claude/orchestrator/task-001` revision 1 | `changes-required` | `8ac0dbd` | F-001 … F-007 |
+| 2 | `agent/claude/orchestrator/task-001` revision 2 at `657b83a`, integration ref `fb9f45c` | `changes-required` | `abb85d9`, merged at `b6fe228` | F-101 … F-105 |
+
+Round 3 is **TASK-021**, a separate reviewer task with its own explicit dependency and its own report file. The re-entrancy described below applied to rounds 1 and 2 and is retained as history; it is not the model the graph uses any longer. Making a gate task re-entrant is what finding F-102 recorded as a defect for TASK-015, and TASK-013 activation `ACT-001` applied the same correction here.
+
+## Round model as executed
+
+This task was **re-entrant across rounds** 1 and 2. Both rounds wrote the same report file; round 2 appended a new dated section rather than discarding round 1, so the finding history stays traceable.
 
 ## Round 1 — complete
 
@@ -140,8 +167,9 @@ Do not move this record between lifecycle directories and do not edit its `statu
 Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
 
 - Round 1 commit: `8ac0dbd` `review: assess TASK-001 runtime decomposition` on `agent/gpt/reviewer/task-014`. Verdict `changes-required`, findings F-001 through F-007. Not pushed or merged.
-- Round 2 commit or pull request:
-- Round 2 verification:
-- Known risks:
-- Next owner: orchestrator, to route any round 2 finding back to the decomposition owner, or to close the TASK-001 review gate under TASK-013 if the round 2 verdict passes
+- Round 2 commit or pull request: `abb85d9` `review: re-evaluate TASK-001 decomposition` on `agent/gpt/reviewer/task-014`, merged into `integration/autonomous-runtime` at `b6fe228`. Verdict `changes-required`. `publication: local-only`; no push and no pull request were part of this task.
+- Round 2 verification, quoted from `reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md`, section "Verification and handoff": `git rev-parse integration/autonomous-runtime` returned `fb9f45c08dee2002d634f1e310017dc125ab67e7`; both the full decomposition diff and the `8ac0dbd..agent/claude/orchestrator/task-001 -- tasks/` correction diff were reviewed; the Orchestrator target changes only task records and the graph and its `git diff --check` passed; every target, gate pair, dependency, scope, assignment, branch and worktree, behavior row, and architecture mapping was checked bidirectionally.
+- Round 2 findings and their routing: F-101 through F-105, all High. Each is mapped to a remediation task or a recorded Orchestrator disposition in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-001`.
+- Known risks, quoted from the reviewer's handoff: "Unresolved blockers: F-101 through F-105." The reviewer also recorded that no task, architecture, source, governance, dependency, or lifecycle file was changed by this task.
+- Next owner: **reviewer / gpt for TASK-021**, round 3 of the TASK-001 review gate. The reviewer's own handoff named "orchestrator through TASK-013, with architect input for F-101 and runtime ownership for F-104/F-105; then Reviewer round 3." TASK-013 activation `ACT-001` performed the orchestrator half; the architect half is TASK-016 and the runtime half is TASK-005 and TASK-017.
 </content>

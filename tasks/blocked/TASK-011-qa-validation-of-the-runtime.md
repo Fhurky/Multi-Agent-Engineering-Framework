@@ -14,20 +14,21 @@ write_scope:
   - tests/fixtures/**
 dependencies:
   - task: TASK-003
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-004
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-005
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-006
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-007
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-008
-    edge: implementation_published
+    edge: review_ready
   - task: TASK-017
-    edge: implementation_published
+    edge: review_ready
 required_gates: []
+pre_merge_gates: []
 gate_for:
   - task: TASK-003
     gate: qa
@@ -45,7 +46,7 @@ gate_for:
     gate: qa
 parent_task: TASK-001
 blocked_reason: The runtime implementation tasks have not published their branches.
-exit_condition: TASK-003 through TASK-008 and TASK-017 have each reached status review with their branches available. Every dependency is listed explicitly; this task does not infer a dependency from another task's dependency list.
+exit_condition: TASK-003 through TASK-008 and TASK-017 are each review_ready, with an immutable published commit. Every dependency is listed explicitly; this task does not infer a dependency from another task's dependency list.
 ---
 
 # TASK-011: QA validation of autonomous run lifecycle behavior
