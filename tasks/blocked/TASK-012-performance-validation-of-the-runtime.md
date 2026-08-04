@@ -11,14 +11,27 @@ write_scope:
   - reports/performance/**
   - tests/performance/**
 dependencies:
-  - TASK-005
-  - TASK-006
-  - TASK-008
-  - TASK-011
+  - task: TASK-005
+    edge: implementation_published
+  - task: TASK-006
+    edge: implementation_published
+  - task: TASK-008
+    edge: implementation_published
+  - task: TASK-017
+    edge: implementation_published
+  - task: TASK-011
+    edge: gate_recorded
 required_gates: []
+gate_for:
+  - task: TASK-005
+    gate: performance
+  - task: TASK-006
+    gate: performance
+  - task: TASK-008
+    gate: performance
 parent_task: TASK-001
-blocked_reason: The scheduler, supervisor, and recovery layer are not implemented and QA validation has not established a working baseline.
-exit_condition: TASK-005, TASK-006, and TASK-008 are complete and TASK-011 has produced a passing end-to-end baseline.
+blocked_reason: The scheduler, supervisor, recovery layer, and workspace lifecycle are not published, and QA validation has not established a working baseline.
+exit_condition: TASK-005, TASK-006, TASK-008, and TASK-017 have reached status review, and TASK-011 has recorded a passing end-to-end baseline verdict. TASK-011 is depended on by its recorded verdict, not by its terminal state, because TASK-011 also cannot reach done until its own findings are routed.
 ---
 
 # TASK-012: Performance validation of scheduling, checkpointing, and recovery
@@ -33,13 +46,14 @@ Measure the runtime's scheduling throughput, checkpoint cost, and recovery time,
 - Measure checkpoint write cost and its effect on run wall-clock time as run size grows.
 - Measure recovery time from a durable checkpoint as a function of run size.
 - Measure lease renewal overhead and its behavior under contention.
+- Measure the per-dispatch cost of the TASK-017 workspace lifecycle — branch creation, worktree creation, lock claim, scope validation, and release — because it is on the critical path of every dispatch and is the runtime's only unavoidable filesystem-bound step.
 - Record environment, data set, concurrency setting, and measurement method for every result.
 - Identify bottlenecks with measured evidence and name the responsible child task ID and owning role.
 - Exclude implementing optimizations, prioritizing product work, and approval of another role's gate.
 
 ## Acceptance criteria
 
-- [ ] Dispatch throughput, checkpoint cost, recovery time, and lease renewal overhead are each measured and reported.
+- [ ] Dispatch throughput, checkpoint cost, recovery time, lease renewal overhead, and workspace lifecycle cost per dispatch are each measured and reported.
 - [ ] Every reported result records its environment, data set, concurrency setting, and measurement method.
 - [ ] Measurements are repeated enough times to report variance, not a single sample.
 - [ ] Each reported bottleneck names the responsible child task ID and owning role.
@@ -53,9 +67,17 @@ Measure the runtime's scheduling throughput, checkpoint cost, and recovery time,
 
 ## Gate and remediation path
 
-This task performs the performance gate for the runtime. Optimizations are implemented by the responsible implementation owner, routed through TASK-013, and this role revalidates the optimization afterward.
+This task performs the performance gate for TASK-005, TASK-006, and TASK-008, declared in the `gate_for` field. A `gate_for` declaration is not a scheduling dependency: this task becomes dispatchable when its targets reach `review`, and its targets reach `done` only after this task records a verdict.
+
+Optimizations are implemented by the responsible implementation owner, routed through TASK-013, and this role revalidates the optimization afterward.
+
+## Task-record lifecycle
+
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. `tasks/**` is outside this role's configured write scope. Record the handoff in `reports/performance/PERFORMANCE_REPORT.md` and in the pull request description; the Orchestrator transcribes it into the section below.
 
 ## Handoff
+
+Maintained by the Orchestrator under TASK-013 from the owner's report and pull request.
 
 - Commit or pull request:
 - Verification:

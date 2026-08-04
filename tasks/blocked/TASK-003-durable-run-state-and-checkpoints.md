@@ -10,14 +10,24 @@ write_scope:
   - src/orchestrator/state/**
   - tests/unit/orchestrator/state/**
 dependencies:
-  - TASK-002
+  - task: TASK-002
+    edge: gate_passed
+  - task: TASK-018
+    edge: implementation_published
 required_gates:
   - review
   - security
   - qa
+gate_tasks:
+  - task: TASK-009
+    gate: review
+  - task: TASK-010
+    gate: security
+  - task: TASK-011
+    gate: qa
 parent_task: TASK-001
-blocked_reason: The durable state contract is not approved yet.
-exit_condition: TASK-002 passes its review gate and its durable state and checkpoint contracts are recorded.
+blocked_reason: The durable state contract is not approved yet and no toolchain exists to compile or test against.
+exit_condition: TASK-015 records a passing verdict on TASK-002, and TASK-018 has published a compiling toolchain.
 ---
 
 # TASK-003: Implement durable run state and checkpointing
@@ -54,13 +64,24 @@ Implement the durable run state store that persists run and task records, writes
 
 ## Dependency notes
 
-- Depends on TASK-002 for the state machine, checkpoint contract, and record schema.
+- `gate_passed(TASK-002)` supplies the state machine, checkpoint contract, and record schema. The normative source is `docs/architecture/runtime/DURABLE-STATE-AND-CHECKPOINTS.md`, `docs/architecture/runtime/INTERFACE-CONTRACTS.md`, and `docs/architecture/runtime/STATE-MACHINE.md` from commit `9576fc9`.
+- `implementation_published(TASK-018)` supplies the TypeScript and Node.js toolchain required by ADR-0001. Without it this task cannot compile or run a test without writing outside its declared scope.
 - May execute in parallel with TASK-004; their write scopes do not overlap.
-- Blocks TASK-005, TASK-006, and TASK-008.
+- Blocks TASK-005, TASK-006, TASK-008, and TASK-017.
+
+## Contract root ownership
+
+This task owns the contract root `src/orchestrator/state/contracts/`, which is normatively defined by `docs/architecture/runtime/INTERFACE-CONTRACTS.md`. Transcribe that document; do not reinterpret it. Changing a type, signature, field name, or string-literal union declared there is prohibited during Waves 2 through 5 even though this task physically can. If a contract is wrong, stop at the boundary and hand off to the Orchestrator, which routes an amendment to the architect. See the contract change control procedure in `docs/architecture/runtime/INTEGRATION-STRATEGY.md`.
+
+## Task-record lifecycle
+
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. `tasks/**` is outside this role's configured write scope, so the owner of this task must not move or edit this file. Record the handoff in the commit message and the pull request description; the Orchestrator transcribes it into the section below.
 
 ## Handoff
+
+Maintained by the Orchestrator under TASK-013 from the owner's commit and pull request.
 
 - Commit or pull request:
 - Verification:
 - Known risks:
-- Next owner: orchestrator, to unblock TASK-005 and to route the change into TASK-009 and TASK-010
+- Next owner: orchestrator via TASK-013, to unblock TASK-005 and TASK-017 and to route the change into TASK-009, TASK-010, and TASK-011

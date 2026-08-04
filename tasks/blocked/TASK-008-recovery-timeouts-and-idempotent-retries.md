@@ -10,17 +10,33 @@ write_scope:
   - src/orchestrator/recovery/**
   - tests/unit/orchestrator/recovery/**
 dependencies:
-  - TASK-002
-  - TASK-003
-  - TASK-006
+  - task: TASK-002
+    edge: gate_passed
+  - task: TASK-003
+    edge: implementation_published
+  - task: TASK-004
+    edge: implementation_published
+  - task: TASK-006
+    edge: implementation_published
+  - task: TASK-017
+    edge: implementation_published
 required_gates:
   - review
   - security
   - qa
   - performance
+gate_tasks:
+  - task: TASK-009
+    gate: review
+  - task: TASK-010
+    gate: security
+  - task: TASK-011
+    gate: qa
+  - task: TASK-012
+    gate: performance
 parent_task: TASK-001
-blocked_reason: The recovery and retry contracts are not approved and the state store and supervisor do not exist yet.
-exit_condition: TASK-002 passes its review gate and TASK-003 and TASK-006 are complete.
+blocked_reason: The recovery and retry contracts are not approved, and the state store, error taxonomy, supervisor, and workspace lifecycle are not published.
+exit_condition: TASK-015 records a passing verdict on TASK-002, and TASK-003, TASK-004, TASK-006, and TASK-017 are published on main.
 ---
 
 # TASK-008: Implement crash recovery, timeouts, and idempotent retries
@@ -31,7 +47,7 @@ Implement the recovery layer that restores a run after an abrupt process termina
 
 ## Scope
 
-- Implement crash recovery that restores the latest consistent checkpoint, reconciles tasks whose leases expired during the outage, and resumes the run.
+- Implement crash recovery that restores the latest consistent checkpoint, reconciles tasks whose leases expired during the outage, reconciles orphaned agent workspaces through the TASK-017 reconciliation interface, and resumes the run.
 - Implement task-level and run-level timeout enforcement that transitions a timed-out task through the state machine rather than abandoning it.
 - Implement retry policy driven by the TASK-004 error taxonomy, with bounded attempts and backoff.
 - Implement idempotency keys so a retried task cannot apply a duplicate effect or a duplicate state advance.
@@ -44,7 +60,8 @@ Implement the recovery layer that restores a run after an abrupt process termina
 - [ ] Recovery after a simulated crash restores a consistent run and reaches the same terminal state as an uninterrupted run for the same input.
 - [ ] A task in flight at crash time is either completed once or retried once, never duplicated.
 - [ ] Task and run timeouts produce an explicit state transition with a recorded timeout reason.
-- [ ] Retries occur only for the retryable class from the TASK-004 taxonomy, and non-retryable failures are not retried.
+- [ ] Retries occur only for the `retry` disposition of the TASK-004 taxonomy as declared by `DISPOSITION_BY_CLASS`; `fail` and `escalate` classes are never retried, and this module never redefines that mapping.
+- [ ] A crash that left an agent workspace behind is reconciled through TASK-017 exactly once, and a retried attempt never reuses a workspace that a stale attempt may still hold.
 - [ ] Retry attempts are bounded, and exhausting them produces a recorded terminal outcome rather than an infinite loop.
 - [ ] Repeating a task with the same idempotency key does not apply the effect or the state advance twice.
 - [ ] Unit tests cover crash recovery, lease reconciliation, timeout transitions, retry classification, backoff bounds, retry exhaustion, and idempotent replay.
@@ -57,12 +74,21 @@ Implement the recovery layer that restores a run after an abrupt process termina
 
 ## Dependency notes
 
-- Depends on TASK-002, TASK-003, and TASK-006, and consumes the TASK-004 error taxonomy without modifying `src/agents/`.
+- `gate_passed(TASK-002)` supplies the recovery phases, post-crash invariants, idempotency keys, effect ledger, and backoff policy from `docs/architecture/runtime/CRASH-RECOVERY.md` and `docs/architecture/runtime/RETRIES-TIMEOUTS-AND-IDEMPOTENCY.md`.
+- `implementation_published(TASK-003)` supplies the state store, journal, and effect ledger substrate; `implementation_published(TASK-006)` supplies the transition function this module reuses.
+- `implementation_published(TASK-004)` supplies the error taxonomy and `DISPOSITION_BY_CLASS` that drive retry classification. This edge was missing in the first decomposition; the retry policy is defined entirely in terms of TASK-004's taxonomy and cannot be built against an unpublished contract. This task imports from `src/agents/contracts/` only and never modifies `src/agents/`.
+- `implementation_published(TASK-017)` supplies workspace reconciliation for work abandoned by a crash.
 - May execute in parallel with TASK-007; their write scopes do not overlap.
 
+## Task-record lifecycle
+
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. `tasks/**` is outside this role's configured write scope, so the owner of this task must not move or edit this file. Record the handoff in the commit message and the pull request description; the Orchestrator transcribes it into the section below.
+
 ## Handoff
+
+Maintained by the Orchestrator under TASK-013 from the owner's commit and pull request.
 
 - Commit or pull request:
 - Verification:
 - Known risks:
-- Next owner: orchestrator, to route the change into TASK-009, TASK-010, TASK-011, and TASK-012
+- Next owner: orchestrator via TASK-013, to route the change into TASK-009, TASK-010, TASK-011, and TASK-012

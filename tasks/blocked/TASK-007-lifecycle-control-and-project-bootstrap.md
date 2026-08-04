@@ -11,15 +11,24 @@ write_scope:
   - bin/**
   - tests/unit/orchestrator/lifecycle/**
 dependencies:
-  - TASK-002
-  - TASK-006
+  - task: TASK-002
+    edge: gate_passed
+  - task: TASK-006
+    edge: implementation_published
 required_gates:
   - review
   - security
   - qa
+gate_tasks:
+  - task: TASK-009
+    gate: review
+  - task: TASK-010
+    gate: security
+  - task: TASK-011
+    gate: qa
 parent_task: TASK-001
-blocked_reason: The supervisor run loop and bootstrap contract are not available yet.
-exit_condition: TASK-002 passes its review gate and TASK-006 is complete.
+blocked_reason: The supervisor run loop is not published and the bootstrap contract is not approved.
+exit_condition: TASK-015 records a passing verdict on TASK-002, and TASK-006 is published on main.
 ---
 
 # TASK-007: Implement lifecycle control and the one-input project bootstrap
@@ -61,13 +70,21 @@ Implement the single-command entry point and the lifecycle control surface that 
 
 ## Dependency notes
 
-- Depends on TASK-002 for the bootstrap contract and on TASK-006 for the supervisor loop and terminal states.
+- `gate_passed(TASK-002)` supplies the bootstrap contract, drain, pause, resume, and exit codes from `docs/architecture/runtime/LIFECYCLE-AND-BOOTSTRAP.md`.
+- `implementation_published(TASK-006)` supplies the supervisor loop and terminal states. TASK-006 in turn carries the TASK-003, TASK-004, TASK-005, and TASK-017 edges, so this task does not restate them; the transitive closure is recorded in `tasks/TASK-001-DEPENDENCY-GRAPH.md`.
 - May execute in parallel with TASK-008; their write scopes do not overlap.
 - Required by TASK-011 for end-to-end validation.
+- This task composes the object graph at the composition root. It constructs the workspace lifecycle from TASK-017 and the adapter registry from TASK-004 by injection; it does not reimplement either.
+
+## Task-record lifecycle
+
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. `tasks/**` is outside this role's configured write scope, so the owner of this task must not move or edit this file. The exclusion already stated in the scope above — that bootstrap does not add or edit repository task records under `tasks/` — is the runtime-behavior half of the same rule. Record the handoff in the commit message and the pull request description; the Orchestrator transcribes it into the section below.
 
 ## Handoff
+
+Maintained by the Orchestrator under TASK-013 from the owner's commit and pull request.
 
 - Commit or pull request:
 - Verification:
 - Known risks:
-- Next owner: orchestrator, to route the change into TASK-009, TASK-010, and TASK-011
+- Next owner: orchestrator via TASK-013, to route the change into TASK-009, TASK-010, and TASK-011
