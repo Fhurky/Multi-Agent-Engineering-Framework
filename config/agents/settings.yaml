@@ -51,9 +51,9 @@ assignments:
     llm: null
     task_queue: plans/backlog
     write_scope:
-      - ROADMAP.md
-      - SPRINT.md
-      - GOVERNANCE.md
+      - plans/ROADMAP.md
+      - plans/SPRINT.md
+      - docs/project/GOVERNANCE.md
       - plans/**
 
   architect:
@@ -63,7 +63,7 @@ assignments:
     llm: null
     task_queue: tasks/ready
     write_scope:
-      - ARCHITECTURE.md
+      - docs/architecture/ARCHITECTURE.md
       - docs/architecture/**
       - docs/adr/**
       - diagrams/architecture/**
@@ -86,7 +86,7 @@ assignments:
     llm: null
     task_queue: tasks/review
     write_scope:
-      - REVIEW.md
+      - reports/code-review/REVIEW.md
       - reports/code-review/**
 
   backend:
@@ -127,8 +127,8 @@ assignments:
     llm: null
     task_queue: tasks/review
     write_scope:
-      - SECURITY.md
-      - SECURITY_REPORT.md
+      - .github/SECURITY.md
+      - reports/security/SECURITY_REPORT.md
       - reports/security/**
       - specs/security/**
 
@@ -139,7 +139,7 @@ assignments:
     llm: null
     task_queue: tasks/review
     write_scope:
-      - BUG_REPORT.md
+      - reports/qa/BUG_REPORT.md
       - reports/qa/**
       - tests/integration/**
       - tests/e2e/**
@@ -152,7 +152,7 @@ assignments:
     llm: null
     task_queue: tasks/review
     write_scope:
-      - PERFORMANCE_REPORT.md
+      - reports/performance/PERFORMANCE_REPORT.md
       - reports/performance/**
       - tests/performance/**
 
@@ -180,11 +180,12 @@ assignments:
     task_queue: tasks/review
     write_scope:
       - README.md
-      - PROJECT_STRUCTURE.md
-      - CHANGELOG.md
-      - CONTRIBUTING.md
-      - SUPPORT.md
-      - RELEASE_NOTES.md
+      - docs/project/PROJECT_STRUCTURE.md
+      - docs/project/DOCUMENT_INDEX.md
+      - docs/project/CHANGELOG.md
+      - .github/CONTRIBUTING.md
+      - .github/SUPPORT.md
+      - docs/releases/RELEASE_NOTES.md
       - docs/api/**
       - docs/guides/**
       - docs/runbooks/**

@@ -9,7 +9,7 @@
 
 ## During work
 
-- [ ] Changes remain limited to ARCHITECTURE.md, docs/architecture/, docs/adr/, and diagrams/architecture/.
+- [ ] Changes remain limited to docs/architecture/ARCHITECTURE.md, docs/architecture/, docs/adr/, and diagrams/architecture/.
 - [ ] Cross-role needs are recorded for handoff instead of implemented here.
 - [ ] Decisions and evidence are traceable to the task.
 - [ ] Secrets and local environment data remain untracked.

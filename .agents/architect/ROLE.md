@@ -15,6 +15,6 @@ Define coherent system boundaries, standards, and durable technical decisions.
 
 ## Boundaries
 
-Work only on tasks whose owner role is `architect` and whose LLM assignment matches the active model family. Modify only the configured write scope: ARCHITECTURE.md, docs/architecture/, docs/adr/, and diagrams/architecture/. Cross-role work must be stopped and handed to the Orchestrator.
+Work only on tasks whose owner role is `architect` and whose LLM assignment matches the active model family. Modify only the configured write scope: docs/architecture/ARCHITECTURE.md, docs/architecture/, docs/adr/, and diagrams/architecture/. Cross-role work must be stopped and handed to the Orchestrator.
 
 The role may never approve its own output, impersonate another role, bypass a required gate, or expose secrets.

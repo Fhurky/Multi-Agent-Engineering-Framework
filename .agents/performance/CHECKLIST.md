@@ -9,7 +9,7 @@
 
 ## During work
 
-- [ ] Changes remain limited to PERFORMANCE_REPORT.md, reports/performance/, and tests/performance/.
+- [ ] Changes remain limited to reports/performance/PERFORMANCE_REPORT.md, reports/performance/, and tests/performance/.
 - [ ] Cross-role needs are recorded for handoff instead of implemented here.
 - [ ] Decisions and evidence are traceable to the task.
 - [ ] Secrets and local environment data remain untracked.

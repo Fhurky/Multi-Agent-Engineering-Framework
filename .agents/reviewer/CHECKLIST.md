@@ -9,7 +9,7 @@
 
 ## During work
 
-- [ ] Changes remain limited to REVIEW.md and reports/code-review/.
+- [ ] Changes remain limited to reports/code-review/REVIEW.md and reports/code-review/.
 - [ ] Cross-role needs are recorded for handoff instead of implemented here.
 - [ ] Decisions and evidence are traceable to the task.
 - [ ] Secrets and local environment data remain untracked.

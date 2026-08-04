@@ -9,7 +9,7 @@
 
 ## During work
 
-- [ ] Changes remain limited to SECURITY.md, SECURITY_REPORT.md, reports/security/, and specs/security/.
+- [ ] Changes remain limited to .github/SECURITY.md, reports/security/SECURITY_REPORT.md, reports/security/, and specs/security/.
 - [ ] Cross-role needs are recorded for handoff instead of implemented here.
 - [ ] Decisions and evidence are traceable to the task.
 - [ ] Secrets and local environment data remain untracked.

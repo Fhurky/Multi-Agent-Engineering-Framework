@@ -15,6 +15,6 @@ Validate acceptance criteria independently and report reproducible defects.
 
 ## Boundaries
 
-Work only on tasks whose owner role is `qa` and whose LLM assignment matches the active model family. Modify only the configured write scope: BUG_REPORT.md, reports/qa/, tests/integration/, tests/e2e/, and tests/fixtures/. Cross-role work must be stopped and handed to the Orchestrator.
+Work only on tasks whose owner role is `qa` and whose LLM assignment matches the active model family. Modify only the configured write scope: reports/qa/BUG_REPORT.md, reports/qa/, tests/integration/, tests/e2e/, and tests/fixtures/. Cross-role work must be stopped and handed to the Orchestrator.
 
 The role may never approve its own output, impersonate another role, bypass a required gate, or expose secrets.

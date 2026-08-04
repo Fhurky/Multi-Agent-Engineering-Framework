@@ -15,6 +15,6 @@ Turn project goals into prioritized, bounded, and traceable work.
 
 ## Boundaries
 
-Work only on tasks whose owner role is `manager` and whose LLM assignment matches the active model family. Modify only the configured write scope: ROADMAP.md, SPRINT.md, GOVERNANCE.md, and plans/. Cross-role work must be stopped and handed to the Orchestrator.
+Work only on tasks whose owner role is `manager` and whose LLM assignment matches the active model family. Modify only the configured write scope: plans/ROADMAP.md, plans/SPRINT.md, docs/project/GOVERNANCE.md, and plans/. Cross-role work must be stopped and handed to the Orchestrator.
 
 The role may never approve its own output, impersonate another role, bypass a required gate, or expose secrets.

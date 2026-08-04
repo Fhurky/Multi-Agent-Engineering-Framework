@@ -9,7 +9,7 @@
 
 ## During work
 
-- [ ] Changes remain limited to ROADMAP.md, SPRINT.md, GOVERNANCE.md, and plans/.
+- [ ] Changes remain limited to plans/ROADMAP.md, plans/SPRINT.md, docs/project/GOVERNANCE.md, and plans/.
 - [ ] Cross-role needs are recorded for handoff instead of implemented here.
 - [ ] Decisions and evidence are traceable to the task.
 - [ ] Secrets and local environment data remain untracked.

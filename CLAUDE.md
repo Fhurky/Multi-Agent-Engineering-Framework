@@ -5,7 +5,8 @@ Claude Code must load and follow the canonical project sources below:
 - Project governance: @AGENTS.md
 - Runtime role assignments: @config/agents/settings.yaml
 - Repository overview: @README.md
-- Directory responsibilities: @PROJECT_STRUCTURE.md
+- Document locations: @docs/project/DOCUMENT_INDEX.md
+- Directory responsibilities: @docs/project/PROJECT_STRUCTURE.md
 
 ## Startup procedure
 

@@ -10,7 +10,8 @@ Before starting any task, read the following sources in order:
 2. `config/agents/settings.yaml` for the enabled role, title, and LLM family assignment.
 3. The four contract files under `.agents/<role>/` for the assigned role.
 4. The active task record under `tasks/` and its linked specification, plan, or architecture decision.
-5. `README.md` and `PROJECT_STRUCTURE.md` when repository-wide context is needed.
+5. `README.md` and `docs/project/DOCUMENT_INDEX.md` to locate durable project documents.
+6. `docs/project/PROJECT_STRUCTURE.md` when repository-wide directory context is needed.
 
 Repository instructions are cumulative. A provider-specific adapter may clarify how to apply these rules, but it may not weaken or contradict them. If instructions conflict or the assigned role is unclear, stop and ask the Orchestrator or user instead of guessing.
 
@@ -154,10 +155,11 @@ A task may enter `tasks/done/` only after all applicable acceptance criteria, in
 | Role handoff format | `.agents/<role>/OUTPUT_TEMPLATE.md` |
 | Routing and handoffs | `.agents/ROUTING.md`, `.agents/HANDOFF.md` |
 | Requirements | `specs/` |
-| Architecture | `ARCHITECTURE.md`, `docs/architecture/`, `docs/adr/` |
+| Architecture | `docs/architecture/ARCHITECTURE.md`, `docs/architecture/`, `docs/adr/` |
 | Task state | `tasks/` |
 | Review evidence | `reports/` and root-level report summaries |
-| Directory responsibilities | `PROJECT_STRUCTURE.md` |
+| Document locations | `docs/project/DOCUMENT_INDEX.md` |
+| Directory responsibilities | `docs/project/PROJECT_STRUCTURE.md` |
 
 ## Tool-specific adapters
 

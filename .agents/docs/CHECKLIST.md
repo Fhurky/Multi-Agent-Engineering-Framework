@@ -9,7 +9,7 @@
 
 ## During work
 
-- [ ] Changes remain limited to README.md, PROJECT_STRUCTURE.md, CHANGELOG.md, CONTRIBUTING.md, SUPPORT.md, RELEASE_NOTES.md, docs/api/, docs/guides/, and docs/runbooks/.
+- [ ] Changes remain limited to README.md, docs/project/PROJECT_STRUCTURE.md, docs/project/DOCUMENT_INDEX.md, docs/project/CHANGELOG.md, .github/CONTRIBUTING.md, .github/SUPPORT.md, docs/releases/RELEASE_NOTES.md, docs/api/, docs/guides/, and docs/runbooks/.
 - [ ] Cross-role needs are recorded for handoff instead of implemented here.
 - [ ] Decisions and evidence are traceable to the task.
 - [ ] Secrets and local environment data remain untracked.

@@ -9,7 +9,7 @@
 
 ## During work
 
-- [ ] Changes remain limited to BUG_REPORT.md, reports/qa/, tests/integration/, tests/e2e/, and tests/fixtures/.
+- [ ] Changes remain limited to reports/qa/BUG_REPORT.md, reports/qa/, tests/integration/, tests/e2e/, and tests/fixtures/.
 - [ ] Cross-role needs are recorded for handoff instead of implemented here.
 - [ ] Decisions and evidence are traceable to the task.
 - [ ] Secrets and local environment data remain untracked.

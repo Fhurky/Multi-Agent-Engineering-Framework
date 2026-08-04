@@ -52,6 +52,8 @@ $requiredFiles = @(
     '.agents/DEFINITION_OF_DONE.md',
     '.worktreeinclude',
     'templates/task.md',
+    'docs/project/DOCUMENT_INDEX.md',
+    'docs/project/PROJECT_STRUCTURE.md',
     'scripts/ci/test-orchestration.ps1',
     '.githooks/pre-push',
     'scripts/setup/install-git-hooks.ps1',
@@ -64,6 +66,16 @@ foreach ($relativePath in $requiredFiles) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item -LiteralPath $path).Length -eq 0) {
         $errors += "Required file is missing or empty: $relativePath"
     }
+}
+
+$allowedRootMarkdown = @('README.md', 'AGENTS.md', 'CLAUDE.md')
+$unexpectedRootMarkdown = @(
+    Get-ChildItem -LiteralPath $repositoryRoot -File -Filter '*.md' |
+        Where-Object { $_.Name -notin $allowedRootMarkdown } |
+        ForEach-Object { $_.Name }
+)
+foreach ($name in $unexpectedRootMarkdown) {
+    $errors += "Markdown file must be moved out of the repository root: $name"
 }
 
 $trackedFiles = @(& git ls-files)

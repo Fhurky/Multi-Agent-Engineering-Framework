@@ -8,7 +8,7 @@ This repository defines an engineering operating model in which multiple LLM age
 
 This is an organizational framework and project scaffold, not an LLM runtime. It includes operational worktree isolation, atomic task locks, role write scopes, agent contracts, and repository validation; application code and technology-specific delivery configuration remain project-specific placeholders.
 
-For a description of every directory, see [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md).
+For document locations, see [DOCUMENT_INDEX.md](docs/project/DOCUMENT_INDEX.md). For a description of every directory, see [PROJECT_STRUCTURE.md](docs/project/PROJECT_STRUCTURE.md).
 
 ## Core principles
 
@@ -93,7 +93,7 @@ DevOps / Release
    ./scripts/setup/install-git-hooks.ps1
    ```
 
-4. Define the initial scope in `ROADMAP.md`, `ARCHITECTURE.md`, and the relevant files under `specs/`.
+4. Define the initial scope in `plans/ROADMAP.md`, `docs/architecture/ARCHITECTURE.md`, and the relevant files under `specs/`.
 5. Create work from `templates/task.md`, place it in `tasks/backlog/`, and promote it only when dependencies and acceptance criteria are clear.
 6. Use the isolated worktree workflow below for every agent task.
 7. Replace application, container, scanner, and deployment placeholders only with technology-appropriate configuration.
@@ -218,7 +218,7 @@ project/
 `-- tests/                   # Unit, integration, and end-to-end tests
 ```
 
-The condensed tree above shows responsibility boundaries rather than every directory. See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for the complete directory guide.
+The condensed tree above shows responsibility boundaries rather than every directory. See [PROJECT_STRUCTURE.md](docs/project/PROJECT_STRUCTURE.md) for the complete directory guide.
 
 ## Agent contract
 
@@ -243,16 +243,16 @@ To add a role:
 
 | Deliverable | Primary owner |
 |---|---|
-| `ROADMAP.md` | Project Manager |
-| `SPRINT.md` | Project Manager |
-| `ARCHITECTURE.md` | Solution Architect |
-| `REVIEW.md` | Independent Reviewer |
-| `SECURITY_REPORT.md` | Security Engineer |
-| `PERFORMANCE_REPORT.md` | Performance Engineer |
-| `BUG_REPORT.md` | QA Engineer |
-| `RELEASE_NOTES.md` | Documentation Engineer with DevOps input |
+| `plans/ROADMAP.md` | Project Manager |
+| `plans/SPRINT.md` | Project Manager |
+| `docs/architecture/ARCHITECTURE.md` | Solution Architect |
+| `reports/code-review/REVIEW.md` | Independent Reviewer |
+| `reports/security/SECURITY_REPORT.md` | Security Engineer |
+| `reports/performance/PERFORMANCE_REPORT.md` | Performance Engineer |
+| `reports/qa/BUG_REPORT.md` | QA Engineer |
+| `docs/releases/RELEASE_NOTES.md` | Documentation Engineer with DevOps input |
 
-Root-level deliverables provide the current summary. Detailed and historical evidence belongs in the matching subdirectory under `reports/`, `plans/`, or `docs/`.
+Summary deliverables live in the matching domain directory. Detailed and historical evidence belongs beside them under `reports/`, `plans/`, or `docs/`.
 
 ## Quality gates and definition of done
 

@@ -2,6 +2,8 @@
 
 This document defines the responsibility boundaries of every directory in the project tree. Place new files in the most specific applicable directory, and avoid duplicating the same source of truth across agent or tool-specific directories.
 
+For the canonical location of each major Markdown document, see [DOCUMENT_INDEX.md](DOCUMENT_INDEX.md).
+
 ## Agent organization
 
 | Directory | Purpose |
@@ -37,6 +39,9 @@ This document defines the responsibility boundaries of every directory in the pr
 | Directory | Purpose |
 |---|---|
 | `.github/` | Collects GitHub contribution, review, ownership, and automation configuration. Repository-management files belong here. |
+| `.github/CONTRIBUTING.md` | Defines contribution expectations in GitHub's automatically discovered community-health location. |
+| `.github/SECURITY.md` | Defines vulnerability reporting and security policy in GitHub's automatically discovered location. |
+| `.github/SUPPORT.md` | Explains supported help channels in GitHub's automatically discovered location. |
 | `.github/ISSUE_TEMPLATE/` | Contains issue templates for consistent bug, feature, and task reports. These templates standardize the acceptance information needed by agents. |
 | `.github/workflows/` | Contains GitHub Actions workflows for CI, security scanning, and releases. Each workflow must contain valid YAML and the required secrets before it is enabled. |
 | `.githooks/` | Contains tracked local Git hooks that prevent agent sessions from pushing directly to protected integration branches. Each clone activates them through the setup script. |
@@ -110,9 +115,11 @@ This document defines the responsibility boundaries of every directory in the pr
 | Directory | Purpose |
 |---|---|
 | `docs/` | Is the primary root for durable user, developer, and operations documentation. It should reflect current system behavior and change alongside the code. |
+| `docs/project/` | Contains repository-wide reference material such as the document index, directory guide, governance summary, and changelog. |
+| `docs/releases/` | Contains durable release notes organized separately from operational release evidence under `reports/release/`. |
 | `docs/adr/` | Contains Architecture Decision Records describing important decisions, alternatives, and rationale. Superseded decisions should be replaced by a new record rather than deleted. |
 | `docs/api/` | Documents API contracts, examples, authentication, and error behavior. Generated reference material may be separated from human-oriented guides. |
-| `docs/architecture/` | Contains detailed documentation about components, data flows, boundaries, and technical principles. The root `ARCHITECTURE.md` may serve as its summary entry point. |
+| `docs/architecture/` | Contains the architecture summary and detailed documentation about components, data flows, boundaries, and technical principles. `docs/architecture/ARCHITECTURE.md` is its entry point. |
 | `docs/guides/` | Contains step-by-step setup, development, and usage guides. Each guide should identify its audience and prerequisites. |
 | `docs/runbooks/` | Contains operational, incident-response, rollback, and recovery procedures. Commands and verification steps should be explicit and actionable. |
 | `diagrams/` | Is the root for diagrams that support written documentation, preferably in versionable source formats. Generated images should remain paired with editable sources. |

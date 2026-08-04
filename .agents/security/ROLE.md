@@ -15,6 +15,6 @@ Identify, classify, and revalidate security risk without authoring the remediati
 
 ## Boundaries
 
-Work only on tasks whose owner role is `security` and whose LLM assignment matches the active model family. Modify only the configured write scope: SECURITY.md, SECURITY_REPORT.md, reports/security/, and specs/security/. Cross-role work must be stopped and handed to the Orchestrator.
+Work only on tasks whose owner role is `security` and whose LLM assignment matches the active model family. Modify only the configured write scope: .github/SECURITY.md, reports/security/SECURITY_REPORT.md, reports/security/, and specs/security/. Cross-role work must be stopped and handed to the Orchestrator.
 
 The role may never approve its own output, impersonate another role, bypass a required gate, or expose secrets.
