@@ -60,8 +60,13 @@ Create an executable dependency-ordered task graph for a single-command autonomo
 | TASK-011 QA validation | qa | gemini | TASK-007, TASK-008 | blocked |
 | TASK-012 Performance validation | performance | gemini | TASK-005, TASK-006, TASK-008, TASK-011 | blocked |
 | TASK-013 Remediation routing and gate closure | orchestrator | claude | TASK-009 … TASK-012 | blocked |
+| TASK-014 Independent review of this decomposition | reviewer | gpt | TASK-001 | ready |
 
 Dependency order, the write-scope partition, the required-behavior coverage matrix, and the findings return path are recorded in `tasks/TASK-001-DEPENDENCY-GRAPH.md`.
+
+## Review gate
+
+This task declares `required_gates: [review]`. That gate is owned by `tasks/ready/TASK-014-independent-review-of-the-task-001-decomposition.md`, assigned to `reviewer` / `gpt` on branch `agent/gpt/reviewer/task-014`, producing `reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md`. TASK-014 was created by a corrective Orchestrator follow-up after the gate was found to have no dedicated Reviewer task record. TASK-001 may not move to `tasks/done/` until TASK-014 records its verdict, and the Claude Orchestrator that authored this decomposition may not close that gate itself.
 
 ## Handoff
 
@@ -72,4 +77,5 @@ Dependency order, the write-scope partition, the required-behavior coverage matr
   - TASK-013 holds `tasks/**`, the same scope as TASK-001. Only one of them may be active at a time.
   - The validation tasks depend on `gpt` and `gemini` assignments being available; if a family is unavailable, the affected gate must be reassigned by the user before the wave starts, since an author may not review their own change.
   - Runtime task write scopes assume directories such as `src/orchestrator/state/` that do not exist yet; the owning task creates them.
-- Next owner: architect for TASK-002, then reviewer for the independent review gate on this decomposition.
+  - TASK-014 writes `reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md`, which is nominally inside the broader `reports/code-review/**` scope held by TASK-009. The two are separated by sequencing rather than by disjoint paths: TASK-014 runs now, TASK-009 stays blocked until TASK-003 through TASK-008 complete. If the user prefers a purely path-based partition, TASK-009's scope must be narrowed by a separate Orchestrator task.
+- Next owner: reviewer for TASK-014, the independent review gate on this decomposition; architect for TASK-002, which does not depend on that gate.

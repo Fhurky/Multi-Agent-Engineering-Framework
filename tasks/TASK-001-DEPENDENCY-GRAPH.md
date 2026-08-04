@@ -18,10 +18,12 @@ Durable handoff note produced by the Orchestrator under TASK-001. It records the
 | TASK-011 | QA validation | qa | gemini | TASK-007, TASK-008 | blocked |
 | TASK-012 | Performance validation | performance | gemini | TASK-005, TASK-006, TASK-008, TASK-011 | blocked |
 | TASK-013 | Remediation routing and gate closure | orchestrator | claude | TASK-009 … TASK-012 | blocked |
+| TASK-014 | Independent review of the TASK-001 decomposition | reviewer | gpt | TASK-001 | ready |
 
 ## Execution waves
 
 ```text
+Wave 0  TASK-014                          review gate on this decomposition, parallel to Wave 1
 Wave 1  TASK-002                          architecture, no parallel peer
 Wave 2  TASK-003 | TASK-004               parallel, disjoint write scopes
 Wave 3  TASK-005                          needs durable state
@@ -50,8 +52,9 @@ No two tasks in the graph share a write scope, so any two tasks whose dependenci
 | TASK-011 | `reports/qa/**`, `tests/integration/**`, `tests/e2e/**`, `tests/fixtures/**` |
 | TASK-012 | `reports/performance/**`, `tests/performance/**` |
 | TASK-013 | `tasks/**` |
+| TASK-014 | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md` |
 
-Each task's scope is a subset of its role's configured write scope in `config/agents/settings.yaml`. TASK-013 shares `tasks/**` with TASK-001 and must not be claimed while another task holding `tasks/**` is active.
+Each task's scope is a subset of its role's configured write scope in `config/agents/settings.yaml`. TASK-013 shares `tasks/**` with TASK-001 and must not be claimed while another task holding `tasks/**` is active. TASK-014's single file is nominally inside TASK-009's broader `reports/code-review/**` glob; the two are separated by sequencing, since TASK-009 remains blocked until TASK-003 through TASK-008 complete. TASK-009 must not modify `reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md`.
 
 ## Required behavior coverage
 
@@ -89,6 +92,8 @@ the originating validating role revalidates and the gate closes
 ```
 
 Validating roles report and revalidate; they never implement the fix. High and critical security findings block delivery until they are resolved or formally accepted by an authorized human.
+
+TASK-014 uses the same shape for the decomposition itself: the reviewer records findings against the named task record and owner role, the Orchestrator applies the correction under a follow-up Orchestrator task, and the reviewer revalidates. The Orchestrator that authored the decomposition never closes that gate.
 
 ## Operational notes for each next owner
 
