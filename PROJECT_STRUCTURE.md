@@ -1,159 +1,158 @@
-# Proje Klasör Rehberi
+# Project Directory Guide
 
-Bu belge, proje ağacındaki klasörlerin sorumluluk sınırlarını tanımlar. Yeni bir dosya mümkün olan en özel klasöre yerleştirilmeli; aynı bilgi birden fazla agent veya araç klasöründe kopyalanmamalıdır.
+This document defines the responsibility boundaries of every directory in the project tree. Place new files in the most specific applicable directory, and avoid duplicating the same source of truth across agent or tool-specific directories.
 
-## Agent organizasyonu
+## Agent organization
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `.agents/` | Teknolojiden ve LLM sağlayıcısından bağımsız, kanonik agent tanımlarını barındırır. Rol, sistem promptu, kontrol listesi ve çıktı şablonlarının ana kaynağı burasıdır. |
-| `.agents/manager/` | Yol haritası, backlog, öncelik ve görev sahipliğini yöneten Project Manager agent’ına ayrılmıştır. Üretim kodu bu klasörün sorumluluğunda değildir. |
-| `.agents/architect/` | Mimari kararları, teknik standartları ve bileşen sınırlarını tanımlayan Solution Architect agent’ını içerir. Özellik implementasyonundan önce teknik yönü netleştirir. |
-| `.agents/orchestrator/` | İşleri uygun agent’lara yönlendiren, bağımlılıkları ve handoff akışını takip eden koordinasyon agent’ını içerir. Alan uzmanlarının kararlarını devralmaz. |
-| `.agents/reviewer/` | Kodu yazan agent’tan bağımsız kod incelemesi yapan reviewer tanımlarını barındırır. Doğruluk, sürdürülebilirlik ve standart uyumunu denetler. |
-| `.agents/backend/` | API, servis, iş kuralları ve sunucu tarafı implementasyonundan sorumlu Backend Engineer agent’ını içerir. Kullanıcı arayüzü burada ele alınmaz. |
-| `.agents/frontend/` | Kullanıcı arayüzü, erişilebilirlik ve istemci tarafı davranışlarından sorumlu Frontend Engineer agent’ını içerir. Sunucu iş mantığını üstlenmez. |
-| `.agents/database/` | Veri modeli, sorgular, migration ve veri bütünlüğünden sorumlu Database Engineer agent’ını içerir. API davranışını doğrudan belirlemez. |
-| `.agents/security/` | Tehdit modelleme, secret tarama, SAST ve güvenlik incelemelerini yürüten Security Engineer agent’ını içerir. Yüksek veya kritik bulgularda teslimatı durdurabilir. |
-| `.agents/qa/` | Test stratejisi, hata avcılığı ve kabul doğrulamasından sorumlu QA Engineer agent’ını içerir. Üretim mimarisinin sahibi değildir. |
-| `.agents/performance/` | Profiling, benchmark ve darboğaz analizinden sorumlu Performance Engineer agent’ını içerir. Optimizasyonları ölçülebilir kanıtlarla değerlendirir. |
-| `.agents/devops/` | CI/CD, container, ortam ve dağıtım otomasyonundan sorumlu DevOps Engineer agent’ını içerir. Uygulamanın iş kurallarını sahiplenmez. |
-| `.agents/docs/` | Kullanım, API, operasyon ve sürüm dokümantasyonundan sorumlu Documentation Engineer agent’ını içerir. Kod ve davranış değişikliklerinin belgelenmesini sağlar. |
+| `.agents/` | Contains the canonical, technology- and provider-independent agent definitions. It is the primary source for roles, system prompts, checklists, and output templates. |
+| `.agents/manager/` | Contains the Project Manager agent responsible for the roadmap, backlog, priorities, and task ownership. Production code is outside this role's responsibility. |
+| `.agents/architect/` | Contains the Solution Architect agent responsible for architectural decisions, technical standards, and component boundaries. It establishes technical direction before feature implementation begins. |
+| `.agents/orchestrator/` | Contains the coordination agent that routes work, tracks dependencies, and manages handoffs. It coordinates domain experts without taking ownership of their decisions. |
+| `.agents/reviewer/` | Contains the independent reviewer that evaluates work produced by other agents. It checks correctness, maintainability, and compliance with project standards. |
+| `.agents/backend/` | Contains the Backend Engineer agent responsible for APIs, services, business rules, and server-side implementation. User interface work does not belong to this role. |
+| `.agents/frontend/` | Contains the Frontend Engineer agent responsible for interfaces, accessibility, and client-side behavior. It does not own server-side business logic. |
+| `.agents/database/` | Contains the Database Engineer agent responsible for data models, queries, migrations, and data integrity. It does not directly define API behavior. |
+| `.agents/security/` | Contains the Security Engineer agent responsible for threat modeling, secret scanning, SAST, and security reviews. It may block delivery when high or critical findings remain unresolved. |
+| `.agents/qa/` | Contains the QA Engineer agent responsible for test strategy, defect discovery, and acceptance validation. It does not own the production architecture. |
+| `.agents/performance/` | Contains the Performance Engineer agent responsible for profiling, benchmarks, and bottleneck analysis. It evaluates optimizations using measurable evidence. |
+| `.agents/devops/` | Contains the DevOps Engineer agent responsible for CI/CD, containers, environments, and deployment automation. It does not own application business rules. |
+| `.agents/docs/` | Contains the Documentation Engineer agent responsible for usage, API, operations, and release documentation. It ensures that behavior and code changes are documented. |
 
-## LLM ve editör adaptörleri
+## LLM and editor adapters
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `.claude/` | Claude’a özgü proje ayarları ve adaptörleri için ayrılmıştır. Kanonik rol kuralları `.agents/` altında kalmalıdır. |
-| `.claude/agents/` | Genel agent rollerinin Claude tarafından kullanılacak sağlayıcıya özel karşılıklarını barındırır. Buradaki tanımlar ortak rol sözleşmelerini genişletmeli, kopyalamamalıdır. |
-| `.codex/` | Codex’e özgü proje ayarları, otomasyonlar ve adaptörler için ayrılmıştır. Ortak süreçlerin ana kaynağı olarak kullanılmamalıdır. |
-| `.codex/skills/` | Codex’in projeye özel, tekrar kullanılabilir skill tanımlarını barındırır. Her skill dar ve açık bir sorumluluğa sahip olmalıdır. |
-| `.cursor/` | Cursor editörüne özgü proje ayarlarını barındırır. Uygulama kodundan ve sağlayıcıdan bağımsız kurallardan ayrı tutulur. |
-| `.cursor/rules/` | Cursor’un dosya veya bağlam bazlı çalışma kurallarını içerir. Kurallar `.agents/` altındaki sorumluluklarla çelişmemelidir. |
+| `.claude/` | Contains Claude-specific project settings and adapters. Canonical role rules must remain under `.agents/`. |
+| `.claude/agents/` | Contains provider-specific mappings that make the shared agent roles available to Claude. These definitions should extend shared contracts rather than duplicate them. |
+| `.codex/` | Contains Codex-specific project settings, automation, and adapters. It must not become the source of truth for shared processes. |
+| `.codex/skills/` | Contains reusable, project-specific Codex skill definitions. Each skill should have a narrow and explicit responsibility. |
+| `.cursor/` | Contains project settings specific to the Cursor editor. These settings remain separate from application code and provider-independent rules. |
+| `.cursor/rules/` | Contains file- or context-specific working rules for Cursor. The rules must not conflict with responsibilities defined under `.agents/`. |
 
-## GitHub iş akışı
+## GitHub workflow
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `.github/` | GitHub üzerindeki katkı, inceleme, sahiplik ve otomasyon yapılandırmalarını toplar. Depo yönetimine ait dosyalar burada tutulur. |
-| `.github/ISSUE_TEMPLATE/` | Hata, özellik ve görev kayıtlarının tutarlı bilgiyle açılmasını sağlayan issue şablonlarını içerir. Agent’ların ihtiyaç duyduğu kabul kriterleri bu şablonlarla standartlaştırılır. |
-| `.github/workflows/` | CI, güvenlik taraması ve sürüm otomasyonu gibi GitHub Actions iş akışlarını içerir. Bir workflow etkinleştirilmeden önce geçerli YAML ve gerekli secret’larla tamamlanmalıdır. |
+| `.github/` | Collects GitHub contribution, review, ownership, and automation configuration. Repository-management files belong here. |
+| `.github/ISSUE_TEMPLATE/` | Contains issue templates for consistent bug, feature, and task reports. These templates standardize the acceptance information needed by agents. |
+| `.github/workflows/` | Contains GitHub Actions workflows for CI, security scanning, and releases. Each workflow must contain valid YAML and the required secrets before it is enabled. |
 
-## Uygulama ve çalışma zamanı
+## Application and runtime
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `src/` | Dağıtılabilir üretim kodunun ana köküdür. Test, rapor ve geçici çıktıların buraya yazılmaması gerekir. |
-| `src/agents/` | Uygulama içinde çalışan agent adaptörünü, yürütücülerini ve agent runtime kodunu içerir. Markdown rol sözleşmeleri ise `.agents/` altında kalır. |
-| `src/backend/` | API uçları, servisler, sunucu iş mantığı ve backend entegrasyonlarını içerir. Frontend bileşenleri bu klasöre konmaz. |
-| `src/frontend/` | Kullanıcı arayüzü bileşenleri, sayfalar ve istemci tarafı durum yönetimini içerir. Sunucuya özel koddan ayrıdır. |
-| `src/orchestrator/` | Agent seçimi, iş planlama, paralel çalışma, retry ve sonuç birleştirme gibi orkestrasyon kodunu içerir. Rol talimatlarının değil, çalışma zamanı koordinasyonunun yeridir. |
-| `src/shared/` | Birden fazla uygulama bileşeni tarafından kullanılan ortak tip, yardımcı ve sözleşmeleri içerir. Yalnızca gerçekten paylaşılan kod burada tutulmalıdır. |
-| `console/` | Agent sistemini gözlemlemek ve yönetmek için geliştirilecek yönetim konsolunun köküdür. Uygulamanın ana iş mantığından ayrı bir arayüz katmanı olarak davranır. |
-| `console/client/` | Yönetim konsolunun tarayıcı veya masaüstü istemci arayüzünü içerir. Sunucu endpoint’leri burada tanımlanmaz. |
-| `console/server/` | Konsolun backend API’sini, gerçek zamanlı olaylarını ve yönetim servislerini içerir. Ana uygulama backend’iyle sınırları açık tutulmalıdır. |
-| `bin/` | Komut satırından çalıştırılacak giriş noktaları ve ince wrapper betikleri için ayrılmıştır. Karmaşık iş mantığı ilgili `src/` veya `scripts/` modülüne yönlendirilmelidir. |
+| `src/` | Is the root of deployable production code. Tests, reports, and temporary output should not be written here. |
+| `src/agents/` | Contains runtime agent adapters, executors, and supporting implementation. Markdown role contracts remain under `.agents/`. |
+| `src/backend/` | Contains API endpoints, services, server-side business logic, and backend integrations. Frontend components do not belong here. |
+| `src/frontend/` | Contains interface components, pages, and client-side state management. It remains separate from server-specific code. |
+| `src/orchestrator/` | Contains runtime coordination such as agent selection, work scheduling, parallel execution, retries, and result aggregation. It implements orchestration rather than role instructions. |
+| `src/shared/` | Contains types, helpers, and contracts used by multiple application components. Only genuinely shared code should be placed here. |
+| `console/` | Is the root of the management console used to observe and operate the agent system. It acts as an interface layer separate from the application's primary business logic. |
+| `console/client/` | Contains the browser or desktop client for the management console. Server endpoints are not defined here. |
+| `console/server/` | Contains the console API, real-time events, and management services. Its boundary with the primary application backend should remain explicit. |
+| `bin/` | Contains command-line entry points and thin wrapper scripts. Complex logic should be delegated to the appropriate module under `src/` or `scripts/`. |
 
-## Yapılandırma ve veri
+## Configuration and data
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `config/` | Secret içermeyen uygulama ve agent yapılandırmalarının ortak köküdür. Hassas değerler environment değişkenleri veya secret yöneticilerinde tutulmalıdır. |
-| `config/agents/` | Agent limitleri, model seçimi, yetkiler ve yönlendirme gibi çalıştırma ayarlarını içerir. Rol metinleri yerine makine tarafından okunabilen yapılandırmalar burada bulunur. |
-| `config/environments/` | Development, test, staging ve production gibi ortamlara göre değişen, hassas olmayan ayarları içerir. Ortak varsayımlar ile ortam override’ları ayrıştırılmalıdır. |
-| `data/` | Örnek, test ve geliştirme verilerinin kontrollü köküdür. Gerçek kullanıcı verisi veya secret içeren üretim çıktıları depoya eklenmemelidir. |
-| `data/fixtures/` | Testlerin tekrar üretilebilir başlangıç verilerini barındırır. Fixture’lar küçük, deterministik ve kişisel veriden arındırılmış olmalıdır. |
-| `data/samples/` | Dokümantasyon, demo ve yerel denemelerde kullanılan örnek girdileri içerir. Üretim verisinin kopyası olarak kullanılmamalıdır. |
-| `schema/` | Veri sözleşmeleri, veritabanı yapısı ve şema evriminin ana köküdür. Uygulama koduyla birlikte sürümlenebilir ve denetlenebilir olmalıdır. |
-| `schema/migrations/` | Veritabanı değişikliklerini sırayla ve geri izlenebilir biçimde uygulayan migration dosyalarını içerir. Yayınlanan migration’lar geriye dönük değiştirilmemelidir. |
-| `schema/seeds/` | Yerel geliştirme ve test ortamları için başlangıç verisi oluşturan seed dosyalarını içerir. Üretim secret’ları veya hassas veriler burada bulunmamalıdır. |
-| `localization/` | Çeviri kaynakları ve yerelleştirme yapılandırmalarının köküdür. Kullanıcıya görünen metinlerin desteklenen dillere göre yönetilmesini sağlar. |
-| `localization/locales/` | Her dil veya bölgeye ait çeviri kataloglarını içerir. Anahtarların diller arasında tutarlı tutulması gerekir. |
+| `config/` | Is the shared root for non-secret application and agent configuration. Sensitive values must be stored in environment variables or a secret manager. |
+| `config/agents/` | Contains machine-readable runtime settings such as agent limits, model selection, permissions, and routing. Role prose belongs under `.agents/` instead. |
+| `config/environments/` | Contains non-sensitive settings that vary between development, test, staging, and production. Shared defaults and environment overrides should remain distinct. |
+| `data/` | Is the controlled root for sample, test, and development data. Production user data and secret-bearing output must never be committed here. |
+| `data/fixtures/` | Contains deterministic seed data used to establish repeatable test conditions. Fixtures should remain small and free of personal data. |
+| `data/samples/` | Contains example inputs used by documentation, demonstrations, and local experiments. It must not become a copy of production data. |
+| `schema/` | Is the root for data contracts, database structure, and schema evolution. Its contents should be versioned and reviewed alongside application code. |
+| `schema/migrations/` | Contains ordered migrations that apply database changes in a traceable way. Published migrations should not be rewritten retroactively. |
+| `schema/seeds/` | Contains seed data for local development and test environments. Production secrets and sensitive data do not belong here. |
+| `localization/` | Is the root for translation resources and localization configuration. It supports managing user-facing text across supported languages. |
+| `localization/locales/` | Contains translation catalogs for each language or region. Translation keys should remain consistent across locales. |
 
-## Planlama, görev ve handoff akışı
+## Planning, tasks, and handoffs
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `plans/` | Yol haritasından türeyen çalışma planlarının, sprintlerin ve sürüm planlarının geçmişini tutar. Uygulama ayrıntısından çok kapsam, sıra ve bağımlılıklara odaklanır. |
-| `plans/backlog/` | Henüz sprint veya sürüme alınmamış planlanabilir iş kümelerini içerir. Önceliklendirme Project Manager sorumluluğundadır. |
-| `plans/sprints/` | Aktif ve geçmiş sprint planlarını, hedeflerini ve kapasite kararlarını içerir. Her sprint ölçülebilir bir sonuç tanımlamalıdır. |
-| `plans/releases/` | Sürümlerin kapsamını, bağımlılıklarını, risklerini ve yayın sırasını tanımlar. İlgili release raporlarına bağlantı vermelidir. |
-| `tasks/` | Agent’lar arasında devredilen atomik iş kayıtlarının durum tabanlı köküdür. Her görev tek bir aktif sahibin yanı sıra açık kabul kriterlerine sahip olmalıdır. |
-| `tasks/backlog/` | Henüz önceliklendirilmemiş veya detaylandırılmamış görevleri içerir. Çalışmaya başlamadan önce hazır kriterlerini karşılamaları gerekir. |
-| `tasks/ready/` | Bağımlılıkları ve kabul kriterleri tamamlanmış, bir agent’a atanabilir görevleri içerir. Buradaki işler uygulamaya başlanabilecek netlikte olmalıdır. |
-| `tasks/in-progress/` | Şu anda bir agent tarafından yürütülen görevleri içerir. Görev kaydında sahip, dal ve güncel ilerleme bilgisi bulunmalıdır. |
-| `tasks/review/` | Implementasyonu bitmiş ve bağımsız inceleme bekleyen görevleri içerir. Yazar kendi işini onaylayamaz. |
-| `tasks/blocked/` | Dış bağımlılık, karar veya teknik engel nedeniyle ilerleyemeyen görevleri içerir. Engel nedeni ve çözülme koşulu açıkça kaydedilmelidir. |
-| `tasks/done/` | Kabul kriterleri, inceleme ve gerekli kontrolleri tamamlanan görevlerin arşividir. Sonuç ve ilgili commit veya pull request bağlantısı korunmalıdır. |
-| `templates/` | Görev, özellik, ADR, handoff, inceleme ve sürüm belgeleri için tekrar kullanılabilir Markdown şablonlarını içerir. Şablonlar süreç boyunca gerekli bilgilerin unutulmasını önler. |
+| `plans/` | Stores the history of work plans, sprints, and release plans derived from the roadmap. It focuses on scope, sequence, and dependencies rather than implementation detail. |
+| `plans/backlog/` | Contains plannable work groups that have not yet entered a sprint or release. Prioritization belongs to the Project Manager. |
+| `plans/sprints/` | Contains current and historical sprint plans, goals, and capacity decisions. Each sprint should define a measurable outcome. |
+| `plans/releases/` | Defines release scope, dependencies, risks, and publishing order. Each plan should link to its related release reports. |
+| `tasks/` | Is the state-based root for atomic work records handed between agents. Each task must have one active owner and explicit acceptance criteria. |
+| `tasks/backlog/` | Contains tasks that have not yet been prioritized or refined. They must satisfy the ready criteria before work begins. |
+| `tasks/ready/` | Contains tasks with resolved dependencies and complete acceptance criteria. Work in this directory is ready to be assigned to an agent. |
+| `tasks/in-progress/` | Contains tasks currently owned and executed by an agent. Each task should record its owner, branch, and current progress. |
+| `tasks/review/` | Contains completed implementations awaiting independent review. An author may not approve their own work. |
+| `tasks/blocked/` | Contains tasks that cannot progress because of an external dependency, decision, or technical obstacle. The reason and exit condition must be recorded. |
+| `tasks/done/` | Archives tasks that have passed acceptance criteria, reviews, and required checks. The outcome and related commit or pull request should remain traceable. |
+| `templates/` | Contains reusable Markdown templates for tasks, features, ADRs, handoffs, reviews, and releases. Templates prevent required process information from being omitted. |
 
-## Prompt, kontrol listesi ve kalite raporları
+## Prompts, checklists, and quality reports
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `prompts/` | Belirli iş türlerinde tekrar kullanılacak, sağlayıcıdan bağımsız prompt parçalarının köküdür. Kalıcı rol tanımları `.agents/` altında tutulmalıdır. |
-| `prompts/shared/` | Birden fazla rol veya görev tarafından kullanılan ortak talimat bloklarını içerir. Tekrarlı ve zamanla ayrışabilecek prompt kopyalarını azaltır. |
-| `prompts/tasks/` | Analiz, implementasyon, migration veya hata düzeltme gibi görev tiplerine özel prompt şablonlarını içerir. Rol yetkilerini genişletmemelidir. |
-| `prompts/reviews/` | Kod, güvenlik, QA ve performans incelemelerinde kullanılacak değerlendirme promptlarını içerir. Bulguların tutarlı formatta üretilmesini destekler. |
-| `checklist/` | Proje kurulumu, geliştirme, inceleme, güvenlik ve yayın aşamalarındaki zorunlu kontrolleri toplar. Agent bazlı listelerden farklı olarak süreç aşamasını standartlaştırır. |
-| `reports/` | İnceleme hattında üretilen tarihsel ve sürüme bağlı raporların köküdür. Kök dizindeki özet teslimat dosyaları gerektiğinde buradaki ayrıntılı raporlara bağlanır. |
-| `reports/code-review/` | Bağımsız kod incelemesi bulgularını ve çözüm durumlarını içerir. Her bulgu önem derecesi ve ilgili kod konumuyla izlenebilir olmalıdır. |
-| `reports/security/` | Güvenlik taramaları, tehdit değerlendirmeleri ve risk kabul kayıtlarını içerir. Hassas tarama çıktıları veya secret değerleri depoya yazılmamalıdır. |
-| `reports/qa/` | Test yürütme sonuçlarını, hata özetlerini ve kabul kanıtlarını içerir. Otomatik üretilen büyük artefaktlar yerine kalıcı özetler saklanmalıdır. |
-| `reports/performance/` | Benchmark, profil ve optimizasyon karşılaştırmalarını içerir. Sonuçların ortam, veri seti ve ölçüm yöntemiyle birlikte kaydedilmesi gerekir. |
-| `reports/release/` | Yayın hazırlığı, doğrulama, rollback ve sürüm sonrası gözlem sonuçlarını içerir. Her rapor belirli bir sürümle ilişkilendirilmelidir. |
+| `prompts/` | Is the root for provider-independent prompt fragments reused by specific work types. Persistent role definitions belong under `.agents/`. |
+| `prompts/shared/` | Contains common instruction blocks used by multiple roles or tasks. It reduces prompt duplication and long-term drift. |
+| `prompts/tasks/` | Contains prompt templates for work types such as analysis, implementation, migration, and bug fixing. These prompts must not expand role permissions. |
+| `prompts/reviews/` | Contains evaluation prompts for code, security, QA, and performance reviews. It supports consistent finding formats across reviewers. |
+| `checklist/` | Collects mandatory checks for setup, development, review, security, and release stages. Unlike role checklists, it standardizes process stages. |
+| `reports/` | Is the root for historical and release-specific evidence produced by the review pipeline. Root-level summary deliverables may link to detailed reports stored here. |
+| `reports/code-review/` | Contains independent code review findings and their resolution status. Each finding should include severity and a traceable code location. |
+| `reports/security/` | Contains security scans, threat assessments, and risk acceptance records. Sensitive scanner output and secret values must not be committed. |
+| `reports/qa/` | Contains test execution results, defect summaries, and acceptance evidence. Store durable summaries rather than large generated artifacts. |
+| `reports/performance/` | Contains benchmarks, profiles, and optimization comparisons. Each result should record its environment, data set, and measurement method. |
+| `reports/release/` | Contains release readiness, verification, rollback, and post-release observation results. Every report should identify a specific release. |
 
-## Teknik dokümantasyon ve tasarım
+## Technical documentation and design
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `docs/` | Kullanıcı, geliştirici ve operasyon ekipleri için kalıcı dokümantasyonun ana köküdür. Güncel sistem davranışını yansıtmalı ve kod değişiklikleriyle birlikte güncellenmelidir. |
-| `docs/adr/` | Önemli mimari kararları, değerlendirilen alternatifleri ve gerekçeleri kaydeden Architecture Decision Record dosyalarını içerir. Karar değiştiğinde eski kayıt silinmek yerine yeni bir kayıtla geçersiz kılınır. |
-| `docs/api/` | API sözleşmeleri, kullanım örnekleri, kimlik doğrulama ve hata davranışlarını açıklar. Otomatik üretilen referans ile insan odaklı rehberler ayrıştırılabilir. |
-| `docs/architecture/` | Bileşenler, veri akışları, sınırlar ve teknik prensipler hakkında ayrıntılı mimari belgeleri içerir. Kök `ARCHITECTURE.md` dosyası bu klasöre giriş özeti olarak kullanılabilir. |
-| `docs/guides/` | Kurulum, geliştirme ve özellik kullanımı gibi adım adım rehberleri içerir. Hedef okuyucu ve ön koşullar her rehberde belirtilmelidir. |
-| `docs/runbooks/` | Operasyon, arıza müdahalesi, geri alma ve kurtarma prosedürlerini içerir. Uygulanabilir komutlar ve doğrulama adımları açık olmalıdır. |
-| `diagrams/` | Metin belgelerini destekleyen, mümkünse kaynak formatı sürümlenebilir diyagramların köküdür. Üretilen görseller ile düzenlenebilir kaynaklar birlikte yönetilmelidir. |
-| `diagrams/architecture/` | Sistem bağlamı, container, component ve deployment gibi mimari diyagramları içerir. İlgili ADR veya mimari belgeye bağlanmalıdır. |
-| `diagrams/workflows/` | Agent handoff, görev durumu, CI/CD ve inceleme sırası gibi süreç diyagramlarını içerir. Süreç değiştiğinde diyagram da güncellenmelidir. |
-| `mockups/` | Uygulama veya konsol için erken aşama arayüz taslaklarını içerir. Bunlar nihai ürün davranışının tek kaynağı olarak kabul edilmemelidir. |
-| `resources/` | Belgelerde, örneklerde veya geliştirme sırasında kullanılan destekleyici materyallerin köküdür. Lisans ve kaynak bilgileri korunmalıdır. |
-| `resources/assets/` | Logo, ikon, görsel ve diğer statik tasarım varlıklarını içerir. Uygulamanın derleme sürecine ait konumdan bağımsız bir kaynak havuzudur. |
-| `resources/references/` | Dış standartlar, araştırma notları ve proje kararlarını destekleyen referansları içerir. Telifli içeriklerin tam kopyaları yerine mümkünse kaynak bağlantıları saklanmalıdır. |
+| `docs/` | Is the primary root for durable user, developer, and operations documentation. It should reflect current system behavior and change alongside the code. |
+| `docs/adr/` | Contains Architecture Decision Records describing important decisions, alternatives, and rationale. Superseded decisions should be replaced by a new record rather than deleted. |
+| `docs/api/` | Documents API contracts, examples, authentication, and error behavior. Generated reference material may be separated from human-oriented guides. |
+| `docs/architecture/` | Contains detailed documentation about components, data flows, boundaries, and technical principles. The root `ARCHITECTURE.md` may serve as its summary entry point. |
+| `docs/guides/` | Contains step-by-step setup, development, and usage guides. Each guide should identify its audience and prerequisites. |
+| `docs/runbooks/` | Contains operational, incident-response, rollback, and recovery procedures. Commands and verification steps should be explicit and actionable. |
+| `diagrams/` | Is the root for diagrams that support written documentation, preferably in versionable source formats. Generated images should remain paired with editable sources. |
+| `diagrams/architecture/` | Contains system-context, container, component, and deployment diagrams. Each diagram should link to the relevant ADR or architecture document. |
+| `diagrams/workflows/` | Contains process diagrams for agent handoffs, task states, CI/CD, and review order. Diagrams must be updated when the underlying process changes. |
+| `mockups/` | Contains early interface drafts for the application or management console. Mockups are not the sole source of truth for final product behavior. |
+| `resources/` | Is the root for supporting material used in documentation, examples, and development. Licensing and source attribution must be preserved. |
+| `resources/assets/` | Contains logos, icons, images, and other static design assets. It is a source library independent of the application's build-specific asset location. |
+| `resources/references/` | Contains external standards, research notes, and references supporting project decisions. Prefer source links over copies of copyrighted material. |
 
-## Spesifikasyon ve test
+## Specifications and tests
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `specs/` | Implementasyondan önce davranış, kapsam ve kabul kriterlerini tanımlayan spesifikasyonların köküdür. Belgeler çözüm kodundan bağımsız biçimde ne yapılacağını açıklamalıdır. |
-| `specs/features/` | Kullanıcı veya ürün özelliklerinin davranışını ve kabul senaryolarını içerir. Her özellik görev ve testlerle izlenebilir olmalıdır. |
-| `specs/api/` | Endpoint, istek, yanıt, hata ve uyumluluk sözleşmelerini içerir. Backend ve tüketiciler arasında ortak anlaşma sağlar. |
-| `specs/database/` | Veri modeli, bütünlük kuralları, migration gereksinimleri ve saklama politikalarını içerir. Şema değişikliklerinden önce Database Engineer tarafından güncellenir. |
-| `specs/security/` | Kimlik doğrulama, yetkilendirme, veri koruma ve tehdit azaltma gereksinimlerini içerir. Güvenlik testleri bu gereksinimlere bağlanmalıdır. |
-| `specs/testing/` | Test seviyelerini, ortamları, veri stratejisini ve kalite eşiklerini tanımlar. QA uygulamasının ortak sözleşmesidir. |
-| `tests/` | Otomatik test kodunun ve test destek materyallerinin ana köküdür. Üretim kodunun klasör yapısıyla makul ölçüde izlenebilir olmalıdır. |
-| `tests/unit/` | Tek bir fonksiyon, sınıf veya modülün izole davranışını doğrulayan hızlı testleri içerir. Ağ ve gerçek veritabanı gibi dış bağımlılıklar kullanılmamalıdır. |
-| `tests/integration/` | Birden fazla bileşen veya dış servis adaptörü arasındaki sözleşmeyi doğrulayan testleri içerir. Gerekli bağımlılıklar kontrollü ve tekrar üretilebilir olmalıdır. |
-| `tests/e2e/` | Sistemin kullanıcıya görünen kritik akışlarını uçtan uca doğrulayan testleri içerir. Sayıca sınırlı, kararlı ve yüksek değerli senaryolara odaklanır. |
-| `tests/fixtures/` | Testlerin kullandığı sabit dosya, payload ve beklenen sonuçları içerir. `data/fixtures/` daha genel örnek veri iken burası doğrudan test koduna bağlıdır. |
+| `specs/` | Is the root for specifications that define behavior, scope, and acceptance criteria before implementation. Documents should explain what must be built independently of solution code. |
+| `specs/features/` | Contains user- or product-facing feature behavior and acceptance scenarios. Each feature should be traceable to tasks and tests. |
+| `specs/api/` | Contains endpoint, request, response, error, and compatibility contracts. It provides a shared agreement between the backend and its consumers. |
+| `specs/database/` | Contains data models, integrity rules, migration requirements, and retention policies. The Database Engineer should update it before schema changes. |
+| `specs/security/` | Contains authentication, authorization, data protection, and threat-mitigation requirements. Security tests should trace back to these requirements. |
+| `specs/testing/` | Defines test levels, environments, data strategy, and quality thresholds. It is the shared contract for QA execution. |
+| `tests/` | Is the main root for automated tests and supporting test material. Its structure should remain reasonably traceable to production code. |
+| `tests/unit/` | Contains fast tests for isolated functions, classes, or modules. External dependencies such as networks and real databases should not be used. |
+| `tests/integration/` | Contains tests that verify contracts between components or external-service adapters. Required dependencies must be controlled and reproducible. |
+| `tests/e2e/` | Contains tests for critical user-visible flows across the complete system. Keep this suite focused on a limited number of stable, high-value scenarios. |
+| `tests/fixtures/` | Contains fixed files, payloads, and expected results used directly by test code. `data/fixtures/` holds broader sample data, while this directory is test-suite specific. |
 
-## Otomasyon ve teslimat
+## Automation and delivery
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `scripts/` | Geliştirme, doğrulama ve dağıtım süreçlerinde tekrar kullanılan otomasyonların ana köküdür. Betikler etkileşimsiz çalışabilmeli ve hata durumunda anlamlı exit code üretmelidir. |
-| `scripts/setup/` | Yeni bir geliştirme veya CI ortamını hazırlayan kurulum betiklerini içerir. Tekrar çalıştırıldığında güvenli olacak biçimde tasarlanmalıdır. |
-| `scripts/development/` | Yerel sunucu başlatma, veri yenileme ve günlük geliştirme yardımcılarını içerir. Üretim dağıtım sorumluluklarından ayrıdır. |
-| `scripts/ci/` | CI sağlayıcısından bağımsız doğrulama ve build komutlarını içerir. `.github/workflows/` mümkün olduğunca bu betikleri çağırmalıdır. |
-| `scripts/quality/` | Lint, format, tip kontrolü ve benzeri kod kalitesi otomasyonlarını içerir. Yerel ve CI davranışının aynı olmasına yardımcı olur. |
-| `scripts/security/` | Secret, bağımlılık, container ve statik güvenlik taramalarını çalıştıran betikleri içerir. Bulguları `reports/security/` için uygun çıktılara dönüştürebilir. |
-| `scripts/deploy/` | Ortamlara dağıtım ve geri alma işlemlerini yürüten betikleri içerir. Varsayılan davranışın güvenli olması ve hedef ortamın açıkça doğrulanması gerekir. |
-| `scripts/release/` | Sürüm numarası, paketleme, changelog ve yayınlama otomasyonlarını içerir. Release planı ve CI kontrolleri tamamlanmadan çalıştırılmamalıdır. |
+| `scripts/` | Is the root for reusable development, validation, and delivery automation. Scripts should run non-interactively and return meaningful exit codes on failure. |
+| `scripts/setup/` | Contains scripts that prepare new development or CI environments. Setup operations should be safe to run more than once. |
+| `scripts/development/` | Contains local server, data refresh, and daily development helpers. It remains separate from production deployment automation. |
+| `scripts/ci/` | Contains CI-provider-independent validation and build commands. Workflows under `.github/workflows/` should call these scripts where practical. |
+| `scripts/quality/` | Contains linting, formatting, type checking, and related code-quality automation. It helps keep local and CI behavior consistent. |
+| `scripts/security/` | Contains secret, dependency, container, and static security scan automation. It may transform findings into suitable output for `reports/security/`. |
+| `scripts/deploy/` | Contains deployment and rollback automation for target environments. Safe defaults and explicit target verification are required. |
+| `scripts/release/` | Contains versioning, packaging, changelog, and publishing automation. It should run only after the release plan and CI gates pass. |
 
-## Yerel ve üretilen klasörler
+## Local and generated directories
 
-| Klasör | Amaç |
+| Directory | Purpose |
 |---|---|
-| `.git/` | Git’in commit, branch, remote ve index gibi yerel depo metadatasını sakladığı üretilen klasördür. Elle düzenlenmemeli ve hiçbir zaman commit içine dahil edilmemelidir. |
-| `node_modules/` | Node.js bağımlılıklarının paket yöneticisi tarafından oluşturulan yerel klasördür. Kaynak yapının parçası değildir ve Git’e eklenmemelidir. |
-
+| `.git/` | Is generated by Git to store local repository metadata such as commits, branches, remotes, and the index. It must not be edited manually or included in a commit. |
+| `node_modules/` | Is generated by the Node.js package manager to hold local dependencies. It is not part of the source structure and must not be committed. |
