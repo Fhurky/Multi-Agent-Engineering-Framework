@@ -51,6 +51,7 @@ Every agent performs only the work owned by its assigned role. Do not make unrel
 | `manager` | Roadmap, backlog, priority, scope, task ownership | Architecture and implementation |
 | `architect` | Architecture, boundaries, standards, ADRs | Feature implementation |
 | `orchestrator` | Routing, decomposition, dependencies, sequencing, handoffs | Domain implementation and approvals |
+| `runtime` | Agent scheduling, worker lifecycle, provider adapters, execution leases, retries, result aggregation | Task decomposition, domain implementation, architecture, and approvals |
 | `backend` | APIs, services, backend logic, backend unit tests | UI, schema ownership, independent QA |
 | `frontend` | UI implementation, accessibility, frontend component tests | Backend logic, independent QA |
 | `database` | Data models, migrations, integrity, migration tests | API and UI behavior |

@@ -12,6 +12,7 @@ For the canonical location of each major Markdown document, see [DOCUMENT_INDEX.
 | `.agents/manager/` | Contains the Project Manager agent responsible for the roadmap, backlog, priorities, and task ownership. Production code is outside this role's responsibility. |
 | `.agents/architect/` | Contains the Solution Architect agent responsible for architectural decisions, technical standards, and component boundaries. It establishes technical direction before feature implementation begins. |
 | `.agents/orchestrator/` | Contains the coordination agent that routes work, tracks dependencies, and manages handoffs. It coordinates domain experts without taking ownership of their decisions. |
+| `.agents/runtime/` | Contains the implementation agent responsible for runtime scheduling, worker lifecycle, provider adapters, execution leases, retries, and result aggregation. It implements approved orchestration architecture without owning task decomposition. |
 | `.agents/reviewer/` | Contains the independent reviewer that evaluates work produced by other agents. It checks correctness, maintainability, and compliance with project standards. |
 | `.agents/backend/` | Contains the Backend Engineer agent responsible for APIs, services, business rules, and server-side implementation. User interface work does not belong to this role. |
 | `.agents/frontend/` | Contains the Frontend Engineer agent responsible for interfaces, accessibility, and client-side behavior. It does not own server-side business logic. |

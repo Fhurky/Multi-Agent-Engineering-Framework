@@ -9,6 +9,7 @@ The Orchestrator routes each task to exactly one role and records the role, LLM 
 | Scope, priority, roadmap, backlog | manager |
 | Architecture, boundaries, ADRs | architect |
 | Task decomposition, dependencies, handoffs | orchestrator |
+| Runtime scheduling, worker lifecycle, provider adapters, retries, result aggregation | runtime |
 | APIs and server-side logic | backend |
 | User interface and client behavior | frontend |
 | Schema, migrations, and data integrity | database |

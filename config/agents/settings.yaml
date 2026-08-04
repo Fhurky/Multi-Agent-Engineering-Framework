@@ -48,7 +48,7 @@ assignments:
     title: Project Manager
     role_path: .agents/manager
     enabled: true
-    llm: null
+    llm: gpt
     task_queue: plans/backlog
     write_scope:
       - plans/ROADMAP.md
@@ -60,7 +60,7 @@ assignments:
     title: Solution Architect
     role_path: .agents/architect
     enabled: true
-    llm: null
+    llm: claude
     task_queue: tasks/ready
     write_scope:
       - docs/architecture/ARCHITECTURE.md
@@ -72,18 +72,31 @@ assignments:
     title: Orchestrator
     role_path: .agents/orchestrator
     enabled: true
-    llm: null
+    llm: claude
     task_queue: tasks/ready
     write_scope:
       - tasks/**
       - .agents/ROUTING.md
       - .agents/HANDOFF.md
 
+  runtime:
+    title: Agent Runtime Engineer
+    role_path: .agents/runtime
+    enabled: true
+    llm: claude
+    task_queue: tasks/ready
+    write_scope:
+      - src/orchestrator/**
+      - src/agents/**
+      - bin/**
+      - tests/unit/orchestrator/**
+      - tests/unit/agents/**
+
   reviewer:
     title: Independent Reviewer
     role_path: .agents/reviewer
     enabled: true
-    llm: null
+    llm: gpt
     task_queue: tasks/review
     write_scope:
       - reports/code-review/REVIEW.md
@@ -93,7 +106,7 @@ assignments:
     title: Backend Engineer
     role_path: .agents/backend
     enabled: true
-    llm: null
+    llm: claude
     task_queue: tasks/ready
     write_scope:
       - src/backend/**
@@ -103,7 +116,7 @@ assignments:
     title: Frontend Engineer
     role_path: .agents/frontend
     enabled: true
-    llm: null
+    llm: gpt
     task_queue: tasks/ready
     write_scope:
       - src/frontend/**
@@ -113,7 +126,7 @@ assignments:
     title: Database Engineer
     role_path: .agents/database
     enabled: true
-    llm: null
+    llm: claude
     task_queue: tasks/ready
     write_scope:
       - schema/**
@@ -124,7 +137,7 @@ assignments:
     title: Security Engineer
     role_path: .agents/security
     enabled: true
-    llm: null
+    llm: gpt
     task_queue: tasks/review
     write_scope:
       - .github/SECURITY.md
@@ -136,7 +149,7 @@ assignments:
     title: QA Engineer
     role_path: .agents/qa
     enabled: true
-    llm: null
+    llm: gemini
     task_queue: tasks/review
     write_scope:
       - reports/qa/BUG_REPORT.md
@@ -149,7 +162,7 @@ assignments:
     title: Performance Engineer
     role_path: .agents/performance
     enabled: true
-    llm: null
+    llm: gemini
     task_queue: tasks/review
     write_scope:
       - reports/performance/PERFORMANCE_REPORT.md
@@ -160,9 +173,12 @@ assignments:
     title: DevOps Engineer
     role_path: .agents/devops
     enabled: true
-    llm: null
+    llm: claude
     task_queue: plans/releases
     write_scope:
+      - package.json
+      - package-lock.json
+      - tsconfig.json
       - .github/workflows/**
       - Dockerfile
       - docker-compose.yml
@@ -170,13 +186,14 @@ assignments:
       - scripts/deploy/**
       - scripts/release/**
       - scripts/setup/**
+      - scripts/quality/**
       - config/environments/**
 
   docs:
     title: Documentation Engineer
     role_path: .agents/docs
     enabled: true
-    llm: null
+    llm: gemini
     task_queue: tasks/review
     write_scope:
       - README.md
