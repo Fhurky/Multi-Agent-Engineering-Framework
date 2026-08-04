@@ -39,6 +39,7 @@ This document defines the responsibility boundaries of every directory in the pr
 | `.github/` | Collects GitHub contribution, review, ownership, and automation configuration. Repository-management files belong here. |
 | `.github/ISSUE_TEMPLATE/` | Contains issue templates for consistent bug, feature, and task reports. These templates standardize the acceptance information needed by agents. |
 | `.github/workflows/` | Contains GitHub Actions workflows for CI, security scanning, and releases. Each workflow must contain valid YAML and the required secrets before it is enabled. |
+| `.githooks/` | Contains tracked local Git hooks that prevent agent sessions from pushing directly to protected integration branches. Each clone activates them through the setup script. |
 
 ## Application and runtime
 

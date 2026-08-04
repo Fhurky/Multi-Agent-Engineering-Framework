@@ -54,6 +54,8 @@ $protectedPatterns = @(
     '.github/workflows/ci.yml',
     '.github/workflows/security.yml',
     '.github/CODEOWNERS',
+    '.githooks/**',
+    'scripts/setup/install-git-hooks.ps1',
     '.gitattributes',
     '.gitignore',
     '.worktreeinclude'

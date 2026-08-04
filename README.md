@@ -87,10 +87,16 @@ DevOps / Release
    ```
 
 2. Assign a title and a simple LLM family name, such as `claude`, `gpt`, or `gemini`, to each enabled role in `config/agents/settings.yaml`.
-3. Define the initial scope in `ROADMAP.md`, `ARCHITECTURE.md`, and the relevant files under `specs/`.
-4. Create work from `templates/task.md`, place it in `tasks/backlog/`, and promote it only when dependencies and acceptance criteria are clear.
-5. Use the isolated worktree workflow below for every agent task.
-6. Replace application, container, scanner, and deployment placeholders only with technology-appropriate configuration.
+3. Install the repository's local Git protection:
+
+   ```powershell
+   ./scripts/setup/install-git-hooks.ps1
+   ```
+
+4. Define the initial scope in `ROADMAP.md`, `ARCHITECTURE.md`, and the relevant files under `specs/`.
+5. Create work from `templates/task.md`, place it in `tasks/backlog/`, and promote it only when dependencies and acceptance criteria are clear.
+6. Use the isolated worktree workflow below for every agent task.
+7. Replace application, container, scanner, and deployment placeholders only with technology-appropriate configuration.
 
 ## Concurrent CLI quick start
 
@@ -117,6 +123,8 @@ Before either agent hands off:
 ```
 
 The lock is shared across all worktrees in the same clone through Git's common directory. The claiming worktree receives an ignored session token required for normal release, a second session cannot claim the same task, and CI rejects an agent branch that changes files outside its assigned role scope.
+
+The tracked pre-push hook blocks direct `main` pushes from configured clones. GitHub branch protection should also require pull requests plus the `validate` and `security` checks when the repository plan supports protected private branches.
 
 ## Sources of truth
 

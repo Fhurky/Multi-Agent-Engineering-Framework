@@ -13,6 +13,8 @@
 /.github/workflows/ci.yml @Fhurky
 /.github/workflows/security.yml @Fhurky
 /.github/CODEOWNERS @Fhurky
+/.githooks/ @Fhurky
+/scripts/setup/install-git-hooks.ps1 @Fhurky
 /.gitattributes @Fhurky
 /.gitignore @Fhurky
 /.worktreeinclude @Fhurky

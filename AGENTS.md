@@ -96,7 +96,7 @@ The workflow may parallelize independent work, but dependencies and quality gate
 
 ## Mandatory concurrent execution protocol
 
-The primary checkout is the control worktree. Agents must never edit in it or run two CLIs against the same working directory. Every task runs on one isolated worktree and one branch named `agent/<llm>/<role>/<task-id>`.
+The primary checkout is the control worktree. Agents must never edit in it or run two CLIs against the same working directory. Every task runs on one isolated worktree and one branch named `agent/<llm>/<role>/<task-id>`. Repository hooks must be installed with `scripts/setup/install-git-hooks.ps1` before any agent task starts.
 
 1. The Orchestrator creates a task from `templates/task.md` with one owner, one LLM family, a non-overlapping write scope, dependencies, and required gates.
 2. From the primary checkout, create the worktree:
@@ -125,7 +125,9 @@ The primary checkout is the control worktree. Agents must never edit in it or ru
 
 Task locks are stored under the shared Git common directory, so all worktrees in the same clone observe the same atomic lock. The claiming worktree receives an ignored session token and only that session can normally release the lock. Never force-release another execution's lock unless a human has verified that the owning session and worktree are stale. A task ID may have only one active lock, one owner, and one branch.
 
-Governance and enforcement files are human-controlled and cannot be changed from an `agent/*` branch. This includes the root agent adapters, `.agents/`, assignment settings, orchestration and baseline validation scripts, baseline CI/security workflows, CODEOWNERS, and Git policy files. Propose such a change to the user instead of modifying the safeguard that constrains the current execution.
+The tracked pre-push hook blocks direct pushes to `main` from this clone. Agents must push their task branch and use a pull request. `ALLOW_MAIN_PUSH=1__ is reserved for a verified human emergency and does not authorize an agent bypass.
+
+Governance and enforcement files are human-controlled and cannot be changed from an `agent/*` branch. This includes the root agent adapters, `.agents/`, assignment settings, orchestration and baseline validation scripts, baseline CI/security workflows, tracked Git hooks, CODEOWNERS, and Git policy files. Propose such a change to the user instead of modifying the safeguard that constrains the current execution.
 
 ## Quality and completion rules
 

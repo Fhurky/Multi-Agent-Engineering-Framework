@@ -17,6 +17,10 @@ $ErrorActionPreference = 'Stop'
 
 $assignment = Assert-AgentAssignment -Role $Role -Llm $Llm -SettingsPath $SettingsPath
 $repositoryRoot = Get-RepositoryRoot
+$hooksPath = & git config --get core.hooksPath
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($hooksPath) -or $hooksPath.Trim() -ne '.githooks') {
+    throw 'Repository Git hooks are not installed. Run scripts/setup/install-git-hooks.ps1 first.'
+}
 $expectedBranch = Get-AgentBranchName -TaskId $TaskId -Role $assignment.Role -Llm $assignment.Llm
 $currentBranch = (& git branch --show-current).Trim()
 

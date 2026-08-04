@@ -53,6 +53,8 @@ $requiredFiles = @(
     '.worktreeinclude',
     'templates/task.md',
     'scripts/ci/test-orchestration.ps1',
+    '.githooks/pre-push',
+    'scripts/setup/install-git-hooks.ps1',
     'AGENTS.md',
     'CLAUDE.md',
     '.agents/rules/project-governance.md'
