@@ -176,6 +176,9 @@ assignments:
     llm: claude
     task_queue: plans/releases
     write_scope:
+      - package.json
+      - package-lock.json
+      - tsconfig.json
       - .github/workflows/**
       - Dockerfile
       - docker-compose.yml
@@ -183,6 +186,7 @@ assignments:
       - scripts/deploy/**
       - scripts/release/**
       - scripts/setup/**
+      - scripts/quality/**
       - config/environments/**
 
   docs:
