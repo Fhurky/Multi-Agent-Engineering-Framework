@@ -24,6 +24,7 @@ This document defines the responsibility boundaries of every directory in the pr
 
 | Directory | Purpose |
 |---|---|
+| `.agents/rules/` | Contains Google Antigravity workspace rules using Antigravity's current project-level convention. These rules should reference the root governance and runtime settings instead of duplicating them. |
 | `.claude/` | Contains Claude-specific project settings and adapters. Canonical role rules must remain under `.agents/`. |
 | `.claude/agents/` | Contains provider-specific mappings that make the shared agent roles available to Claude. These definitions should extend shared contracts rather than duplicate them. |
 | `.codex/` | Contains Codex-specific project settings, automation, and adapters. It must not become the source of truth for shared processes. |
@@ -59,7 +60,7 @@ This document defines the responsibility boundaries of every directory in the pr
 | Directory | Purpose |
 |---|---|
 | `config/` | Is the shared root for non-secret application and agent configuration. Sensitive values must be stored in environment variables or a secret manager. |
-| `config/agents/` | Contains machine-readable runtime settings such as agent limits, model selection, permissions, and routing. Role prose belongs under `.agents/` instead. |
+| `config/agents/` | Contains the user-editable LLM family name, title, permission, and routing settings for every role. Role prose and responsibility boundaries belong under `.agents/<role>/` instead. |
 | `config/environments/` | Contains non-sensitive settings that vary between development, test, staging, and production. Shared defaults and environment overrides should remain distinct. |
 | `data/` | Is the controlled root for sample, test, and development data. Production user data and secret-bearing output must never be committed here. |
 | `data/fixtures/` | Contains deterministic seed data used to establish repeatable test conditions. Fixtures should remain small and free of personal data. |

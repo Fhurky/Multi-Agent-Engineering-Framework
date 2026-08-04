@@ -1,0 +1,121 @@
+# User-editable LLM-to-role assignments.
+# Set `llm` to a simple lowercase family name such as claude, gpt, or gemini.
+# Any model in that family should treat the matching assignment as its own.
+# Never store API keys, access tokens, credentials, or endpoints here.
+
+schema_version: 1
+
+project:
+  name: Multi-Agent Engineering Framework
+  languages:
+    user_interface: tr-TR
+    engineering: en
+
+governance:
+  strict_role_boundaries: true
+  one_active_owner_per_task: true
+  block_unassigned_roles: true
+  prohibit_self_review: true
+  require_independent_review: true
+  security_blocking_severities:
+    - high
+    - critical
+
+routing:
+  coordinator_role: orchestrator
+  unassigned_role_behavior: block-and-ask-user
+  cross_role_request_behavior: split-and-handoff
+  multiple_roles_for_same_llm: require-explicit-role
+
+review:
+  reviewer_role: reviewer
+  require_separate_execution: true
+  prefer_different_llm: true
+
+# The mapping key is the canonical role ID and must match `.agents/<role>/`.
+# `title` and `llm` are intended to be edited by the user.
+# A null `llm` value means the role is unassigned and must not run.
+assignments:
+  manager:
+    title: Project Manager
+    role_path: .agents/manager
+    enabled: true
+    llm: null
+    task_queue: plans/backlog
+
+  architect:
+    title: Solution Architect
+    role_path: .agents/architect
+    enabled: true
+    llm: null
+    task_queue: tasks/ready
+
+  orchestrator:
+    title: Orchestrator
+    role_path: .agents/orchestrator
+    enabled: true
+    llm: null
+    task_queue: tasks/ready
+
+  reviewer:
+    title: Independent Reviewer
+    role_path: .agents/reviewer
+    enabled: true
+    llm: null
+    task_queue: tasks/review
+
+  backend:
+    title: Backend Engineer
+    role_path: .agents/backend
+    enabled: true
+    llm: null
+    task_queue: tasks/ready
+
+  frontend:
+    title: Frontend Engineer
+    role_path: .agents/frontend
+    enabled: true
+    llm: null
+    task_queue: tasks/ready
+
+  database:
+    title: Database Engineer
+    role_path: .agents/database
+    enabled: true
+    llm: null
+    task_queue: tasks/ready
+
+  security:
+    title: Security Engineer
+    role_path: .agents/security
+    enabled: true
+    llm: null
+    task_queue: tasks/review
+
+  qa:
+    title: QA Engineer
+    role_path: .agents/qa
+    enabled: true
+    llm: null
+    task_queue: tasks/review
+
+  performance:
+    title: Performance Engineer
+    role_path: .agents/performance
+    enabled: true
+    llm: null
+    task_queue: tasks/review
+
+  devops:
+    title: DevOps Engineer
+    role_path: .agents/devops
+    enabled: true
+    llm: null
+    task_queue: plans/releases
+
+  docs:
+    title: Documentation Engineer
+    role_path: .agents/docs
+    enabled: true
+    llm: null
+    task_queue: tasks/review

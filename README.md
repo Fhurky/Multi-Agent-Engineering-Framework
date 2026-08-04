@@ -15,6 +15,7 @@ For a description of every directory, see [PROJECT_STRUCTURE.md](PROJECT_STRUCTU
 - One active owner is accountable for each task.
 - An agent never approves or reviews its own work.
 - Canonical role definitions live under `.agents/`; provider-specific files only adapt them.
+- User-visible interface text is Turkish; code, identifiers, filenames, configuration, tests, documentation, and engineering artifacts are English.
 - Architecture, security, QA, performance, documentation, and release decisions produce traceable evidence.
 - High or critical security findings block delivery until they are resolved or formally accepted.
 - CI and required quality gates must pass before merge or release.
@@ -86,19 +87,22 @@ DevOps / Release
    git switch -c develop
    ```
 
-2. Complete the shared coordination files under `.agents/`, then define each enabled role's four contract files.
-3. Define the initial scope in `ROADMAP.md`, `ARCHITECTURE.md`, and the relevant files under `specs/`.
-4. Create work from `templates/task.md`, place it in `tasks/backlog/`, and promote it only when its dependencies and acceptance criteria are clear.
-5. Configure only the LLM adapters required by the project under `.claude/`, `.codex/`, or `.cursor/`.
-6. Replace empty CI, security, container, and tooling placeholders with valid project-specific configuration before enabling automation.
+2. Assign a title and a simple LLM family name, such as `claude`, `gpt`, or `gemini`, to each enabled role in `config/agents/settings.yaml`.
+3. Complete the shared coordination files under `.agents/`, then define each enabled role's four contract files.
+4. Define the initial scope in `ROADMAP.md`, `ARCHITECTURE.md`, and the relevant files under `specs/`.
+5. Create work from `templates/task.md`, place it in `tasks/backlog/`, and promote it only when its dependencies and acceptance criteria are clear.
+6. Configure only the tool adapters required by the project: `CLAUDE.md` for Claude Code, root `AGENTS.md` for Codex-compatible agents, and `.agents/rules/` for Google Antigravity.
+7. Replace empty CI, security, container, and tooling placeholders with valid project-specific configuration before enabling automation.
 
 ## Sources of truth
 
 | Concern | Canonical location |
 |---|---|
+| Project-wide agent governance | `AGENTS.md` |
+| LLM family and title assignments | `config/agents/settings.yaml` |
 | Agent responsibilities and constraints | `.agents/<role>/` |
 | Cross-agent routing and handoffs | `.agents/ROUTING.md`, `.agents/HANDOFF.md` |
-| Provider-specific adapters | `.claude/`, `.codex/`, `.cursor/` |
+| Tool-specific adapters | `CLAUDE.md`, `.claude/`, `.codex/`, `.cursor/`, `.agents/rules/` |
 | Product and technical requirements | `specs/` |
 | Plans and release scope | `plans/` |
 | Current task state and ownership | `tasks/` |
@@ -107,6 +111,27 @@ DevOps / Release
 | Durable technical documentation | `docs/` |
 
 Provider-specific instructions may extend the canonical role contract but must not silently contradict it. When two instructions conflict, resolve and document the decision instead of maintaining divergent copies.
+
+## LLM assignment settings
+
+Users assign a simple LLM family name and display title in `config/agents/settings.yaml`. The file includes every canonical role and deliberately leaves `llm` null for project-specific selection; any model in the named family may claim the assignment.
+
+```yaml
+assignments:
+  backend:
+    title: Backend Engineer
+    role_path: .agents/backend
+    enabled: true
+    llm: claude
+    task_queue: tasks/ready
+```
+
+- The assignment key, such as `backend`, is the canonical role ID and determines the responsibility boundary.
+- `title` may be changed by the user without changing the role's authority.
+- `llm` uses one lowercase family name such as `claude`, `gpt`, or `gemini`; null means the role is unassigned and must not execute.
+- When one LLM name is assigned to multiple roles, the active task must explicitly select one role.
+- An author and independent reviewer must run in separate execution contexts. Prefer a different LLM name for the reviewer when available.
+- Secrets and API credentials belong in environment variables or a secret manager, never in this file.
 
 ## Task lifecycle
 
@@ -140,12 +165,13 @@ project/
 |   |-- qa/
 |   |-- performance/
 |   |-- devops/
-|   `-- docs/
+|   |-- docs/
+|   `-- rules/                 # Google Antigravity workspace rules
 |-- .claude/                 # Claude adapters
 |-- .codex/                  # Codex adapters and skills
 |-- .cursor/                 # Cursor rules
 |-- .github/                 # Issues, reviews, ownership, workflows
-|-- config/                  # Non-secret runtime configuration
+|-- config/                  # LLM assignments and non-secret runtime configuration
 |-- console/                 # Management console client and server
 |-- docs/                    # Durable project documentation
 |-- plans/                   # Backlog, sprint, and release plans
@@ -251,6 +277,14 @@ Suggested commit prefixes:
 - `security:`
 
 Teams may simplify the branch model, but protected branches must retain independent review and required status checks.
+
+## Agent tool adapters
+
+- **Codex-compatible agents:** use root `AGENTS.md` as the canonical project instruction file.
+- **Claude Code:** uses `CLAUDE.md`, which imports `AGENTS.md`, the LLM assignments, and project documentation.
+- **Google Antigravity:** uses `.agents/rules/project-governance.md` as a workspace rule. Configure it as **Always On** in Antigravity so it loads the canonical governance and assignment files for every task.
+
+Tool adapters must reference shared governance instead of maintaining divergent copies. An LLM name assignment selects who performs a role; it never changes what that role is allowed to do.
 
 ## Tooling placeholders
 
