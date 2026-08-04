@@ -26,6 +26,8 @@ Append-only activation log owned by TASK-013. It is the durable trigger source a
 - Branch: `agent/claude/orchestrator/task-013`
 - Worktree: `C:/Users/furko/Desktop/multi-agent-worktrees/claude-orchestrator-task-013`
 - Base ref for validation: `049158d`
+- Effects commit: `5febe3b` `chore: activate TASK-013 and route open review findings`. This is the immutable review target for TASK-021.
+- Publication: `local-only`. This execution was instructed not to push or merge.
 - Events consumed: `(0, 3]` — seq 1, 2, 3
 - Cursor before: `0`. Cursor after: `3`.
 - Effects and cursor advance are recorded in one commit, which is what makes consumption exactly-once.

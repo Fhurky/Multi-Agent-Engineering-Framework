@@ -37,6 +37,7 @@ published_branch: agent/claude/orchestrator/task-001
 publication: local-only
 publication_reason: The executing sessions were instructed not to push or merge.
 review_target_branch: agent/claude/orchestrator/task-013
+review_target_commit: 5febe3b
 review_target_base: 049158d
 review_target_note: Revision 3 was authored by TASK-013 activation ACT-001, because TASK-013 is the exclusive owner of every task-record mutation in this graph. The round 3 review target is the ACT-001 commit on agent/claude/orchestrator/task-013.
 ---

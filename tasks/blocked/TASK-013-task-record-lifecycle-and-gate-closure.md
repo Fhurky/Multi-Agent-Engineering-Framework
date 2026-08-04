@@ -127,7 +127,7 @@ Each activation appends its outcome to `tasks/TASK-013-ACTIVATION-LOG.md`.
 
 Maintained by this task's own activations; each activation appends its outcome here and in the activation log.
 
-- Commit or pull request: `ACT-001` is committed on `agent/claude/orchestrator/task-013`. Publication is `local-only`; this execution was instructed not to push or merge.
+- Commit or pull request: `ACT-001` effects are committed at `5febe3b` on `agent/claude/orchestrator/task-013`, with one follow-up commit recording that hash in the activation log and the affected records. Publication is `local-only`; this execution was instructed not to push or merge.
 - Verification: recorded in `tasks/TASK-013-ACTIVATION-LOG.md`, section "Verification performed by this activation", together with the exact script results in the execution's handoff.
 - Known risks:
   - Cross-task resource locks are declared but not enforced by any script today. Until TASK-005 lands admission-time enforcement, `task-records` and `architecture-docs` depend on the Orchestrator not claiming both tasks of a pair at once.

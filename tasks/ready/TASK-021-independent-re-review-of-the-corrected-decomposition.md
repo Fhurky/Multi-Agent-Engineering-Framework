@@ -19,6 +19,7 @@ gate_for:
     round: 3
 parent_task: TASK-001
 review_target_branch: agent/claude/orchestrator/task-013
+review_target_commit: 5febe3b
 review_target_base: 049158d
 ---
 
@@ -36,7 +37,7 @@ Reusing TASK-014 for round 3 would reopen a completed task, make its dependency 
 
 ## Review target
 
-Branch `agent/claude/orchestrator/task-013`, at the `ACT-001` commit recorded in `tasks/TASK-013-ACTIVATION-LOG.md`, compared against base ref `049158d` on `integration/autonomous-runtime`.
+Branch `agent/claude/orchestrator/task-013`, at the `ACT-001` effects commit `5febe3b` recorded in `tasks/TASK-013-ACTIVATION-LOG.md`, compared against base ref `049158d` on `integration/autonomous-runtime`. One follow-up commit on the same branch records that hash in the log and in the affected records; review the branch head, which includes both.
 
 The correction was authored by TASK-013, not by TASK-001, because TASK-013 is the exclusive owner of every task-record mutation in this graph. The `ACT-001` commit is immutable, so a later TASK-013 activation does not change this review target.
 
