@@ -28,6 +28,7 @@ For document locations, see [DOCUMENT_INDEX.md](docs/project/DOCUMENT_INDEX.md).
 | Project Manager | Roadmap, backlog, priorities, task ownership | Production implementation |
 | Solution Architect | Architecture, boundaries, standards, ADRs | Feature implementation |
 | Orchestrator | Routing, dependencies, parallel work, handoffs | Domain decisions or self-approval |
+| Agent Runtime Engineer | Runtime scheduling, worker lifecycle, provider adapters, leases, retries, result aggregation | Task decomposition, domain implementation, architecture, or self-approval |
 | Backend Engineer | APIs, services, server-side business logic | Frontend implementation |
 | Frontend Engineer | UI, accessibility, client-side behavior | Backend business logic |
 | Database Engineer | Data models, migrations, integrity | API behavior |
@@ -189,6 +190,7 @@ project/
 |   |-- manager/
 |   |-- architect/
 |   |-- orchestrator/
+|   |-- runtime/
 |   |-- reviewer/
 |   |-- backend/
 |   |-- frontend/
