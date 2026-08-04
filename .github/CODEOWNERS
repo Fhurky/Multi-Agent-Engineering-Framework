@@ -1,0 +1,18 @@
+# Default human owner for repository changes.
+* @Fhurky
+
+# Agent governance and enforcement are human-controlled.
+/AGENTS.md @Fhurky
+/CLAUDE.md @Fhurky
+/.agents/ @Fhurky
+/config/agents/settings.yaml @Fhurky
+/scripts/orchestration/ @Fhurky
+/scripts/ci/validate-framework.ps1 @Fhurky
+/scripts/ci/test-orchestration.ps1 @Fhurky
+/scripts/security/check-repository.ps1 @Fhurky
+/.github/workflows/ci.yml @Fhurky
+/.github/workflows/security.yml @Fhurky
+/.github/CODEOWNERS @Fhurky
+/.gitattributes @Fhurky
+/.gitignore @Fhurky
+/.worktreeinclude @Fhurky

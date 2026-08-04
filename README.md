@@ -6,7 +6,7 @@
 
 This repository defines an engineering operating model in which multiple LLM agents can work on the same project without sharing ambiguous responsibility. Each role owns a narrow part of delivery, communicates through versioned artifacts, and hands work to an independent reviewer before release.
 
-This is an organizational framework and project scaffold, not a ready-to-run multi-agent runtime. Most configuration, workflow, role, and report files are intentionally empty placeholders and must be completed for the target project before automation is enabled.
+This is an organizational framework and project scaffold, not an LLM runtime. It includes operational worktree isolation, atomic task locks, role write scopes, agent contracts, and repository validation; application code and technology-specific delivery configuration remain project-specific placeholders.
 
 For a description of every directory, see [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md).
 
@@ -79,20 +79,44 @@ DevOps / Release
 
 ## Getting started
 
-1. Clone the repository and create a project branch.
+1. Clone the repository.
 
    ```bash
    git clone https://github.com/Fhurky/Multi-Agent-Engineering-Framework.git
    cd Multi-Agent-Engineering-Framework
-   git switch -c develop
    ```
 
 2. Assign a title and a simple LLM family name, such as `claude`, `gpt`, or `gemini`, to each enabled role in `config/agents/settings.yaml`.
-3. Complete the shared coordination files under `.agents/`, then define each enabled role's four contract files.
-4. Define the initial scope in `ROADMAP.md`, `ARCHITECTURE.md`, and the relevant files under `specs/`.
-5. Create work from `templates/task.md`, place it in `tasks/backlog/`, and promote it only when its dependencies and acceptance criteria are clear.
-6. Configure only the tool adapters required by the project: `CLAUDE.md` for Claude Code, root `AGENTS.md` for Codex-compatible agents, and `.agents/rules/` for Google Antigravity.
-7. Replace empty CI, security, container, and tooling placeholders with valid project-specific configuration before enabling automation.
+3. Define the initial scope in `ROADMAP.md`, `ARCHITECTURE.md`, and the relevant files under `specs/`.
+4. Create work from `templates/task.md`, place it in `tasks/backlog/`, and promote it only when dependencies and acceptance criteria are clear.
+5. Use the isolated worktree workflow below for every agent task.
+6. Replace application, container, scanner, and deployment placeholders only with technology-appropriate configuration.
+
+## Concurrent CLI quick start
+
+Run these commands from PowerShell. The primary clone coordinates work but is not an agent editing directory.
+
+```powershell
+# Create a Claude backend task worktree.
+./scripts/orchestration/create-worktree.ps1 -TaskId TASK-123 -Role backend -Llm claude
+
+# Move to the worktree path printed by the command, then claim the task.
+./scripts/orchestration/claim-task.ps1 -TaskId TASK-123 -Role backend -Llm claude
+
+# Start Claude from this worktree.
+claude
+```
+
+Create a different task and worktree for Codex, then launch `codex` inside that returned path. The two agents may run simultaneously only when their task write scopes do not overlap.
+
+Before either agent hands off:
+
+```powershell
+./scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree
+./scripts/orchestration/release-task.ps1 -TaskId TASK-123 -Role backend -Llm claude
+```
+
+The lock is shared across all worktrees through Git's common directory. A second session cannot claim the same task, and CI rejects an agent branch that changes files outside its assigned role scope.
 
 ## Sources of truth
 
@@ -259,11 +283,8 @@ Agents must not resolve ownership conflicts by editing another role's responsibi
 Suggested branches:
 
 - `main`
-- `develop`
-- `feature/*`
-- `bugfix/*`
-- `hotfix/*`
-- `release/*`
+- `agent/<llm>/<role>/<task-id>`
+- `release/*` for human-controlled release integration when needed
 
 Suggested commit prefixes:
 
@@ -288,9 +309,10 @@ Tool adapters must reference shared governance instead of maintaining divergent 
 
 ## Tooling placeholders
 
-The repository includes empty placeholders for future project-specific configuration, including GitHub workflows, `Dockerfile`, `docker-compose.yml`, `.gitleaks.toml`, `.markdownlint.json`, `.pre-commit-config.yaml`, `.semgrepignore`, and `.mcp.example.json`.
+The repository includes active baseline GitHub workflows and project-specific placeholders such as `Dockerfile`, `docker-compose.yml`, `.gitleaks.toml`, `.markdownlint.json`, `.pre-commit-config.yaml`, `.semgrepignore`, and `.mcp.example.json`.
 
-- Do not enable an empty workflow or scanner configuration.
+- Keep the baseline CI and security workflows active; extend them with technology-specific tests and scanners.
+- Do not enable an empty scanner configuration.
 - Never place tokens or credentials in `.mcp.example.json`, tracked environment files, reports, or test data.
 - Populate `.env.example` with variable names and safe examples only.
 - Choose tools that match the target technology instead of enabling every placeholder by default.

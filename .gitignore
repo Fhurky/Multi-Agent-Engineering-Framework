@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Agent-managed worktrees and local runtime state
+.claude/worktrees/
+.worktrees/
+.agent-runtime/
+
+# Logs, caches, and generated output
+*.log
+logs/
+coverage/
+dist/
+build/
+.cache/
+.tmp/
+tmp/
+temp/
+
+# Editor and operating system files
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo

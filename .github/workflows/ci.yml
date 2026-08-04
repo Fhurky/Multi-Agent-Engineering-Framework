@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Git whitespace
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'pull_request') {
+            git diff --check "origin/${{ github.base_ref }}...HEAD"
+          }
+          else {
+            git show --check --format= HEAD
+          }
+
+      - name: Validate framework
+        shell: pwsh
+        run: ./scripts/ci/validate-framework.ps1
+
+      - name: Test orchestration controls
+        shell: pwsh
+        run: ./scripts/ci/test-orchestration.ps1
+
+      - name: Validate agent write scope
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/')
+        shell: pwsh
+        run: ./scripts/orchestration/validate-write-scope.ps1 -BranchName '${{ github.head_ref }}' -BaseRef 'origin/${{ github.base_ref }}'

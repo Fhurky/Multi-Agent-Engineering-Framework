@@ -13,11 +13,14 @@ Claude Code must load and follow the canonical project sources below:
 2. Confirm that the role is enabled and its `llm` value is `claude`. Any Claude model may claim that assignment.
 3. Read all four files under the matching `.agents/<role>/` directory.
 4. Read the active task and its linked specification, plan, or architecture record.
-5. Refuse to silently perform work owned by a different role; return it to the Orchestrator for reassignment.
+5. Confirm the current path is the task's isolated worktree and the branch is `agent/claude/<role>/<task-id>`.
+6. Run `scripts/orchestration/claim-task.ps1` before editing and `validate-write-scope.ps1 -IncludeWorkingTree` before handoff.
+7. Refuse to silently perform work owned by a different role; return it to the Orchestrator for reassignment.
 
 ## Claude-specific constraints
 
 - Treat `AGENTS.md` as canonical. This file adapts Claude Code to the project and does not redefine governance.
+- Never edit from the primary checkout and never share one worktree with Codex or another Claude session.
 - Do not spawn or impersonate additional roles unless the assigned Orchestrator task explicitly authorizes decomposition.
 - Keep each spawned execution bound to exactly one explicitly assigned role.
 - Never use the same execution context to author and independently review a change.

@@ -143,6 +143,7 @@ This document defines the responsibility boundaries of every directory in the pr
 | Directory | Purpose |
 |---|---|
 | `scripts/` | Is the root for reusable development, validation, and delivery automation. Scripts should run non-interactively and return meaningful exit codes on failure. |
+| `scripts/orchestration/` | Contains provider-neutral worktree creation, assignment validation, shared task locking, and role write-scope enforcement. Every concurrent CLI session uses these commands before and after task execution. |
 | `scripts/setup/` | Contains scripts that prepare new development or CI environments. Setup operations should be safe to run more than once. |
 | `scripts/development/` | Contains local server, data refresh, and daily development helpers. It remains separate from production deployment automation. |
 | `scripts/ci/` | Contains CI-provider-independent validation and build commands. Workflows under `.github/workflows/` should call these scripts where practical. |

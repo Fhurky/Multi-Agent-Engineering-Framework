@@ -1,0 +1,22 @@
+schema_version: 1
+
+assignments:
+  backend:
+    title: Backend Test Agent
+    role_path: .agents/backend
+    enabled: true
+    llm: claude
+    task_queue: tasks/ready
+    write_scope:
+      - src/backend/**
+      - tests/unit/backend/**
+
+  frontend:
+    title: Frontend Test Agent
+    role_path: .agents/frontend
+    enabled: true
+    llm: gpt
+    task_queue: tasks/ready
+    write_scope:
+      - src/frontend/**
+      - tests/unit/frontend/**

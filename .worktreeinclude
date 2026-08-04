@@ -1,0 +1,6 @@
+# List ignored local files that should be copied into newly created worktrees.
+# Keep this empty by default. Never add credentials unless every assigned agent
+# is explicitly authorized to access them.
+#
+# Example:
+# local.settings.example.json

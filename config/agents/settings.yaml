@@ -21,6 +21,14 @@ governance:
     - high
     - critical
 
+concurrency:
+  worktree_required: true
+  direct_main_writes: false
+  task_lock_required: true
+  lock_storage: git-common-directory
+  allow_overlapping_write_scopes: false
+  branch_pattern: agent/<llm>/<role>/<task-id>
+
 routing:
   coordinator_role: orchestrator
   unassigned_role_behavior: block-and-ask-user
@@ -42,6 +50,11 @@ assignments:
     enabled: true
     llm: null
     task_queue: plans/backlog
+    write_scope:
+      - ROADMAP.md
+      - SPRINT.md
+      - GOVERNANCE.md
+      - plans/**
 
   architect:
     title: Solution Architect
@@ -49,6 +62,11 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/ready
+    write_scope:
+      - ARCHITECTURE.md
+      - docs/architecture/**
+      - docs/adr/**
+      - diagrams/architecture/**
 
   orchestrator:
     title: Orchestrator
@@ -56,6 +74,10 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/ready
+    write_scope:
+      - tasks/**
+      - .agents/ROUTING.md
+      - .agents/HANDOFF.md
 
   reviewer:
     title: Independent Reviewer
@@ -63,6 +85,9 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/review
+    write_scope:
+      - REVIEW.md
+      - reports/code-review/**
 
   backend:
     title: Backend Engineer
@@ -70,6 +95,9 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/ready
+    write_scope:
+      - src/backend/**
+      - tests/unit/backend/**
 
   frontend:
     title: Frontend Engineer
@@ -77,6 +105,9 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/ready
+    write_scope:
+      - src/frontend/**
+      - tests/unit/frontend/**
 
   database:
     title: Database Engineer
@@ -84,6 +115,10 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/ready
+    write_scope:
+      - schema/**
+      - specs/database/**
+      - tests/unit/database/**
 
   security:
     title: Security Engineer
@@ -91,6 +126,11 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/review
+    write_scope:
+      - SECURITY.md
+      - SECURITY_REPORT.md
+      - reports/security/**
+      - specs/security/**
 
   qa:
     title: QA Engineer
@@ -98,6 +138,12 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/review
+    write_scope:
+      - BUG_REPORT.md
+      - reports/qa/**
+      - tests/integration/**
+      - tests/e2e/**
+      - tests/fixtures/**
 
   performance:
     title: Performance Engineer
@@ -105,6 +151,10 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/review
+    write_scope:
+      - PERFORMANCE_REPORT.md
+      - reports/performance/**
+      - tests/performance/**
 
   devops:
     title: DevOps Engineer
@@ -112,6 +162,15 @@ assignments:
     enabled: true
     llm: null
     task_queue: plans/releases
+    write_scope:
+      - .github/workflows/**
+      - Dockerfile
+      - docker-compose.yml
+      - scripts/ci/**
+      - scripts/deploy/**
+      - scripts/release/**
+      - scripts/setup/**
+      - config/environments/**
 
   docs:
     title: Documentation Engineer
@@ -119,3 +178,13 @@ assignments:
     enabled: true
     llm: null
     task_queue: tasks/review
+    write_scope:
+      - README.md
+      - PROJECT_STRUCTURE.md
+      - CHANGELOG.md
+      - CONTRIBUTING.md
+      - SUPPORT.md
+      - RELEASE_NOTES.md
+      - docs/api/**
+      - docs/guides/**
+      - docs/runbooks/**
