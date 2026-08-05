@@ -54,7 +54,7 @@ published_branch: agent/claude/orchestrator/task-013
 publication: published
 publication_reason: Revisions 3 and 4 are authored by TASK-013 activations on agent/claude/orchestrator/task-013. The ACT-001 revision was integrated at e8edbcd and merged to main at c325275 through pull request #1; the ACT-002 revision is published on the same branch with its own pull request.
 review_target_branch: agent/claude/orchestrator/task-013
-review_target_commit: pending
+review_target_commit: f590749
 review_target_base: c325275
 review_target_note: Revision 4 was authored by TASK-013 activation ACT-002, because TASK-013 is the exclusive owner of every task-record mutation in this graph. The round 4 review target is the ACT-002 effects commit on agent/claude/orchestrator/task-013, recorded in tasks/TASK-013-ACTIVATION-LOG.md and in TASK-022's frontmatter by the follow-up commit. The superseded round 3 target was 5febe3b against base 049158d.
 ---

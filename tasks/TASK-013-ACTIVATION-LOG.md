@@ -113,7 +113,7 @@ Superseded by the `ACT-002` register below and retained as history. No gate was 
 - Branch: `agent/claude/orchestrator/task-013`
 - Worktree: `C:/Users/furko/Desktop/multi-agent-worktrees/claude-orchestrator-task-013`
 - Base ref for validation: `c325275`
-- Effects commit: recorded in the follow-up entry at the end of this section. It is the immutable review target for TASK-022.
+- Effects commit: `f590749`, recorded in the follow-up entry at the end of this section. It is the immutable review target for TASK-022.
 - Publication: pushed to `origin` on `agent/claude/orchestrator/task-013` with a pull request targeting `main`. `publication_class: bootstrap`.
 - Events consumed: `(3, 5]` — seq 4, 5
 - Cursor before: `3`. Cursor after: `5`.
@@ -209,7 +209,7 @@ No high or critical security finding exists yet, so no formal human acceptance i
 
 ### Effects commit for ACT-002
 
-- Effects commit: `pending` at the moment the effects commit is written, because a commit cannot contain its own hash. It is `chore: activate TASK-013 ACT-002 and remediate round 3 review findings`, on `agent/claude/orchestrator/task-013`, base `c325275`. One small follow-up commit on the same branch records the hash here and in TASK-022's frontmatter.
+- Effects commit: **`f590749`** `chore: activate TASK-013 ACT-002 and remediate round 3 review findings`, on `agent/claude/orchestrator/task-013`, base `c325275`. This hash is recorded by the follow-up commit, because a commit cannot contain its own hash.
 - That hash is the immutable review target for **TASK-022**, recorded in TASK-022's frontmatter as `review_target_commit`, together with `review_target_base: c325275` and `review_target_branch: agent/claude/orchestrator/task-013`.
 - TASK-022 reviews the branch head, which includes both the effects commit and the follow-up commit, exactly as TASK-021 was instructed to for `ACT-001`.
 - A later TASK-013 activation does not change this review target.

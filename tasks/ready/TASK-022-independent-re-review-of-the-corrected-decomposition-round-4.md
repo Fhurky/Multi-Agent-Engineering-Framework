@@ -23,7 +23,7 @@ gate_for:
 parent_task: TASK-001
 publication_class: bootstrap
 review_target_branch: agent/claude/orchestrator/task-013
-review_target_commit: pending
+review_target_commit: f590749
 review_target_base: c325275
 review_target_note: The round 4 review target is the TASK-013 activation ACT-002 effects commit. Its hash is recorded here and in tasks/TASK-013-ACTIVATION-LOG.md by a follow-up commit on the same branch, because a commit cannot contain its own hash. Review the branch head, which includes both commits.
 supersedes: TASK-021
