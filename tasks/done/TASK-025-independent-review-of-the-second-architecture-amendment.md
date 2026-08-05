@@ -1,7 +1,7 @@
 ---
 task_id: TASK-025
 title: Independent review of the second runtime architecture amendment
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-025
@@ -17,7 +17,10 @@ gate_for:
   - task: TASK-024
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: aa38c7d2e095f6ffd108bbd737a9862e1bff3ec2
+    remediated_by: TASK-028
+    revalidated_by: TASK-029
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -25,7 +28,10 @@ gate_for:
   - task: TASK-016
     gate: review
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: aa38c7d2e095f6ffd108bbd737a9862e1bff3ec2
+    remediated_by: TASK-028
+    revalidated_by: TASK-029
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -33,7 +39,10 @@ gate_for:
   - task: TASK-002
     gate: review
     round: 3
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: aa38c7d2e095f6ffd108bbd737a9862e1bff3ec2
+    remediated_by: TASK-028
+    revalidated_by: TASK-029
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -48,6 +57,14 @@ remediates:
     source: reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md
     part: gate ownership for the remediation
 supersedes: TASK-020
+superseded_by: TASK-029
+published_commit: aa38c7d2e095f6ffd108bbd737a9862e1bff3ec2
+published_branch: agent/gpt/reviewer/task-025
+published_remote_ref: refs/heads/agent/gpt/reviewer/task-025
+pull_request: 11
+publication: published
+publication_reason: The reviewer's own report records the task lock as not yet released, pending the durable commit of its sole artifact. The commit landed at aa38c7d2, the branch is present at refs/heads/agent/gpt/reviewer/task-025 on origin, and pull request #11 was opened outside the reviewer's execution. Both facts are recorded; the reviewer's statement is not overwritten.
+publication_recorded_by: ACT-006
 dependencies_satisfied:
   - edge: review_ready
     task: TASK-024
@@ -60,10 +77,13 @@ dependencies_satisfied:
 review_target_branch: agent/claude/architect/task-024
 review_target_commit: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
 review_target_base: 8d0c570e190a534a7ae929377ed19b1675bbde86
+review_target_applicability: applicable and resolved
 review_target_note: Immutable. The target is the TASK-024 amendment commit c2ee3eb, compared against review-diff base 8d0c570, the TASK-016 amendment it revises. The authored delta is 6e5a9df..c2ee3eb, 28 files; 6e5a9df is the merge that brought 8d0c570 onto the branch and is not itself part of the amendment. Read 9576fc9 where a judgment needs the original baseline. A later TASK-013 activation does not change this target.
-branch_point_of: agent/claude/architect/task-024
-scope_validation_base: git merge-base HEAD agent/claude/architect/task-024
-scope_validation_note: Not yet resolvable, because this task's branch does not exist. Create agent/gpt/reviewer/task-025 from the review target commit c2ee3eb, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/architect/task-024 and pass that value to -BaseRef. Never pass a review-diff base, c325275, or origin/main. Finding F-403 recorded why. Record the resolved value in the report so the Orchestrator can pin it.
+branch_point_of: agent/claude/orchestrator/task-013
+scope_validation_base: 62d6f2d553bae9f19b60a5405f173b517f8c9a62
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Corrected by activation ACT-006 under finding A-209, from the branch as it actually exists rather than from what this record prescribed. The branch's single authored commit aa38c7d2 has parent 62d6f2d, and git merge-base agent/gpt/reviewer/task-025 agent/claude/orchestrator/task-013 returns 62d6f2d. git diff --name-only 62d6f2d...aa38c7d2 returns exactly one path, reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md, which is this task's whole declared write scope, and the owner recorded valid True with changed_files 1 against this value. See scope_validation_superseded below for what this record prescribed and why it could not pass.
+scope_validation_superseded: This record previously declared branch_point_of agent/claude/architect/task-024 with the expression git merge-base HEAD agent/claude/architect/task-024, and instructed the owner to create the branch from c2ee3eb. The branch was not created that way. It was created from the head of agent/claude/orchestrator/task-013 at 62d6f2d, so c2ee3eb is not an ancestor of HEAD, the prescribed expression resolved to 890b8e0, and validating from 890b8e0 attributed 21 inherited ACT-005 task-record paths to the reviewer and failed. The owner reported that failure rather than recasting it, which is finding A-209. The prescribed provenance is superseded, not reinterpreted: 8d0c570, c2ee3eb, and origin/main are each still forbidden as a scope-validation base for this record.
 ---
 
 # TASK-025: Independent review of the second runtime architecture amendment
@@ -187,8 +207,8 @@ The reviewer is `gpt` and the architect is `claude`, so author and reviewer are 
 
 1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-025 -Role reviewer -Llm gpt`.
 2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-025 -Role reviewer -Llm gpt` before editing.
-3. Create the branch from the review target commit `c2ee3eb`. Review with `git diff 8d0c570..c2ee3eb` for the cumulative amendment and `git diff 6e5a9df..c2ee3eb` for the authored delta, and read both baseline reports plus `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-5.md` for F-401 before judging Part D.
-4. Before handoff, resolve the immutable branch point with `git merge-base HEAD agent/claude/architect/task-024` and run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef <that value>`. Do not pass a review-diff base, `c325275`, or `origin/main`; finding F-403 recorded why.
+3. ~~Create the branch from the review target commit `c2ee3eb`.~~ **Superseded under finding A-209 by activation `ACT-006`.** The branch was created from the head of `agent/claude/orchestrator/task-013`, and that provenance — not the instruction — is the durable fact. Review with `git diff 8d0c570..c2ee3eb` for the cumulative amendment and `git diff 6e5a9df..c2ee3eb` for the authored delta, and read both baseline reports plus `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-5.md` for F-401 before judging Part D. Reading the target does not require the branch to descend from it.
+4. ~~Resolve the immutable branch point with `git merge-base HEAD agent/claude/architect/task-024`.~~ **Superseded under finding A-209.** That expression resolves to `890b8e0`, which is not this branch's point, and validating from it fails on 21 inherited `ACT-005` task-record paths. The acceptance command is `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 62d6f2d553bae9f19b60a5405f173b517f8c9a62`, the value now recorded in `scope_validation_base`. Do not pass a review-diff base, `8d0c570`, `c2ee3eb`, `c325275`, or `origin/main`; findings F-403 and A-209 each recorded why.
 5. Commit, publish the task branch and open or update a pull request when a remote and credentials are available — otherwise record `publication: local-only` with the reason — and run `scripts/orchestration/release-task.ps1 -TaskId TASK-025 -Role reviewer -Llm gpt`.
 
 Do not move this record between lifecycle directories and do not edit its `status` field. `tasks/**` is outside the reviewer role's configured write scope. Record the handoff in the report and the pull request description; the Orchestrator performs the transition under TASK-013.
@@ -199,9 +219,23 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
+Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request. Transcribed by activation `ACT-006` from `reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md` at commit `aa38c7d2e095f6ffd108bbd737a9862e1bff3ec2`. The reviewer's own statements are quoted, not rewritten.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to record the single verdict as three durable gate-verdict facts — closing all three relations together and unblocking TASK-018 and the runtime waves on a passing verdict, or leaving all three open, routing findings back to the architect, and creating the next round's reviewer task
+- Commit or pull request: `aa38c7d2e095f6ffd108bbd737a9862e1bff3ec2` `docs: record TASK-025 architecture review` on `agent/gpt/reviewer/task-025`, parent `62d6f2d`, adding exactly one file. Present at `refs/heads/agent/gpt/reviewer/task-025` on `origin` and opened as pull request #11.
+- Verdict: **one** `changes-required` verdict, applied **atomically** to all three relations it carried, yielding three durable gate-verdict facts: `(TASK-024, review, round 1)`, `(TASK-016, review, round 2)`, and `(TASK-002, review, round 3)`. All three stay **open** together. The reviewer states that a split outcome is not represented and that the same open blocking-finding set applies to all three.
+- Findings recorded: **A-201 … A-207 High**, **A-208 Medium**, **A-209 Medium**. A-201 … A-207 are release-blocking architecture defects; A-208 is a normative consistency defect; A-209 is an execution-provenance defect against this record, owned by the Orchestrator and corrected by `ACT-006` above.
+- Part A dispositions at `c2ee3eb`: A-101 `not resolved`; A-102 `not resolved`; A-103 `partially resolved`; A-104 `not resolved`; A-105 `partially resolved`; A-002 `partially resolved`; A-003 `partially resolved`; A-004 `not resolved`.
+- Part B, the eleven ingress checks: ten satisfied; **"consumption state only in cursor plus separate append-only ledger" not satisfied**, because `IngressEntry.consumedBy` remains at `docs/architecture/runtime/INTERFACE-CONTRACTS.md:551` and contradicts `STATE-MACHINE.md:444-448`.
+- Part D, the six F-401 checks: two satisfied — distinct entry and ledger-row schemas, and a ledger row that references without writing back. **Four not satisfied**: the inbox schema still carries a consumption field; neither named bootstrap dispatch contract exists in the target; `appendedBy` permits "adapter or activation" rather than enumerating authorized principals per phase and rejecting all others; and ADR-0017 line 84 still makes the discovery-affects-only-liveness claim. The divergence the Orchestrator recorded as a fact and deliberately did not decide is therefore **judged, and judged against the amendment**.
+- Verification, as the reviewer recorded it:
+  - `scripts/ci/validate-framework.ps1` passed for 13 roles; `scripts/ci/test-orchestration.ps1` passed.
+  - `git diff --check 8d0c570..c2ee3eb` and `git diff --check 6e5a9df..c2ee3eb` both passed with no whitespace errors.
+  - The immutable author delta `6e5a9df..c2ee3eb` is 28 architecture, ADR, and diagram artifacts, each read at the target commit and each given a recorded review result.
+  - Link and anchor validation passed for 28 target artifacts, 471 relative links, and 63 anchor references.
+  - Publication ancestry: `ba2c742` contains `c2ee3eb`; the review `HEAD` `62d6f2d` does not. `ba2c742` is ancestry only and is explicitly **not** the review target.
+  - `validate-write-scope.ps1 -BaseRef 890b8e0` **failed**, reporting 21 inherited task artifacts outside the reviewer scope. The reviewer reported the failure rather than hiding it or recasting it as an authored change; that is finding A-209.
+  - `validate-write-scope.ps1 -BaseRef 62d6f2d` returned `valid: True`, branch `agent/gpt/reviewer/task-025`, role `reviewer`, LLM `gpt`, `changed_files: 1`.
+- Integration and release effect, as the reviewer recorded it: `c2ee3eb` and its publication-ancestry merge `ba2c742` must not be treated as an approved architecture integration; TASK-024 remains review-gated; and TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, TASK-008, TASK-017, TASK-018, and TASK-026 remain blocked by the atomic architecture gate.
+- Known risks, as the reviewer recorded them: A-201 … A-207 block release; A-208 leaves incompatible normative cardinalities unsuperseded; A-209 means this record's declared acceptance procedure could not pass reproducibly from the actual branch provenance until corrected.
+- Task lock released: the reviewer recorded "no — release follows the durable commit of this sole reviewer artifact". That commit landed at `aa38c7d2`, and the shared lock directory carries no `task-025` entry at `ACT-006`, so the lock is released. Both facts are recorded.
+- Next owner: orchestrator via TASK-013. `ACT-006` recorded the single verdict as three durable gate-verdict facts, left all three relations **open**, routed A-201 … A-208 to the new architect-owned amendment **TASK-028**, corrected A-209 above, and created **TASK-029** for `LIN-ARCH-REVIEW` lineage round 4. No gate was closed and no implementation task was released.

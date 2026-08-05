@@ -33,6 +33,15 @@ published_branch: agent/gpt/reviewer/task-015
 publication: local-only
 publication_reason: The executing session recorded that no push or merge was part of this review.
 superseded_by: TASK-020
+review_target_branch: agent/claude/architect/task-002
+review_target_commit: 9576fc96d0fa5ec8460c0208995bd2fe2295523c
+review_target_base: 657b83ae4ac6f5a3e2ac0beaa08abd34dd7de8a8
+review_target_applicability: applicable and resolved
+review_target_note: The original execution recorded its diff as git diff agent/claude/orchestrator/task-001..9576fc9, and the head of that branch is 657b83a. That ref, resolved to its commit, is the review-diff base this round used, and the reviewed target is TASK-002 at 9576fc9. This task's own report commit is 8632469 and is not its target.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: fb9f45c08dee2002d634f1e310017dc125ab67e7
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Resolved by activation ACT-006 from the repository rather than asserted. This branch has one authored commit, 8632469, whose parent fb9f45c is an ancestor of integration/autonomous-runtime. git diff --name-only fb9f45c...8632469 returns exactly one path, reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md, which is this task's whole declared write scope.
 ---
 
 # TASK-015: Independent architecture review of the autonomous runtime architecture, round 1

@@ -34,11 +34,22 @@ gate_tasks:
   - task: TASK-025
     gate: review
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: aa38c7d2e095f6ffd108bbd737a9862e1bff3ec2
+    remediated_by: TASK-028
+    revalidated_by: TASK-029
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 3
+  - task: TASK-029
+    gate: review
+    round: 3
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 4
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 8d0c570
@@ -61,9 +72,20 @@ remediates:
     source: reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md
   - finding: A-004
     source: reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md
+review_target_branch: agent/claude/architect/task-016
+review_target_commit: 8d0c570e190a534a7ae929377ed19b1675bbde86
+review_target_base: 9576fc96d0fa5ec8460c0208995bd2fe2295523c
+review_target_applicability: applicable and resolved
+review_target_note: TASK-020 round 1 reviewed this task's immutable published commit 8d0c570 against review-diff base 9576fc9, the TASK-002 architecture this amendment revises. Round 2, carried by TASK-025, reviewed the TASK-024 remediation against its own base recorded on TASK-024; round 3 is carried by TASK-029 against TASK-028's base. This field names the base of the artifact this record owns.
+branch_point_of: main
+scope_validation_base: c325275ea13918a9766b71a6350821af1c3c471d
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Resolved by activation ACT-006 from the repository rather than asserted. This branch has one authored commit, 8d0c570, whose parent is c325275, the pull request #1 merge on main. git diff --name-only c325275...8d0c570 returns 29 paths, every one under docs/ or diagrams/architecture/, which is inside this task's declared write scope, and the owner recorded valid True over 29 files against this value. The merge-base derivation is no longer usable on this branch, because 8d0c570 has since been merged into main and git merge-base agent/claude/architect/task-016 main now returns the branch head rather than the branch point. The recorded 40-hex value is the durable fact; see the Task baselines rule in tasks/TASK-001-DEPENDENCY-GRAPH.md.
 ---
 
 # TASK-016: Amend the runtime architecture for crash-atomic journal batches, legal recovery transitions, live control and process-tree ownership, typed scheduling contracts, and the agent workspace lifecycle module
+
+> **Quarantined authoring instruction.** This record is the brief under which the published amendment `8d0c570` was authored and under which TASK-020 judged it. Its scope items and acceptance criteria describe the vocabulary as it stood at revision 4 and are **superseded** by the registers and edge semantics in `tasks/TASK-001-DEPENDENCY-GRAPH.md`. Two passages describing the withdrawn **owner form** of `gate_passed` as live are struck in place, dated to activation `ACT-006`, and marked as history — that is the correction finding **F-402** required at round 6. They are struck rather than rewritten because rewriting an authoring brief after its independent review would change what that reviewer was asked to check; TASK-020's recorded verdict and its A-004 disposition are durable and are not touched. This record's frontmatter — its gate relations, verdicts, and pair properties — remains normative. No live obligation of this task is stated anywhere in this body that is not also in the frontmatter or in a register.
 
 ## Objective
 
@@ -129,7 +151,9 @@ Prove acyclicity across scheduling, gate, and integration preconditions rather t
 >
 > A contract in which the recurring task must write its own trigger, or in which consumption is represented by mutating an existing row, reproduces the deadlock F-201 recorded and will be judged `not resolved` by TASK-020, whose A-004 disposition now checks this specifically. Nothing else in this record's scope, dependencies, gates, write scope, or acceptance criteria changed; the incorporation by reference was already present, and this note only flags that the referenced text moved.
 >
-> The graph's own vocabulary also gained two items scope item 4 must now represent, both defined in `tasks/TASK-001-DEPENDENCY-GRAPH.md`: the **owner form** of `gate_passed`, satisfied only by a passing verdict from a named gate task, with a resolution rule that disambiguates it from the target form; and per-gate-pair **`gate_class`** and **`retrospective`** metadata.
+> ~~The graph's own vocabulary also gained two items scope item 4 must now represent, both defined in `tasks/TASK-001-DEPENDENCY-GRAPH.md`: the **owner form** of `gate_passed`, satisfied only by a passing verdict from a named gate task, with a resolution rule that disambiguates it from the target form; and per-gate-pair **`gate_class`** and **`retrospective`** metadata.~~
+>
+> **Withdrawn by TASK-013 activation `ACT-006` under finding F-402.** The owner form of `gate_passed` was **withdrawn** by revision 5 and is rejected at load time; see `tasks/TASK-001-DEPENDENCY-GRAPH.md`, "Dependency edge semantics" and invariant 6. The sentence above described it as a live vocabulary item that this amendment must represent, which is no longer true and was the one active body finding F-402 still named at round 6. The struck text is retained as the instruction under which `8d0c570` was authored — see the quarantine banner at the head of this record — and carries no current obligation. The live requirement is the **lineage form**, which the successor amendment carries and which no obligation of this record ever covered.
 
 ### 5. Agent workspace lifecycle module
 
@@ -175,7 +199,7 @@ Prove acyclicity across scheduling, gate, and integration preconditions rather t
 
 ### A-004 — typed scheduling contracts
 
-- [ ] The contracts represent `review_ready`, `integrated`, **both forms of** `gate_passed` with gate and round plus the rule that disambiguates them, `gate_recorded`, `pre_merge_gates`, per-gate-pair `gate_class` and `retrospective`, named resource locks, monotonic event-**ingress** activation, and a waiting/quiescent state.
+- [x] ~~The contracts represent `review_ready`, `integrated`, **both forms of** `gate_passed` with gate and round plus the rule that disambiguates them, `gate_recorded`, `pre_merge_gates`, per-gate-pair `gate_class` and `retrospective`, named resource locks, monotonic event-**ingress** activation, and a waiting/quiescent state.~~ **Closed and quarantined by `ACT-006` under finding F-402.** "Both forms" meant the target form and the **owner** form, and the owner form was withdrawn by revision 5 and is now rejected at load time. This criterion is the one TASK-020 judged against `8d0c570`, and its judgment — A-004 `not resolved` — is durable and is not rewritten. It is closed here as a historical criterion rather than reworded, because rewording it would change what an independent reviewer was asked to check after they had already answered. The live obligation is carried forward by the successor amendment and is stated there in the lineage form.
 - [ ] The activation contract represents the three surfaces separately: an ingress source set whose facts are produced by owners other than the recurring task, a cursor that is the only representation of consumption state, and an append-only consumption ledger that is never edited. See the amendment note in scope item 4.
 - [ ] Gate verdicts are durable and supersede across rounds rather than being rewritten.
 - [ ] Acyclicity is proven across scheduling, gate, and integration preconditions together, not over scheduling edges alone.
@@ -216,8 +240,8 @@ This task declares `resource_lock: architecture-docs`, which TASK-002 and TASK-0
 
 - `gate_recorded(TASK-015)` is the dependency, not `gate_passed(TASK-002)`. TASK-015 recorded `changes-required`, so `gate_passed(TASK-002)` is not satisfiable and never will be at round 1. This task **is** the remediation for that verdict, so it depends on the verdict having been recorded, at commit `8632469`.
 - This task's own review gate is owned by TASK-020, a separate reviewer task with an explicit `review_ready(TASK-016)` dependency. TASK-015 is not re-entered; its verdict is durable and its record is `done`. That removes finding F-102 at its source.
-- The architecture-approval edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 no longer names this task. Activation `ACT-004` retyped it to `gate_passed(LIN-ARCH-REVIEW, review, 3)` under finding F-302, so it survives supersession without an edit. The approved architecture is `9576fc9` as amended by this task at `8d0c570` **and further amended by the TASK-024 commit that TASK-025 approves**.
-- TASK-020 recorded `changes-required` at `4874a9d`, so neither this task's review gate nor TASK-002's round 2 gate closed. Both are open, both name **TASK-024** as `remediated_by` and **TASK-025** as `revalidated_by`, and round 2 of this task's gate is TASK-025's.
+- The architecture-approval edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 no longer names this task. Activation `ACT-004` retyped it to the `LIN-ARCH-REVIEW` lineage form under finding F-302, so it survives supersession without an edit; its floor was `lineage_round: 3` then, and activation `ACT-006` raised it to `4` after round 3 recorded `changes-required`. The edge's current floor is normative in each consumer's own frontmatter, not here. **There is no approved architecture:** `9576fc9`, `8d0c570`, and `c2ee3eb` have each been rejected by their round, and the approved source will be the TASK-028 commit that TASK-029 approves.
+- TASK-020 recorded `changes-required` at `4874a9d`, so neither this task's review gate nor TASK-002's round 2 gate closed. Round 2, carried by TASK-025, recorded `changes-required` again at `aa38c7d2`. Both relations are open, both now name **TASK-028** as `remediated_by` and **TASK-029** as `revalidated_by`, and round 3 of this task's gate is TASK-029's.
 - Blocks TASK-017, which cannot implement without the workspace contract, and blocks Wave 2 onward.
 
 ## Task-record lifecycle
@@ -266,5 +290,15 @@ TASK-020's round 1 dispositions on the findings this amendment was created to re
 | A-004 | `not resolved` — the contracts model neither the current scheduling vocabulary nor the corrected ingress model; A-101 is its successor |
 
 The five fresh findings A-101 through A-105 are routed to **TASK-024**, a new architect-owned amendment task, with the per-finding disposition register in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-004`. This record is not reopened and is not re-entered: TASK-024 is the remediation and TASK-025 records round 2.
+
+The Orchestrator recorded this verdict; it did not produce it, judge it, or assess whether the findings are correct.
+
+## Review gate outcome — round 2
+
+**TASK-025 recorded `changes-required` at commit `aa38c7d2`**, applied atomically to this record's round 2 relation together with `(TASK-024, review, r1)` and `(TASK-002, review, r3)`. The verdict is durable and is superseded rather than rewritten. This record stays in `tasks/review/`, is still **not integrable**, and still cannot reach `done`.
+
+Round 2 judged the TASK-024 remediation, not this record's own artifact — under the gate-round rule, at round *n* > 1 the reviewed artifact is the remediation named by round *n* − 1. TASK-025 recorded A-101 `not resolved`, A-102 `not resolved`, A-103 `partially resolved`, A-104 `not resolved`, and A-105 `partially resolved`, so **none of the round-1 findings against this amendment is closed**. Nine fresh findings A-201 … A-209 are routed by activation `ACT-006`. Round 3 is carried by **TASK-029** against the **TASK-028** remediation.
+
+The architecture-approval edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 names the lineage rather than this record, so it did not have to be retargeted; `ACT-006` raised its floor to `lineage_round: 4`. Every one of those tasks stays `blocked`.
 
 The Orchestrator recorded this verdict; it did not produce it, judge it, or assess whether the findings are correct.

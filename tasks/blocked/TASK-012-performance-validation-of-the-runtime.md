@@ -60,6 +60,12 @@ remediates:
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md
 blocked_reason: The scheduler, supervisor, recovery layer, and workspace lifecycle are not published, and the LIN-RUNTIME-QA lineage has recorded no verdict at all.
 exit_condition: TASK-005, TASK-006, TASK-008, and TASK-017 are review_ready, and the LIN-RUNTIME-QA lineage records a passing or formally accepted authoritative verdict at lineage round 1 or higher. The dependency is the lineage form of gate_passed, not gate_recorded, because a changes-required QA verdict must not release performance validation against a failed baseline; and it names the lineage rather than TASK-011, because finding F-302 recorded that an edge bound to one gate task can never be satisfied by the successor round that a changes-required verdict requires. No gate task's terminal state is required.
+review_target_base: per gated target, resolved when that target publishes
+review_target_applicability: applicable per gated relation rather than once. Each of TASK-005, TASK-006, TASK-008, and TASK-017 declares its own review_target_base, and this task measures each against that value. Until then there is no single base to record, and recording one would be an assertion rather than a reading.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+scope_validation_note: Branch from integration/autonomous-runtime at or after the commit where this task's dependencies merged, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-012: Performance validation of scheduling, checkpointing, and recovery

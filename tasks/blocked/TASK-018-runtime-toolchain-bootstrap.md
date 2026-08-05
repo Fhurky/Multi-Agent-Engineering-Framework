@@ -17,7 +17,7 @@ dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
-    lineage_round: 3
+    lineage_round: 4
 required_gates:
   - review
   - security
@@ -52,7 +52,13 @@ human_decisions:
     decided_on: 2026-08-04
     effect: package.json, package-lock.json, tsconfig.json, and scripts/quality/** were added to assignments.devops.write_scope in config/agents/settings.yaml.
 blocked_reason: The amended runtime architecture has not passed its independent review gate. TASK-020 returned changes-required on the first amendment with findings A-101 through A-105, so a second amendment, TASK-024, must be authored and approved first. Landing a toolchain before the platform decision is reviewed risks landing the wrong one.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 3 or higher, which satisfies gate_passed(LIN-ARCH-REVIEW, review, 3).
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 4 or higher, which satisfies gate_passed(LIN-ARCH-REVIEW, review, 4).
+review_target_base: not applicable until this task publishes
+review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+scope_validation_note: Branch from integration/autonomous-runtime at or after the commit where this task's dependencies merged, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-018: Bootstrap the runtime TypeScript and Node.js toolchain

@@ -43,6 +43,8 @@ publication: published
 publication_reason: The reviewer's own report records publication: local-only because the user directed the root execution to publish. The push and pull request #8 succeeded outside the reviewer's execution. Both facts are recorded; neither overwrites the other.
 verdict: changes-required
 verdict_recorded_at: 667d3b8b4be055304bffd538f965c001aebea7f4
+review_target_applicability: applicable and resolved
+scope_validation_applicability: applicable and resolved
 ---
 
 # TASK-023: Independent re-review of the corrected TASK-001 decomposition, round 5

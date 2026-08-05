@@ -13,7 +13,7 @@ dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
-    lineage_round: 3
+    lineage_round: 4
   - task: TASK-003
     edge: integrated
   - task: TASK-018
@@ -57,7 +57,13 @@ remediates:
   - finding: F-105
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
 blocked_reason: The workspace lifecycle contract is published but not approved — TASK-020 recorded A-103, that workspace intent cannot be made durable before its side effects — and neither the durable state store nor the toolchain is integrated.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 3 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 4 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
+review_target_base: not applicable until this task publishes
+review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+scope_validation_note: Branch from integration/autonomous-runtime at or after the commit where this task's dependencies merged, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-017: Implement automated agent workspace lifecycle and crash-safe cleanup

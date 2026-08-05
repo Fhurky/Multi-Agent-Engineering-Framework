@@ -71,6 +71,11 @@ findings_raised:
   - A-103
   - A-104
   - A-105
+branch_point_of: main
+scope_validation_base: c325275ea13918a9766b71a6350821af1c3c471d
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Resolved by activation ACT-006 from the repository rather than asserted. This branch has one authored commit, 4874a9d, whose parent is c325275. git diff --name-only c325275...4874a9d returns exactly one path, reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md, which is this task's whole declared write scope.
+review_target_applicability: applicable and resolved
 ---
 
 # TASK-020: Independent review of the runtime architecture amendment

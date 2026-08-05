@@ -44,6 +44,15 @@ published_branch: agent/gpt/reviewer/task-014
 publication: local-only
 publication_reason: The executing session recorded that no push or merge was part of TASK-014.
 superseded_by: TASK-021
+review_target_branch: agent/claude/orchestrator/task-001
+review_target_commit: 657b83a
+review_target_base: not recorded by the original execution
+review_target_applicability: applicable, but never recorded. This record's body names the round 2 target as agent/claude/orchestrator/task-001 revision 2 at 657b83a with integration ref fb9f45c, and names no review-diff base for either round. Activation ACT-006 does not reconstruct one: both rounds are closed, their verdicts are durable, and inventing a base after the fact would misrepresent what the reviewer diffed. The omission is recorded rather than filled.
+branch_point_of: agent/claude/orchestrator/task-001
+scope_validation_base: 321c0c3898781f38e02dcb3e5a30948c11caa4af
+scope_validation_applicability: applicable and resolved, with a stated exception to the acceptance command
+scope_validation_acceptance_base: fb9f45c08dee2002d634f1e310017dc125ab67e7
+scope_validation_note: Resolved by activation ACT-006 from the repository. The branch's first authored commit 8ac0dbd has parent 321c0c3 on agent/claude/orchestrator/task-001, so 321c0c3 is the true branch point. It is not the acceptance base, because the human governance commit fb9f45c landed on this branch between the two rounds and changed config/agents/settings.yaml, a path no agent role may write; validating from 321c0c3 attributes that human-authored change to the reviewer and reports 50 paths. The reproducible acceptance base for the round 2 authored delta is fb9f45c, from which git diff --name-only fb9f45c...abb85d9 returns exactly one path, reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md, which is this task's whole declared write scope. Both values are recorded because they answer different questions, and neither is a review-diff base.
 ---
 
 # TASK-014: Independent review of the TASK-001 decomposition

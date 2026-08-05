@@ -14,7 +14,7 @@ dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
-    lineage_round: 3
+    lineage_round: 4
   - task: TASK-006
     edge: integrated
 required_gates:
@@ -51,7 +51,13 @@ parent_task: TASK-001
 publication_class: runtime
 normative_architecture_source: 9576fc9 as amended by 8d0c570 and by the TASK-024 commit that TASK-025 approves
 blocked_reason: TASK-015 returned changes-required on the base architecture and TASK-020 returned changes-required on the first amendment, so the bootstrap and lifecycle contracts are not approved and finding A-003 adds the live run control protocol this task implements. The supervisor run loop is not integrated.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 3 or higher, and TASK-006 is integrated into integration/autonomous-runtime.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 4 or higher, and TASK-006 is integrated into integration/autonomous-runtime.
+review_target_base: not applicable until this task publishes
+review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+scope_validation_note: Branch from integration/autonomous-runtime at or after the commit where this task's dependencies merged, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-007: Implement lifecycle control and the one-input project bootstrap
