@@ -35,9 +35,21 @@ scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
 scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
 scope_validation_note: Create agent/gpt/reviewer/task-031 from the head of agent/claude/orchestrator/task-013 at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/orchestrator/task-013 and pass that value to -BaseRef. Never pass 443ff9b, 62d6f2d, c325275, a review-diff base, or origin/main. Findings F-403 and A-209 each recorded why. Record the resolved value in the report so the Orchestrator can pin it. If the resolved value disagrees with what this record anticipates, report the actual provenance rather than substituting a base that passes. Note that the derivation expires once this branch is merged into agent/claude/orchestrator/task-013 or into a ref that contains it - TASK-030's base is the live example - so record the resolved 40-hex value, which is the durable fact, and not the expression.
 supersedes: TASK-030
+amended_by:
+  - activation: ACT-008
+    change: additive
+    summary: One supporting statement in Part A went stale between this record's creation and now. TASK-029 recorded a verdict at 3df261fa after ACT-007 wrote this record, so the F-401 bootstrap-half row's parenthetical "TASK-029 has recorded nothing" no longer describes the present. The correction is recorded as an additive note below and the row itself is left as written. This record's status, review target, review-diff base, round, lineage, gate relation, scope, and acceptance criteria are unchanged, and the record stays ready and dispatchable.
 ---
 
 # TASK-031: Independent re-review of the corrected TASK-001 decomposition, round 8
+
+> **Additive note — activation `ACT-008`, after this record was created.** `LIN-ARCH-REVIEW` round 4 has since recorded **`changes-required`** on the TASK-028 amendment `fe0374c`, at commit `3df261fa` on `agent/gpt/reviewer/task-029`. Two consequences bear on this round and neither changes what it reviews.
+>
+> First, **the review target is unchanged.** Round 8 reviews the `ACT-007` effects commit `f14bdde` against review-diff base `443ff9b`, and `3df261fa` is outside that delta. The `ACT-008` effects are reviewed by round 9, not by this round.
+>
+> Second, **Part A's F-401 row says "TASK-029 has recorded nothing", which was true when written and is no longer true.** The row's *expected answer is unchanged*: the bootstrap half of F-401 has still not moved, because the collector remains unimplemented, `activation.bootstrap_dispatch_contract` still reads `interim-operator-authorized`, and `ACT-007` ran under it. What changed is the evidence available for the check — the published contract representation has now been **judged and rejected**, so "publication is not approval" is no longer only a caution about a pending verdict but a recorded outcome. Round 4 recorded all six `HUMAN-002` Part B contract checks satisfied while still returning `changes-required`, which is a sharper example of the same distinction than the one this record could offer when it was written. Judge whether `ACT-007` treated the publication as a claim rather than a resolution, on the evidence as it stood at `f14bdde`.
+>
+> The row is left as written rather than rewritten, because this record's instructions were authored against an immutable target and editing them after dispatch would change what the round was asked to do. Whether that is the right handling, or whether a dispatched round's instructions should be updated in place when a cited fact moves, is an open question this note states rather than settles.
 
 ## Objective
 

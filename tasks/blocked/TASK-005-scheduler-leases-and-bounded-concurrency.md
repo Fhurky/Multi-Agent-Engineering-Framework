@@ -13,7 +13,7 @@ dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
-    lineage_round: 4
+    lineage_round: 5
   - task: TASK-003
     edge: integrated
   - task: TASK-004
@@ -61,14 +61,14 @@ gate_tasks:
     lineage_round: 1
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, and by the TASK-028 commit that TASK-029 approves. None of 9576fc9, 8d0c570, and c2ee3eb is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, and 3, the round-3 verdict at aa38c7d2 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 4 or later, which TASK-029 owns. A record that cites any of the three as approved is a finding.
+normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, and by the TASK-032 commit that TASK-033 approves. None of 9576fc9, 8d0c570, c2ee3eb, and fe0374c is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, and 4, the round-4 verdict at 3df261fa — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 5 or later, which TASK-033 owns. A record that cites any of the four as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
 remediates:
   - finding: F-104
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
   - finding: F-201
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md
-blocked_reason: TASK-015 returned changes-required on the base architecture and TASK-020 returned changes-required on the first amendment, so the lease, fencing, and typed-dependency contracts are not approved; finding A-004 defines the edge, gate, resource-lock, and recurring-activation semantics this task enforces. Neither the durable state store nor the worker result contract is integrated.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 4 or higher, and TASK-003 and TASK-004 are integrated into integration/autonomous-runtime.
+blocked_reason: TASK-015 returned changes-required on the base architecture and TASK-020 returned changes-required on the first amendment, so the lease, fencing, and typed-dependency contracts are not approved; finding A-004 defines the edge, gate, resource-lock, and recurring-activation semantics this task enforces. Neither the durable state store nor the worker result contract is integrated. LIN-ARCH-REVIEW has since recorded changes-required at round 3 on the TASK-024 amendment c2ee3eb at aa38c7d2 and at round 4 on the TASK-028 amendment fe0374c at 3df261fa, so the authoritative round is 4 and it failed. The remediation is TASK-032 and the revalidation is TASK-033 at round 5. This task is exactly as far from dispatch as it was before round 4.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 5 or higher, and TASK-003 and TASK-004 are integrated into integration/autonomous-runtime.
 review_target_base: not applicable until this task publishes
 review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
 branch_point_of: integration/autonomous-runtime
@@ -150,7 +150,7 @@ The end-to-end path — gate report publication, the durable pre-dispatch append
 
 ## Dependency notes
 
-- `gate_passed(LIN-ARCH-REVIEW, review, 4)` supplies the leasing, fencing, concurrency, and write-scope-exclusion contract from `docs/architecture/runtime/LEASES-AND-SCHEDULING.md`, together with the typed edge, gate-verdict, resource-lock, gate-lineage, and event-ingress activation contracts. TASK-016 added the first version under A-004; TASK-020 recorded A-101, that it compiles against the superseded graph; TASK-024 supplied the revision-5 version at `c2ee3eb` and **TASK-025 rejected it** at `aa38c7d2` with A-201 … A-209. The lineage's round 4 is owned by **TASK-029**, over the TASK-028 amendment published at `fe0374c`. The normative source is those documents at `9576fc9` **as amended by `8d0c570`, by `c2ee3eb`, and by the TASK-028 commit that TASK-029 approves** — and **none of the three is approved today**, so no approved source exists until `LIN-ARCH-REVIEW` records a passing or formally accepted authoritative verdict at `lineage_round` 4 or later. Never a superseded baseline alone, and never an ungated amendment.
+- `gate_passed(LIN-ARCH-REVIEW, review, 5)` supplies the leasing, fencing, concurrency, and write-scope-exclusion contract from `docs/architecture/runtime/LEASES-AND-SCHEDULING.md`, together with the typed edge, gate-verdict, resource-lock, gate-lineage, and event-ingress activation contracts. TASK-016 added the first version under A-004; TASK-020 recorded A-101, that it compiles against the superseded graph; TASK-024 supplied the revision-5 version at `c2ee3eb` and **TASK-025 rejected it** at `aa38c7d2` with A-201 … A-209. The lineage's round 4 is owned by **TASK-029**, over the TASK-028 amendment published at `fe0374c`. The normative source is those documents at `9576fc9` **as amended by `8d0c570`, by `c2ee3eb`, and by the TASK-028 commit that TASK-029 approves** — and **none of the three is approved today**, so no approved source exists until `LIN-ARCH-REVIEW` records a passing or formally accepted authoritative verdict at `lineage_round` 4 or later. Never a superseded baseline alone, and never an ungated amendment.
 - `integrated(TASK-026)` supplies the durable ingress inbox this task's observer reads. TASK-026 owns the store, the `seq` assignment, the `fact_id` and `content_hash` computation, the adapters, the class precedence, the self-exclusion rule, and the authorized-appender check; this task owns the observer, the dispatch predicate, the bootstrap-dispatch-contract check, the cursor, and the one-commit rule over it. The two write scopes are disjoint.
 - `integrated(TASK-003)` supplies the versioned durable state store and `src/orchestrator/state/contracts/`.
 - `integrated(TASK-004)` supplies the worker result and work assignment contract from `src/agents/contracts/`. This task consumes TASK-004's contract at compile time and must not start before it is integrated. This task imports from `src/agents/contracts/` only and never modifies `src/agents/`.
