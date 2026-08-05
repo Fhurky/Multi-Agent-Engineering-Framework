@@ -1,6 +1,14 @@
 # Provider Adapter Boundary and Error Taxonomy
 
-Normative provider contract for the autonomous runtime. Produced under TASK-002. Related decision: [ADR-0007](../../adr/0007-provider-adapter-boundary-and-error-taxonomy.md). Implemented by TASK-004.
+Normative provider contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016. Related decisions: [ADR-0007](../../adr/0007-provider-adapter-boundary-and-error-taxonomy.md) and [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md). Implemented by TASK-004.
+
+## Amendment register — TASK-016
+
+| Superseded claim (TASK-002) | Superseded by | Decision |
+|---|---|---|
+| "An adapter that ignores the signal is non-conforming; the worker's own timer guarantees the classification is produced regardless" — a timeout classification with no mechanism that stops the process producing it | [Process-tree lifecycle](#process-tree-lifecycle) — the abort signal is the first step of a bounded escalation that ends in a verified tree exit | [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md) |
+| Three timeout layers, none of which owns the OS process | A fourth concern, process-tree ownership, assigned to this module with an explicit interface | [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md) |
+| `AgentInvocation` carrying `worktreePath` and `branch` with no module producing them | Produced by the workspace lifecycle module and handed to the worker as a prepared handle | [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md) |
 
 ## The boundary
 
@@ -65,15 +73,86 @@ The mapping is a single exported constant, `DISPOSITION_BY_CLASS`, declared in `
 
 The worker creates an `AbortController` with `invocation.timeoutMs` and passes the signal to `invoke`. On abort the worker returns an `AdapterOutcome` of `{ status: 'failed', failure: { failureClass: 'timeout', ... } }` within the bound. An adapter that ignores the signal is non-conforming; the worker's own timer guarantees the classification is produced regardless, so an unresponsive provider surfaces as a timeout rather than blocking the supervisor.
 
-This is worker-level timeout **signalling** only. Deciding what a timeout means for the run — retry, exhaustion, or run-level failure — belongs to TASK-008 and is specified in [RETRIES-TIMEOUTS-AND-IDEMPOTENCY.md](RETRIES-TIMEOUTS-AND-IDEMPOTENCY.md). The three timeout mechanisms are deliberately layered and independent:
+Producing the classification is not the same as stopping the work. TASK-002 stopped here, and finding A-003 established the consequence: an adapter that ignores the abort leaves a `claude`, `codex`, or `gemini` process — and everything it spawned — running after the worker has already reported a timeout. The abort signal is therefore the **first step** of the escalation defined below, not the whole of it.
+
+This is worker-level timeout **signalling** only. Deciding what a timeout means for the run — retry, exhaustion, or run-level failure — belongs to TASK-008 and is specified in [RETRIES-TIMEOUTS-AND-IDEMPOTENCY.md](RETRIES-TIMEOUTS-AND-IDEMPOTENCY.md). The timeout mechanisms are deliberately layered and independent:
 
 | Layer | Bound | Owner | Purpose |
 |---|---|---|---|
 | Adapter/worker abort | `taskTimeoutMs` | TASK-004 | Stop waiting on one invocation |
+| Process-tree escalation | `gracefulCancelGraceMs`, `treeExitVerifyTimeoutMs` | TASK-004 | Stop the invocation's OS processes, verifiably |
 | Lease TTL | `leaseTtlMs` | TASK-005 | Reclaim work whose owner stopped renewing |
 | Watchdog scan | `taskTimeoutMs`, `runTimeoutMs` | TASK-008 | Transition timed-out work through the state machine even if no worker reports back |
 
 The watchdog exists because a process that crashes mid-invocation never returns an outcome at all. Relying only on the worker's own timer would leave such a task in `running` forever.
+
+## Process-tree lifecycle
+
+Added under TASK-016 to resolve the second half of A-003. **This module owns it**, and no other module has any part of it. The reason is that this is the only module that spawns a provider process: ownership of a process tree belongs where the spawn happens, because only there can the child be placed into an owned group at creation, which is the only moment at which that is possible. The lifecycle module and the recovery module both act on process trees, and both do so exclusively through the `ProcessTreeController` interface declared in `agents/contracts` and implemented here. [COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md) records the single ownership.
+
+### Durable invocation identity
+
+Every invocation has an `invocationId` that is durable **before** any process exists, and the runtime records the binding immediately after:
+
+| Step | Action | Journal |
+|---|---|---|
+| 1 | Compute `invocationId` deterministically from `(runId, taskId, attempt, idempotencyKey)`; derive the group name from it | `ProcessGroupRegistered { invocationId, taskId, attempt, groupKind, groupName }`, appended and durable **before** the spawn |
+| 2 | Create the owned group and spawn the provider into it | — |
+| 3 | Record what was created | `ProcessGroupBound { invocationId, pid, groupRef, processStartTime }`, appended immediately after the spawn returns |
+| 4 | On completion or cancellation, verify the tree has exited | `ProcessGroupClosed { invocationId, outcome, exitCode, escalation, verifiedExit, closedAt }` |
+
+Step 1 before the spawn is what makes an orphan attributable after a crash. A process spawned before its existence was recorded is a process recovery cannot name, and the window between steps 1 and 3 is the residual risk recorded in [CRASH-RECOVERY.md](CRASH-RECOVERY.md).
+
+`processStartTime` is recorded so that identity can be re-verified later. A pid alone is not an identity: pids are reused, and signalling a reused pid would terminate an unrelated process.
+
+### Owned group per platform
+
+| Platform | Mechanism | Kill-on-crash |
+|---|---|---|
+| Windows | A **Job Object** created with the derived name before the spawn, with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` set. The child is created suspended, assigned to the job, then resumed, so no descendant can escape the job between creation and assignment. `CREATE_NEW_PROCESS_GROUP` is also set so a console control event can be directed at the group | **Yes.** When the supervisor dies, its last handle to the job closes and the kernel terminates every process in it. A crash therefore cannot leave a descendant behind |
+| POSIX | The child is spawned detached, which places it in a **new process group** whose pgid equals the child's pid. Signals are sent to `-pgid`, so they reach descendants that did not change their own group | **No.** POSIX has no equivalent of kill-on-close. A supervisor crash leaves the group running until the next attach fences and terminates it |
+
+An adapter that spawns a provider without an owned group is non-conforming. There is exactly one spawn function in this module, it always creates the group, and no adapter implementation calls a process API directly — this is the structural mechanism, not a review convention.
+
+### Graceful cancellation and bounded escalation
+
+```text
+1. Signal the adapter through AbortSignal.                        cooperative
+2. Send a graceful termination to the whole group:                bounded by gracefulCancelGraceMs
+     POSIX:   SIGTERM to -pgid
+     Windows: CTRL_BREAK to the process group
+3. If the tree has not exited within gracefulCancelGraceMs:       forced
+     POSIX:   SIGKILL to -pgid
+     Windows: TerminateJobObject
+4. Verify exit, polling at treeExitPollIntervalMs
+   until treeExitVerifyTimeoutMs:                                 verification
+     POSIX:   kill(-pgid, 0) returns ESRCH
+     Windows: the job reports zero assigned process ids
+5. Append ProcessGroupClosed with the escalation reached
+   and verifiedExit true or false.
+```
+
+Defaults: `gracefulCancelGraceMs` 10 000, `treeExitVerifyTimeoutMs` 5 000, `treeExitPollIntervalMs` 250, `processTreeCloseTimeoutMs` 20 000. All are run limits, all are injected, and none is read from wall-clock time directly.
+
+A child that ignores step 2 is expected, not exceptional: agent CLIs trap interrupts to flush their own state. Step 3 is unconditional once the grace elapses, and step 4 is what turns "we sent a signal" into "the tree is gone". `verifiedExit: false` after `treeExitVerifyTimeoutMs` is recorded as `orphan_unresolved` and reported; it is never silently treated as success.
+
+### Persisted outcome before the writer lock is released
+
+**Normative.** `releaseWriter` must not be called, and `RunDrainCompleted` must not be emitted, while any invocation of the current writer epoch lacks a durable `ProcessGroupClosed`. `pause` and `stop` therefore wait for step 5 of every in-flight invocation, bounded by `processTreeCloseTimeoutMs`.
+
+This is what gives the pause post-condition in [LIFECYCLE-AND-BOOTSTRAP.md](LIFECYCLE-AND-BOOTSTRAP.md) its teeth: pause may leave resumable **task** state, and it may not return while an unmanaged descendant remains.
+
+### Test obligations for A-003
+
+The finding names one scenario explicitly; it is required, and four more follow from the contract.
+
+1. **Grandchild, ignored cancellation, outlived timeout.** A fake adapter spawns a child that spawns a grandchild; the child installs a handler that ignores the first graceful termination; both outlive `taskTimeoutMs`. Assert: the worker returns a `timeout` outcome within its bound; escalation reaches `forced`; neither child nor grandchild is alive after `ProcessGroupClosed`; `verifiedExit` is true; and the append precedes `releaseWriter`.
+2. **Pause with the same tree.** Assert `pause` does not return until the tree is gone, and that it returns within `processTreeCloseTimeoutMs` plus a fixed tolerance.
+3. **Crash with a bound invocation.** Kill the supervisor with the tree alive. On Windows assert the tree is already gone by kill-on-close; on POSIX assert the next attach terminates it and records `terminated_by_recovery`.
+4. **Pid reuse.** Present a live process holding the recorded pid with a different start time. Assert no signal is sent and the outcome is `orphan_unresolved` with reason `pid_reuse`.
+5. **Registered but unbound.** Simulate a crash between the pre-spawn append and the post-spawn append. Assert the outcome is `orphan_unresolved` with reason `unbound`, that `RECOVERY_ORPHAN_UNRESOLVED` is emitted, and that the invocation is fenced so a late result changes nothing.
+
+Tests 1 through 5 use a fake adapter and real OS processes; none makes a network call or invokes a real provider.
 
 ## Credentials
 
@@ -106,3 +185,8 @@ The `fencingToken` on `WorkAssignment` is carried through untouched so that the 
 | Timeouts are bounded | With an adapter that never resolves, `execute` returns a `timeout` outcome within `timeoutMs` plus a fixed tolerance |
 | Results are addressable | Every `WorkerResult` carries `runId`, `taskId`, `attempt`, `idempotencyKey`, and `fencingToken` |
 | No credential leakage | A round-trip of every produced record and event contains no value returned by `SecretProvider` |
+| Every process is owned | For every spawned provider process, a `ProcessGroupRegistered` precedes the spawn and a `ProcessGroupBound` follows it; a spawn with no owned group fails the test suite |
+| Every tree is closed | For every `ProcessGroupRegistered` there is exactly one `ProcessGroupClosed` before the writer lock is released |
+| Escalation is bounded | With a child that ignores graceful termination, the forced step occurs within `gracefulCancelGraceMs` plus a fixed tolerance |
+| Exit is verified, not assumed | `ProcessGroupClosed.verifiedExit` is true only after the platform check reports no remaining process; a timeout on that check records `orphan_unresolved` |
+| No invocation runs outside a worktree | `execute` refuses an assignment whose workspace handle is not `prepared`, asserted with preparation stubbed to fail |

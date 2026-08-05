@@ -1,9 +1,10 @@
 # ADR-0009: Graceful pause, drain, and crash recovery
 
-- Status: Accepted
+- Status: Accepted; superseded in part by [ADR-0013](0013-single-decision-recovery-reconciliation.md) and [ADR-0014](0014-live-run-control-and-process-tree-ownership.md)
 - Date: 2026-08-04
 - Deciders: Solution Architect under TASK-002
 - Affects: TASK-007 and TASK-008; TASK-003 and TASK-006 provide the primitives
+- Superseded in part: (a) the seven-phase recovery procedure, specifically the phase 4, 5, and 6 split, is replaced by ADR-0013's one-decision-per-task reconciliation, because finding A-002 established that the split emits transitions the state machine rejects; (b) the rule that in-flight work is never killed at the drain deadline, and the corresponding rejection of "kill in-flight workers at the drain deadline", are replaced by ADR-0014's bounded escalation with verified tree exit, because finding A-003 established that fencing protects run state and not a worktree. The one-drain-two-intents model, resume-always-through-recovery, reported restore failure, and the equivalence claim all stand.
 
 ## Context
 

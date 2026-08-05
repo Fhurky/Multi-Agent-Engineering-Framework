@@ -1,9 +1,10 @@
 # ADR-0010: Integration and branch aggregation strategy for the runtime task graph
 
-- Status: Accepted
+- Status: Accepted; superseded in part by [ADR-0016](0016-integration-branch-and-typed-merge-order.md)
 - Date: 2026-08-04
 - Deciders: Solution Architect under TASK-002
 - Affects: TASK-003 … TASK-008; routing implications for the Orchestrator
+- Superseded in part: "every task branches from `main`", the rejection of a long-lived integration branch, the merge-to-`main` integration order, and the Wave 2 through Wave 5 numbering are replaced by ADR-0016, which adopts `integration/autonomous-runtime` as the committed task graph defines it. Squash-per-task, contract change control, and the rejection of branching from a sibling all stand. The toolchain ownership gap this record routed to the Orchestrator was resolved by human decision HUMAN-001 at commit `fb9f45c`; TASK-018 owns it.
 
 ## Context
 
