@@ -97,17 +97,19 @@ Measure the runtime's scheduling throughput, checkpoint cost, and recovery time,
 
 This task performs the performance gate for TASK-005, TASK-006, and TASK-008, declared in the `gate_for` field. A `gate_for` declaration is not a scheduling dependency: this task becomes dispatchable when its targets reach `review` **and** a passing QA baseline exists, and its targets reach `done` only after this task records a verdict.
 
-## Why the QA dependency is `gate_passed` and not `gate_recorded`
+## Why the QA dependency is a lineage-form `gate_passed` and not `gate_recorded`
 
 Finding **F-204** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md` recorded a contradiction: this record's exit condition required a **passing** end-to-end QA baseline, while its declared edge was `gate_recorded(TASK-011)`, which is satisfied by any verdict including `changes-required`. The scheduler would therefore have dispatched performance validation against a baseline QA had already rejected.
 
-The edge is now the **owner form** of `gate_passed`: `{task: TASK-011, edge: gate_passed, gate: qa, round: 1}`, satisfied only when the qa gate TASK-011 owns is closed by a passing or formally accepted verdict at round 1 or higher. A `changes-required` QA verdict leaves this task blocked until a later QA round passes. The frontmatter, the edge semantics table, the ownership table, the Wave 8 note, this exit condition, and TASK-011's `consumed_by` declaration all state the same thing.
+Finding **F-302** in round 4 then recorded that the owner form which replaced it — an edge naming one gate task — can never be satisfied once that task records `changes-required`, because a superseding round is always a new task and a recorded verdict is never rewritten. The **owner form is withdrawn** and is rejected at load time.
 
-The two `gate_passed` forms are disambiguated by no-deadlock invariant 6: TASK-011 declares `required_gates: []` and declares `gate: qa` in seven `gate_for` entries, so only the owner form resolves. TASK-005's graph validator rejects an ambiguous edge at load time.
+The edge declared in this record's frontmatter is therefore the **lineage form**: it names the QA gate lineage rather than any one of its rounds, and is satisfied when that lineage's authoritative verdict — the verdict at its highest recorded lineage round — is passing or formally accepted at or above the floor the edge declares. A `changes-required` QA verdict leaves this task blocked until a later round of the same lineage passes, and that later round releases it **with no edit to any edge**. The lineage identifier and the floor are declared in this record's frontmatter and resolved through the gate-lineage register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body names them and does not restate their values. Finding **F-402** recorded that this passage previously printed the withdrawn owner-form edge and claimed invariant 6 resolved it.
 
-## Aggregate gate class
+Invariant 6 now requires every `gate_passed` edge to declare exactly one of `task` or `lineage`, so no edge is ambiguous and no edge can name a gate task's own relation. TASK-005's graph validator rejects a violation at load time.
 
-This gate is `aggregate` and `retrospective` for all three targets, declared on both sides of each pair and registered with a reason and a recorded risk in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, row "TASK-012 / performance". It runs one wave after every other gate, so an optimization finding arrives after the code is integrated and reviewed and remediation reopens an already-gated task.
+## Gate scheduling class
+
+This gate's scheduling class, its ordering against integration, its lineage, and its lineage round are declared on both sides of each pair and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, row "TASK-012 / performance". Those are the only normative statements of those values; this body names the register and does not restate them. The register records that this gate runs after every other gate, so an optimization finding arrives once the code is integrated and reviewed and remediation reopens an already-gated task.
 
 Optimizations are implemented by the responsible implementation owner, routed through TASK-013, and this role revalidates the optimization afterward in a new round with a new task. Publishing this task's report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 

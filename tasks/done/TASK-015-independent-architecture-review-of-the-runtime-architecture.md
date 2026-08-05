@@ -37,6 +37,9 @@ superseded_by: TASK-020
 
 # TASK-015: Independent architecture review of the autonomous runtime architecture, round 1
 
+> **Historical record.** This task is `done` and its verdict is durable. Sections below describe the state of the graph at the time it ran. Under the single-source rule a pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are normative only in the pair's own frontmatter and in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; where this body names such a value it is quarantined history and is superseded by those sources. This is the correction finding F-402 required.
+
+
 ## Objective
 
 Perform the independent review gate that TASK-002 declares, on the architecture and decision records it produced, and record a verdict that decides whether TASK-003 through TASK-008 and TASK-017 may leave `blocked`.

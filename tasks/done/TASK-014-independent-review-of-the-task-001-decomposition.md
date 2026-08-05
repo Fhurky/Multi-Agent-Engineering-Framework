@@ -48,6 +48,9 @@ superseded_by: TASK-021
 
 # TASK-014: Independent review of the TASK-001 decomposition
 
+> **Historical record.** This task is `done` and its verdict is durable. Sections below describe the state of the graph at the time it ran. Under the single-source rule a pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are normative only in the pair's own frontmatter and in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; where this body names such a value it is quarantined history and is superseded by those sources. This is the correction finding F-402 required.
+
+
 ## Objective
 
 Perform the independent review gate required by TASK-001 on the decomposition artifacts it produced, and record actionable findings that return to the Orchestrator for correction. TASK-001 declares `required_gates: [review]` but no Reviewer task record existed for that gate; this task closes that omission.

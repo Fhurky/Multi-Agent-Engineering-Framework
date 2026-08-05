@@ -55,7 +55,7 @@ remediates:
   - finding: F-301
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md
     part: implementation of the durable store and its adapters
-blocked_reason: The ingress inbox contract does not exist yet. TASK-020 recorded changes-required on the current architecture amendment, and the ingress contract is TASK-024 scope item 1. Neither the durable state store nor the toolchain is integrated.
+blocked_reason: No approved ingress inbox contract exists. TASK-024 published a candidate at c2ee3eb, but LIN-ARCH-REVIEW has recorded no verdict on it, and that candidate still declares consumedBy on the inbox entry, which finding F-401 rejects. Neither the durable state store nor the toolchain is integrated.
 exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 3 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
 ---
 
@@ -81,7 +81,7 @@ Every field name, type, signature, and string-literal union in this module comes
 
 **Item 1 — the durable append-only store.**
 
-- Persist entries with the contract's entry schema: `seq`, `epoch`, `fact_id`, `content_hash`, `event_type`, `producer_task`, `producer_role`, `source_commit`, `source_path`, `appended_by`, `consumed_by`.
+- Persist entries with the contract's **inbox entry** schema: `seq`, `epoch`, `fact_id`, `content_hash`, `event_type`, `producer_task`, `producer_role`, `source_commit`, `source_path`, `appended_by`. Finding **F-401** removed `consumed_by` from this schema: an entry carries **no consumption state of any kind** and is byte-identical before and after the activation that consumes it. The consumption ledger is a separate append-only record whose rows reference an entry by `seq` and `fact_id` and carry `consumed_by`; a ledger row never writes back to an entry, and this module never exposes a way to mark an entry consumed.
 - Assign `seq` **once** at append time, in append order. Never recompute it, never derive it from a count of anything outside the store, and never reorder or renumber an existing entry.
 - Compute `fact_id` as SHA-256 over the canonical identity tuple the contract defines, byte for byte, so two independent implementations agree.
 - Compute `content_hash` as SHA-256 over the bytes of the source artifact at the source commit.
@@ -96,6 +96,7 @@ Every field name, type, signature, and string-literal union in this module comes
 - Treat distinct commits as distinct facts even when they express one logical step.
 - Order the entries of one append batch by ascending source commit identifier. **Never order by committer timestamp**, and do not record a timestamp as an ordering input.
 - Exclude, explicitly and by rule, every commit authored by an activation of the recurring task on its own branch. This exclusion is unconditional across all fact classes.
+- Accept an append only from an **authorized appender** as the contract defines it — the adapters in the runtime phase, and the authorized bootstrap appender named by the governance decision in the bootstrap phase. Reject an append offered by the recurring task, and reject an append whose declared appender is not authorized. This is the second half of finding **F-401** and is independently assessed as **TASK-010 `V10-F401-AUTH`**.
 - Handle the epoch boundary: read the active epoch's `seq_base`, assign the first entry of a new epoch `seq_base + 1`, and never re-derive, renumber, or reclassify an entry from a sealed epoch.
 - Treat every field read out of a commit message, a report, or a handoff as untrusted input: validate it against the contract's types before it becomes an entry field, and never derive a filesystem path, a ref name, or a command argument from it.
 
@@ -116,7 +117,9 @@ Additional required tests: `fact_id` and `content_hash` reproduce the values a r
 
 ## Acceptance criteria
 
-- [ ] Entries persist with the full contract schema, and every field name and type matches `INTERFACE-CONTRACTS.md` exactly.
+- [ ] Entries persist with the full contract **inbox entry** schema, and every field name and type matches `INTERFACE-CONTRACTS.md` exactly.
+- [ ] **No inbox entry carries a consumption field.** A test asserts that the persisted entry is byte-identical before and after a consuming activation records its ledger row, and that no exposed operation can set consumption state on an entry. If the approved contract still declares `consumed_by` on the inbox entry, this task stops at the boundary and hands the divergence to the Orchestrator under the contract change control rule rather than implementing either side unilaterally. Independently assessed as **TASK-009 `V9-F401-SCHEMA`** and **TASK-011 `V11-F401-PREDISPATCH`**.
+- [ ] An append offered by the recurring task, or by an appender the contract does not authorize, is rejected, proven by a test.
 - [ ] `seq` is assigned once at append and is never recomputed, reordered, or renumbered, and no code path derives it from a count of commits, refs, branches, or files.
 - [ ] `fact_id` is SHA-256 over the contract's canonical identity tuple and reproduces byte for byte against a hand-computed value in a test fixture.
 - [ ] `content_hash` is SHA-256 over the source artifact bytes and detects a rewrite of the artifact under the same path.
@@ -145,9 +148,9 @@ Additional required tests: `fact_id` and `content_hash` reproduce the values a r
 
 ## Gate and remediation path
 
-This task declares `required_gates: [review, security, qa]` and `pre_merge_gates: []`, so it is integrated in wave order and its gates close afterwards. The three relations belong to `LIN-RUNTIME-REVIEW`, `LIN-RUNTIME-SECURITY`, and `LIN-RUNTIME-QA`; their `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in the frontmatter above and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, which records why the delay is accepted and what it costs. This body does not restate them.
+This task declares `required_gates: [review, security, qa]` and `pre_merge_gates: []`. Each of the three relations declares its gate name, scheduling class, ordering against integration, lineage, and lineage round in the frontmatter above, and each is summarized in the gate-lineage register and the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, which record why each delay is accepted and what it costs. Those registers are the only normative statements of those values; this body names them and does not restate them.
 
-The independent validation obligations that specifically cover this module are **TASK-009 `V9-F301-STORE`** and **`V9-F301-CLASS`**, **TASK-010 `V10-F301-AUTH`**, and **TASK-011 `V11-F301-STORE`** and **`V11-F301-CLASS`**. This task's own unit tests never satisfy them.
+The independent validation obligations that specifically cover this module are **TASK-009 `V9-F301-STORE`**, **`V9-F301-CLASS`**, and **`V9-F401-SCHEMA`**; **TASK-010 `V10-F301-AUTH`** and **`V10-F401-AUTH`**; and **TASK-011 `V11-F301-STORE`**, **`V11-F301-CLASS`**, and **`V11-F401-PREDISPATCH`**. This task's own unit tests never satisfy them.
 
 Findings return to the Orchestrator under TASK-013, which routes remediation to this task's owner. This task never reviews its own work and never closes its own gate.
 

@@ -1,7 +1,7 @@
 ---
 task_id: TASK-024
 title: Second architecture amendment for ingress durability, recovery, and the revision-5 scheduling vocabulary
-status: ready
+status: review
 owner_role: architect
 llm: claude
 branch: agent/claude/architect/task-024
@@ -46,6 +46,19 @@ remediates:
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md
     part: contract representation only
 supersedes: TASK-016
+published_commit: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
+published_branch: agent/claude/architect/task-024
+published_remote_ref: refs/heads/agent/claude/architect/task-024
+pull_request: 9
+publication: published
+publication_note: The amendment commit c2ee3eb is preceded on the same branch by the merge commit 6e5a9df, which brought the TASK-016 amendment 8d0c570 into this branch so the amendment sits in the same lineage. The merge introduced only paths under docs/architecture/, docs/adr/, and diagrams/architecture/, all inside this task's declared write scope. 6e5a9df is not an ingress fact: it is not a merge on integration/autonomous-runtime nor a merge of that branch into main, and the owner's record names c2ee3eb as the published commit.
+scope_validation_base: 890b8e0d0ed45f64ec913f952058e942668d784e
+branch_point_of: agent/claude/orchestrator/task-013
+scope_validation_note: Resolved by this activation from the published branch; git merge-base agent/claude/architect/task-024 agent/claude/orchestrator/task-013 returns 890b8e0. The owner ran the check against that branch point and recorded valid True with changed_files 35. The originally prescribed -BaseRef c325275 is superseded under finding F-403.
+review_target_branch: agent/claude/architect/task-024
+review_target_commit: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
+review_target_base: 8d0c570
+review_target_note: TASK-025 reviews the immutable commit c2ee3eb against review-diff base 8d0c570, the TASK-016 amendment this one revises, reading 9576fc9 where a judgment needs the original baseline. The authored delta is 6e5a9df..c2ee3eb, 28 files. This target is immutable and is not changed by a later TASK-013 activation.
 ---
 
 # TASK-024: Second architecture amendment for ingress durability, recovery, and the revision-5 scheduling vocabulary
@@ -141,7 +154,7 @@ This task's scope is identical to TASK-016's and overlaps TASK-002's. All three 
 
 ## Gate and remediation path
 
-This task declares `required_gates: [review]` and `pre_merge_gates: [review]`, owned by **TASK-025**, which records `LIN-ARCH-REVIEW` lineage round 3. TASK-025's single verdict applies atomically to `(TASK-024, review, r1)`, `(TASK-016, review, r2)`, and `(TASK-002, review, r3)`. Until that verdict is passing, this amendment is not integrable and `gate_passed(LIN-ARCH-REVIEW, review, 3)` is unsatisfied, so TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 stay `blocked`.
+This task declares `required_gates: [review]` and `pre_merge_gates: [review]`, owned by **TASK-025**. The pair's scheduling class, ordering against integration, lineage, and lineage round are declared in the frontmatter above and in TASK-025's matching `gate_for` entry, and summarized in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body names those sources and does not restate their values. TASK-025's single verdict applies atomically to all three relations it carries. Until that verdict is passing, this amendment is not integrable and the architecture lineage edge stays unsatisfied, so TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 stay `blocked`.
 
 The architect is `claude` and the reviewer is `gpt`, so author and reviewer are in separate execution contexts and separate LLM families. This task authors; it never reviews and never closes its own gate. Publishing this branch is what wakes TASK-013; this task never writes under `tasks/`.
 
@@ -150,7 +163,7 @@ The architect is `claude` and the reviewer is `gpt`, so author and reviewer are 
 1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-024 -Role architect -Llm claude`.
 2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-024 -Role architect -Llm claude` before editing. Confirm no other holder of `architecture-docs` is claimed.
 3. Read the four normative inputs above before editing.
-4. Before handoff, run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef c325275`.
+4. Before handoff, run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef <scope_validation_base>` — the immutable branch point declared in this record's frontmatter, not a review-diff base. The originally prescribed `-BaseRef c325275` is **superseded** under finding F-403; the owner substituted the branch point by hand to complete the handoff.
 5. Commit, publish the task branch and open or update a pull request when a remote and credentials are available — otherwise record `publication: local-only` with the reason, which this task's `publication_class: bootstrap` permits — and run `scripts/orchestration/release-task.ps1 -TaskId TASK-024 -Role architect -Llm claude`.
 
 Do not move this record between lifecycle directories and do not edit its `status` field. `tasks/**` is outside the architect role's configured write scope. Record the handoff in the commit message and the pull request description; the Orchestrator performs the transition under TASK-013.
@@ -159,11 +172,18 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013.
 
+## Publication outcome and what it does not establish
+
+This task **published** and is therefore `review_ready`. That is authoring evidence and nothing more. No finding it claims to remediate is resolved by this record, by this graph, or by any Orchestrator activation. **TASK-025's single verdict decides A-101 … A-105, the still-open A-002, A-003, and A-004, the eleven ingress checks, and the F-401 correction**, and applies that one verdict atomically to all three relations it carries.
+
+One divergence is recorded here as a fact rather than judged: the published contract at `c2ee3eb` declares `consumedBy: ActivationId | null` on the inbox entry at `docs/architecture/runtime/INTERFACE-CONTRACTS.md:551`, and repeats the single-schema model in ADR-0017 and `STATE-MACHINE.md`. Finding **F-401**, recorded by TASK-023 at `667d3b8` **after** this amendment was authored, rejects that shape and requires the inbox entry schema and the consumption-ledger row schema to be separate with no consumption field on the entry. This amendment was authored against revision 5, which still declared the single schema, so the divergence is chronological rather than a departure from the brief it was given. TASK-025 judges it under Part D of its record; the Orchestrator does not pre-judge it.
+
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the architect's commit, pull request, and handoff.
+Maintained by the Orchestrator under TASK-013 from the architect's commit, pull request, and handoff. Transcribed by activation `ACT-005` from the commit message of `c2ee3eb`; quoted, not invented.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to record the publication and dispatch TASK-025, the independent review that records `LIN-ARCH-REVIEW` lineage round 3
+- Commit or pull request: `c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a` `docs: amend the runtime architecture for TASK-024` on `agent/claude/architect/task-024`, parent `6e5a9df`. 28 files changed, all under `docs/architecture/`, `docs/adr/`, and `diagrams/architecture/`. Published at `refs/heads/agent/claude/architect/task-024` on `origin` and opened as pull request #9.
+- Owner-recorded scope: A-101 typed scheduling and activation compiled against revision 5 name for name, including `publication_class`, both surviving `gate_passed` forms with the owner form rejected at load, plural `gateFor` with one atomic verdict, the four per-pair properties, gate lineages with the authoritative-verdict rule, eight validator invariants, the three ingress surfaces replacing `activationEvents`, and the ingress inbox as the eighth module owned by TASK-026. A-102 a three-phase worker handshake with `spawnOwned` taking a registration receipt issued only by the state store's append path, and an unqualified drain post-condition producing `RunDrainBlocked` with exit code 5. A-103 plan and execute phases behind a durable-intent receipt, with `WorkspaceAbandonIntended` entering the `abandoning` state. A-104 `WorkerResultRecorded` making the complete `TaskResultSummary` and verbatim `proposedTasks` durable before commitment. A-105 diagram reconciliation. New ADR-0017 … ADR-0022 with forward supersession recorded on ADR-0002, ADR-0011, ADR-0013, ADR-0014, ADR-0015, and ADR-0016.
+- Verification, as the owner recorded it: `scripts/ci/validate-framework.ps1` passed for 13 roles; `scripts/ci/test-orchestration.ps1` passed; `validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 890b8e0` returned `valid True`, role `architect`, llm `claude`, `changed_files 35`; `git diff --check` clean on the committed range and the working tree; link and anchor validation across 38 architecture, ADR, and diagram files with no broken relative link and no missing anchor; a revision-5 vocabulary compile check over 38 terms, all representable. The owner also recorded that no structural prohibition in `WORKSPACE-LIFECYCLE.md` was weakened.
+- Known risks: **no verdict exists on this amendment.** Its `review` gate is in `pre_merge_gates`, so the amendment is not integrable, and TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 stay `blocked`. The F-401 divergence recorded above is open and is TASK-025's to judge. This task's `architecture-docs` lock was still present in the shared Git common directory at `ACT-005`; releasing a stale lock is a human decision under the concurrent-execution protocol and this activation did not force it.
+- Next owner: **reviewer / gpt for TASK-025**, `ready` and dispatchable now on the satisfied `review_ready(TASK-024)` edge.
