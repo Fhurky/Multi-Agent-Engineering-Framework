@@ -1,6 +1,15 @@
 # Crash Recovery
 
-Normative recovery contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016. Related decisions: [ADR-0009](../../adr/0009-graceful-pause-drain-and-crash-recovery.md) as superseded in part by [ADR-0013](../../adr/0013-single-decision-recovery-reconciliation.md) and [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md), plus [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md) and [ADR-0012](../../adr/0012-crash-atomic-journal-batches-with-commit-records.md). Implemented by TASK-008, with workspace reconciliation delegated to the module TASK-017 owns.
+Normative recovery contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016, amended again under TASK-024. Related decisions: [ADR-0009](../../adr/0009-graceful-pause-drain-and-crash-recovery.md) as superseded in part by [ADR-0013](../../adr/0013-single-decision-recovery-reconciliation.md) and [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md), plus [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md), [ADR-0012](../../adr/0012-crash-atomic-journal-batches-with-commit-records.md), and — under TASK-024 — [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md), [ADR-0020](../../adr/0020-durable-adoptable-results-for-recovery.md), and [ADR-0022](../../adr/0022-unqualified-drain-closure.md). Implemented by TASK-008, with workspace reconciliation delegated to the module TASK-017 owns.
+
+## Amendment register — TASK-024
+
+| Superseded claim (TASK-016) | Superseded by | Finding | Decision |
+|---|---|---|---|
+| Phase 4's `adopt` decision, which could not build `WorkerSucceeded` from a `resultDigest` alone | [Phase 4](#phase-4--reconcile-in-one-decision-per-task) reading a durable `AdoptableResult`, with an explicit escalation when one is absent | A-104 | [ADR-0020](../../adr/0020-durable-adoptable-results-for-recovery.md) |
+| "Every workspace with a durable prepare or finalize intent" — abandonment had no intent to find | I15 restated over **prepare, finalize, and abandon** intents, all three of which are now durable before their side effects | A-103 | [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md) |
+| A drain that could complete with an unverified process tree, leaving recovery to discover it | A drain that cannot; the unverified case is `RunDrainBlocked` and reaches recovery as an ordinary attach | A-102 | [ADR-0022](../../adr/0022-unqualified-drain-closure.md) |
+| The ingress model's crash story, expressed over `run.activationEvents` | [What a crash can leave behind](#what-a-crash-can-leave-behind) and I20 … I22, over the durable inbox, the cursor, and the consumption ledger | A-101, F-301 | [ADR-0017](../../adr/0017-durable-ingress-inbox-and-ingress-epochs.md) |
 
 ## Amendment register — TASK-016
 
@@ -30,7 +39,10 @@ Out of scope: a corrupted or lying filesystem, a clock that moves backwards acro
 | Provider work | Completed and unreported, in flight, or never started |
 | Provider OS process tree | Fully exited; or alive, detached, and still holding a worktree — on Windows the job object's kill-on-close limit removes this case; on POSIX it does not |
 | Control requests | An unconsumed request from a CLI that is gone, addressed to a writer epoch that no longer exists |
-| Agent workspace | Prepare intended but incomplete; prepared; finalize intended but incomplete; finalized; or an orphaned worktree, branch, or task lock with no owning session alive |
+| Agent workspace | Prepare, finalize, or abandon intended but incomplete; prepared; finalized; abandoned; or an orphaned worktree, branch, or task lock with no owning session alive. Under TASK-024 every one of the three mutating operations has a durable intent, so there is no fourth column of "a side effect with no record" |
+| Ingress inbox | Complete; or with an uncommitted trailing append that the inbox's own crash-safe append protocol discards. It never loses a committed entry and never renumbers one, so `max(seq)` after a crash is at least what it was before |
+| Ingress cursor and consumption ledger | Both at the last committed batch boundary of the run journal, because both are advanced by one event in one batch. A crash between the observation and the consumption leaves the cursor where it was and the ledger without the range's rows |
+| Adoptable result | Recorded for the current attempt whenever that attempt's result effect is `committed`, because `WorkerResultRecorded` precedes `EffectCommitted` |
 
 Recovery must produce one consistent run from any combination of these.
 
@@ -62,11 +74,13 @@ The invariant that makes the batch legal by construction:
 
 > No two decisions address the same task, and every decision is computed from the restored state, which no other decision in the batch modifies. Batch legality therefore reduces to per-decision legality, and the decision table proves that exhaustively over every combination of pre-batch state, lease state, ledger state, and elapsed deadline.
 
-Three consequences worth naming:
+Five consequences worth naming; the last two are added under TASK-024.
 
-- **The separate lease-reclamation phase is gone.** A task whose decision is `adopt`, `escalate`, or a timeout keeps its lease record until the single emitted event clears it, so that event's fencing token check passes against the lease that is still there. Only the `reclaim` decision emits `LeaseExpired`.
+- **The separate lease-reclamation phase is gone.** A task whose decision is `adopt`, `escalate`, or a timeout keeps its lease record until the single emitted event clears it, so that event's fencing token check passes against the lease that is still there. Only the `reclaim` and `reclaim_activation` decisions emit `LeaseExpired`.
 - **The separate timeout scan is gone.** An elapsed attempt deadline is the fourth input to the decision, not a second pass. `TimeoutWatchdog.scan` is not run during recovery; it resumes its ordinary role in the run loop after Phase 8.
 - **The ledger still decides adoption.** `committed` means adopt, and it outranks an elapsed deadline, so a task crashed in flight is still "completed once or retried once, never duplicated".
+- **Adoption now has something to adopt.** Finding A-104 established that the committed ledger entry retained only `resultDigest`, while the `adopt` row emits `WorkerSucceeded`, which requires a complete `TaskResultSummary` and `proposedTasks`. Recovery therefore could not construct the transition the table called legal. `RecoveryContext.pendingResults` supplies the durable `AdoptableResult` recorded by `WorkerResultRecorded` before the effect was committed, and the `adopt` decision builds the event from it. When a result effect is `committed` with no matching entry, the decision is `escalate` with reason `unreconstructable_result` rather than a synthesized partial event; `proposedTasks` are never silently dropped, because dropping them can change the terminal task graph.
+- **An activation is never adopted.** A control-plane task carrying an `activation` block takes the `reclaim_activation` decision regardless of ledger state, because its consumption, its effects, and its result are one batch: either it landed and the task is not `running`, or it did not and the cursor is unchanged. Re-consuming the identical range is the designed behavior.
 
 ### Phase 5 — fence or terminate orphan process trees
 
@@ -99,9 +113,13 @@ Append `RunRecoveryCompleted{ reclaimedTaskIds, adoptedTaskIds, blockedTaskIds, 
 
 Phases 4 through 6 are appended as a single compare-and-set batch, with `RunRecoveryCompleted` as its last event. Reconciliation is all-or-nothing: a crash during recovery leaves the run exactly as it was before recovery started, and the next attempt computes the identical decision set from the identical restored inputs. That the batch is genuinely all-or-nothing across a crash now rests on the batch commit record, not on a single fsync.
 
+### Phase 6 and the abandonment intent
+
+`reconcile` now discovers a durable intent for **every** mutating workspace operation, including abandonment. TASK-016's `abandon` was a single call whose pre-condition named a completion event as if it were an intent, and the state `abandoning` had no entering event at all, so a crash during a lock release or a worktree removal left a partially abandoned workspace with nothing to reconcile from. `WorkspaceAbandonIntended` closes that, and `reconcile` resolves an `abandoning` workspace idempotently under the same safety rules `executeAbandon` applies: never force-release a lock, never remove a worktree holding uncommitted changes, never delete a branch holding a commit.
+
 ## Post-crash invariants
 
-These are the invariants a reviewer, a security reviewer, and QA can each check independently. TASK-008 must have a test per invariant.
+These are the invariants a reviewer, a security reviewer, and QA can each check independently. TASK-008 must have a test per invariant. I1 through I19 were established under TASK-002 and TASK-016; I20 through I23 are added under TASK-024.
 
 | # | Invariant |
 |---|---|
@@ -120,11 +138,15 @@ These are the invariants a reviewer, a security reviewer, and QA can each check 
 | I12 | A result produced by a pre-crash worker that returns after recovery is rejected by the fencing or writer-epoch check and changes nothing. |
 | I13 | Every invocation with a `ProcessGroupRegistered` and no `ProcessGroupClosed` before the crash has exactly one `ProcessGroupClosed` after recovery completes, recording `terminated_by_recovery`, `already_exited`, or `orphan_unresolved`. No such invocation is left with an open record. |
 | I14 | No OS process belonging to a recorded invocation survives a completed recovery except one whose outcome is `orphan_unresolved`, and every such case emits `RECOVERY_ORPHAN_UNRESOLVED` naming the invocation and the reason. Every orphan, resolved or not, is fenced: its fencing token is superseded and its writer epoch is stale, so it cannot mutate state. |
-| I15 | Every workspace with a durable prepare or finalize intent and no completion record reaches exactly one of `prepared`, `finalized`, `abandoned`, or `unresolved` after `reconcile`. |
+| I15 | Every workspace with a durable prepare, finalize, or **abandon** intent and no completion record reaches exactly one of `prepared`, `finalized`, `abandoned`, or `unresolved` after `reconcile`. Amended under TASK-024: all three mutating operations now have a durable intent, so no side effect can exist without one for `reconcile` to act on. |
 | I16 | Recovery never force-releases a task lock, never passes `-Force` to `release-task.ps1`, and never releases a lock whose recorded `lockSessionId` differs from the lock file's `session_id`. A lock it cannot release is left held and recorded for human attention, and its task is `blocked` with reason `workspace_lock_not_releasable`. |
 | I17 | Recovery never republishes a branch and never opens a second pull request for a task whose `publication` record already exists. Publication identity after a crash is read from the durable record and from the remote, never recreated. |
 | I18 | Workspace reconciliation is idempotent: running it twice against the same run directory and the same repository yields the same workspace records and performs no second git or filesystem mutation. |
 | I19 | No control request accepted before the crash is accepted a second time, because `ControlRequestAccepted` records `requestId` durably and acceptance rejects a duplicate. No request addressed to a superseded writer epoch takes effect after recovery. |
+| I20 | **TASK-024.** The ingress high-water mark never falls across a crash, a restore, a branch deletion, a force-push, or a rebase. `run.ingressSeq` after recovery is greater than or equal to its value before the crash, and every entry that was durable before the crash is durable after it with the same `seq`, `factId`, and `eventType`. |
+| I21 | **TASK-024.** No ingress entry is consumed twice with effect and none is skipped. For every entry with `seq <= max(activation.lastConsumedEventSeq)` there is exactly one row in `run.ingressConsumptionLedger`, and for every entry with a greater `seq` there is none. A crash at any point of a consumption batch leaves the cursor and the ledger both unchanged. |
+| I22 | **TASK-024.** Every task whose current attempt has a `committed` result effect either reaches `succeeded` carrying the complete `TaskResultSummary` and `proposedTasks` recorded before the commit, or reaches `blocked` with reason `unreconstructable_result` naming the effect. No path produces a `WorkerSucceeded` with a partial result or an empty proposal list that was not empty when recorded. |
+| I23 | **TASK-024.** No completed drain leaves an unverified process tree. A journal containing `RunDrainCompleted` for a writer epoch contains, for every invocation registered under that epoch, a `ProcessGroupClosed` with `verifiedExit: true`. An unverifiable tree produces `RunDrainBlocked` and a run that is still `pausing` or `draining`. |
 
 ## Equivalence claim
 

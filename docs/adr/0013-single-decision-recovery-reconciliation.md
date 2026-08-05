@@ -1,6 +1,6 @@
 # ADR-0013: Single-decision recovery reconciliation
 
-- Status: Accepted
+- Status: Accepted; superseded in part by [ADR-0020](0020-durable-adoptable-results-for-recovery.md), which replaces the `adopt` row's reliance on a ledger entry retaining only `resultDigest`. The one-decision-per-task invariant, the four-input total function, the priority order, the `current_epoch` defect rule, the determinism rule, and `attemptStartedAt` stand as written.
 - Date: 2026-08-05
 - Deciders: Solution Architect under TASK-016
 - Affects: TASK-008 primarily; TASK-006 owns the transition table it must satisfy; TASK-003 persists the batch

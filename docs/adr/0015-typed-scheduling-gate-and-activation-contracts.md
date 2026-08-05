@@ -1,6 +1,6 @@
 # ADR-0015: Typed scheduling, gate, resource-lock, and activation contracts
 
-- Status: Accepted
+- Status: Accepted; superseded in part by [ADR-0017](0017-durable-ingress-inbox-and-ingress-epochs.md), which replaces the `run.activationEvents` queue, the `applyEvent`-assigned position, and `pendingThroughSeq`, and by [ADR-0018](0018-publication-classes-and-gate-lineages.md), which replaces `allowLocalOnlyPublication`, the single undisambiguated `gate_passed` edge, the singular `gateFor`, and the five-invariant validator. The typed-edge model, `pre_merge_gates`, the durable-verdict rule, named resource locks, the `quiescent` state, the starvation bound, and the advance-at-success rule stand as written.
 - Date: 2026-08-05
 - Deciders: Solution Architect under TASK-016
 - Affects: TASK-005 implements and enforces; TASK-003 declares; TASK-006 admits and applies; TASK-013's activation model becomes representable

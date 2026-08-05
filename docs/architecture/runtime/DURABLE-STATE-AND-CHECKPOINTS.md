@@ -1,6 +1,13 @@
 # Durable State, Checkpoints, and Resume
 
-Normative durability contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016. Related decisions: [ADR-0004](../../adr/0004-durable-state-as-event-journal-with-atomic-checkpoints.md) as superseded in part by [ADR-0012](../../adr/0012-crash-atomic-journal-batches-with-commit-records.md). Implemented by TASK-003.
+Normative durability contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016, amended again under TASK-024. Related decisions: [ADR-0004](../../adr/0004-durable-state-as-event-journal-with-atomic-checkpoints.md) as superseded in part by [ADR-0012](../../adr/0012-crash-atomic-journal-batches-with-commit-records.md), plus [ADR-0017](../../adr/0017-durable-ingress-inbox-and-ingress-epochs.md) and [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md). Implemented by TASK-003, with the ingress store implemented by TASK-026.
+
+## Amendment register — TASK-024
+
+| Superseded claim (TASK-016) | Superseded by | Finding | Decision |
+|---|---|---|---|
+| A run directory holding exactly one durable store | [Run directory layout](#run-directory-layout): a second store, `ingress/`, owned by TASK-026, sharing the three durability primitives and nothing else | A-101, F-301 | [ADR-0017](../../adr/0017-durable-ingress-inbox-and-ingress-epochs.md) |
+| `AppendResult` returning only the version and the record | Also returning one `DurableAppendReceipt` per event, which is how a module proves a named intent is durable without holding write authority | A-102, A-103 | [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md) |
 
 ## Amendment register — TASK-016
 
@@ -40,9 +47,17 @@ A checkpoint is a materialized `RunRecord(v)` written atomically so that restore
     consumed/
   tasks/                        rendered task records produced by bootstrap and by task proposals
   artifacts/                    worker artifact output, referenced by TaskResultSummary.artifactPaths
+  ingress/                      TASK-024: the durable ingress inbox, owned by TASK-026
+    inbox.ndjson                append-only, one canonical-JSON IngressEntry per line, LF terminated
+    epochs.ndjson               append-only, one IngressEpochRecord per line
+    index/                      the factId set used for identity-keyed deduplication
 ```
 
 The run directory is outside the repository working tree by default. Bootstrap never writes into the repository `tasks/` directory.
+
+**The ingress inbox is a second store, not a second journal.** It is owned by TASK-026, not by TASK-003, and it holds no run state: it is never folded into a `RunRecord` and never replayed through the transition function. It shares the three durability primitives below and nothing else — its own append protocol, its own identity rule, its own crash-safety story, and its own epoch history. `run.ingressSeq` is the only thing the journal knows about it, and the journal learns that by observation rather than by owning it. The rationale for the separation is in [COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md#durable-ingress-inbox-task-026).
+
+**Crash-safe ingress append.** TASK-026's append writes the batch's entry lines in one contiguous buffer followed by one fsync, and reports the batch's high-water mark only after that fsync returns. An interrupted append leaves a trailing partial line that the reader discards, exactly as an uncommitted journal batch is discarded. Because `seq` is assigned in append order and never recomputed, and because a discarded partial line was never acknowledged and therefore never raised the reported high-water mark, `max(seq)` is non-decreasing across any crash. A re-observed fact is deduplicated by `factId`, so replaying an interrupted append converges rather than duplicating.
 
 Checkpoint file names use a zero-padded 12-digit version so lexical order equals numeric order.
 
@@ -106,7 +121,9 @@ Condition 4 is what closes the defect A-001 named. A retained valid prefix fails
 5. Assign `seq = run.stateVersion + i` for the i-th event, substituting the assigned version wherever a `LeaseGranted` placeholder token appears.
 6. Apply the events in order through the injected `TransitionFn` on a speculative copy. If any event is rejected, return `IllegalTransition` and persist nothing.
 7. Compute `batchId` and `batchDigest`, serialize the `eventCount` event lines followed by the `batch_commit` line into one contiguous buffer, write it at the current end of file, and fsync.
-8. Only after the fsync returns, publish the new in-memory `RunRecord` and return `{ ok: true, version, run }`.
+8. Only after the fsync returns, publish the new in-memory `RunRecord` and return `{ ok: true, version, run, receipts }`.
+
+Step 8's `receipts` is added under TASK-024 (ADR-0019): one `DurableAppendReceipt` per event of the batch, in batch order, each carrying the event type, the `stateVersion` it produced, the writer epoch, and the `batchId`. Because the array is constructed only after the commit record's fsync returns, holding a receipt is proof that the named event is durable. A receipt is evidence and not a capability — it carries no method that writes — which is what lets the workspace and agent modules be told "your intent is durable, proceed" without either of them being given the store.
 
 The buffer is written in one call and the commit record is its final line, so no ordering assumption is made about how the device persists the bytes; commitment is decided by the reader from conditions 1–5, not by write ordering.
 

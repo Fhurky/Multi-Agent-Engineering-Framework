@@ -1,6 +1,15 @@
 # Runtime Component Boundaries
 
-Normative component decomposition for the autonomous multi-agent runtime. Produced under TASK-002, amended under TASK-016. Related decisions: [ADR-0002](../../adr/0002-runtime-component-boundaries-and-module-ownership.md) as superseded in part by [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md), and [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md).
+Normative component decomposition for the autonomous multi-agent runtime. Produced under TASK-002, amended under TASK-016, amended again under TASK-024. Related decisions: [ADR-0002](../../adr/0002-runtime-component-boundaries-and-module-ownership.md) as superseded in part by [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md) and [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md), and [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md).
+
+## Amendment register — TASK-024
+
+| Superseded claim (TASK-016) | Superseded by | Finding | Decision |
+|---|---|---|---|
+| Seven modules | **Eight**; the durable ingress inbox is added with `src/orchestrator/ingress/` and TASK-026 as its sole owner | A-101, F-301 | [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md) |
+| "Cross-cutting rules binding all seven tasks" | Binding all eight | A-101 | [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md) |
+| The permitted-duplication enumeration ending at `ProcessTreeOutcome` | Extended by the receipt types the split-phase handshakes need, under the same rationale and with no new duplication opened | A-102 | [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md) |
+| The scheduler owning "activation" over an internal event queue | The scheduler owns the ingress **observer** and the dispatch predicate; the inbox, its adapters, class precedence, self-exclusion, and epochs belong to TASK-026 | A-101, F-301 | [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md) |
 
 ## Amendment register — TASK-016
 
@@ -25,11 +34,25 @@ Each row is owned end to end by exactly one task. No module appears twice, and n
 |---|---|---|---|
 | Durable state store | `src/orchestrator/state/` | TASK-003 | Run and task record persistence, event journal, batch commit records, atomic checkpoints, compare-and-set append, restore, writer lock |
 | Provider adapters and agent workers | `src/agents/` | TASK-004 | Provider adapter interface and registry, invocation assembly, provider call execution, failure classification, worker timeout signalling, **OS process-tree ownership, cancellation, escalation, and verified termination** |
-| Scheduler and lease manager | `src/orchestrator/scheduling/` | TASK-005 | Ready-task selection, typed dependency and gate edge evaluation, load-time graph validation, bounded concurrency, write-scope exclusion, named resource-lock exclusion, activation and starvation bound, lease grant, renew, expiry, reclaim, fencing token issuance |
+| Scheduler and lease manager | `src/orchestrator/scheduling/` | TASK-005 | Ready-task selection, typed dependency and gate edge evaluation, gate-lineage resolution, load-time validation of the eight no-deadlock invariants, bounded concurrency, write-scope exclusion, named resource-lock exclusion, **the ingress observer, the dispatch predicate, and the starvation bound**, lease grant, renew, expiry, reclaim, fencing token issuance |
 | Supervisor core | `src/orchestrator/supervisor/` | TASK-006 | Deterministic transition function, run loop, result aggregation, dynamic task admission, completion detection, control-request consumption, run events |
 | Lifecycle control and entry point | `src/orchestrator/lifecycle/`, `bin/` | TASK-007 | One-input bootstrap, command surface, **live-run control protocol**, graceful drain, pause, resume, signal handling, completion reporting, exit codes |
 | Recovery, timeouts, retries | `src/orchestrator/recovery/` | TASK-008 | Crash recovery, single-decision reconciliation, orphan fencing and termination through the process-tree interface, timeout watchdog, retry policy, backoff, idempotency ledger enforcement, retry exhaustion |
 | **Agent workspace lifecycle** | `src/orchestrator/workspace/` | **TASK-017** | Hook verification, branch and worktree creation, task-lock claim and release, write-scope validation, commit and handoff persistence, branch publication and idempotent pull-request identity, crash-safe workspace reconciliation |
+| **Durable ingress inbox** | `src/orchestrator/ingress/` | **TASK-026** | The append-only ingress store, one-time `seq` assignment, `factId` and `contentHash` computation, identity-keyed deduplication, crash-safe append, ref-independent retention, the ingress adapters, class precedence, self-exclusion, batch order by source commit identifier, and ingress epochs |
+
+Eight rows, eight distinct owner tasks, eight distinct source paths. No module appears twice and no responsibility above is unassigned.
+
+### Responsibility assignment added under TASK-024
+
+Finding A-101 and finding F-301 together recorded that the durable ingress inbox the activation model requires had no owning module. It now has exactly one, and it does not have two.
+
+| Responsibility | Owner | Interface | Consumed by | Why this owner |
+|---|---|---|---|---|
+| The durable ingress inbox, its adapters, class precedence, self-exclusion, batch order, and epochs | **TASK-026**, ingress | `IngressInbox` in `state/contracts` | TASK-005's ingress observer, exclusively through the interface | The inbox is a durable store with its own append protocol, its own identity rule, and its own epoch history. Putting it in `state/` would give TASK-003 two stores with two different atomicity models; putting it in `scheduling/` would give TASK-005 a persistence format to own alongside admission policy, and would make the store's crash-safety a property of the module that merely reads it |
+| The ingress **observer**, the dispatch predicate, and the starvation bound | **TASK-005**, scheduling | `Scheduler.activatableTasks` and `IngressHighWaterMarkObserved` | TASK-006 | Dispatch policy is admission control, which TASK-005 already owns end to end. This is not a second owner of the inbox: TASK-026 owns what an entry *is* and where it lives, TASK-005 owns what the runtime *does* when the mark advances, and the boundary is the same `highWaterMark()` call every other module boundary is made of |
+
+The split is the same shape as `state` and `supervisor`: one module owns durability, another owns policy, and the policy module reaches the durable one only through an injected interface.
 
 ### Responsibility assignments added under TASK-016
 
@@ -45,12 +68,14 @@ TASK-007 and TASK-008 act on process trees and own none of the mechanism. That i
 
 ## Contract roots
 
-Cross-module types are a shared surface, and a shared surface with no single owner is the most likely source of conflict between the six parallel implementation tasks. The runtime therefore has exactly two contract roots, each inside an existing task's write scope.
+Cross-module types are a shared surface, and a shared surface with no single owner is the most likely source of conflict between the eight parallel implementation tasks. The runtime therefore has exactly two contract roots, each inside an existing task's write scope.
 
 | Contract root | Owner task | Declares |
 |---|---|---|
-| `src/orchestrator/state/contracts/` | TASK-003 | Identifiers, run and task records, run and task states, journal line union, lease record, event envelope, event union, store interface, error values, clock interface, typed dependency and gate contracts, activation contracts, control channel, workspace lifecycle interface |
-| `src/agents/contracts/` | TASK-004 | Provider adapter interface, invocation, adapter outcome, failure taxonomy, worker result, secret provider interface, process-tree controller |
+| `src/orchestrator/state/contracts/` | TASK-003 | Identifiers, run and task records, run and task states, journal line union, lease record, event envelope, event union, store interface, error values, clock interface, typed dependency and gate contracts, gate-lineage contracts, publication classes, **the ingress inbox interface, entry schema, and epoch records**, durable append receipts, control channel, workspace lifecycle interface |
+| `src/agents/contracts/` | TASK-004 | Provider adapter interface, invocation, adapter outcome, failure taxonomy, worker result, secret provider interface, process-tree controller, the three-phase worker handshake |
+
+The two roots remain independent of each other: neither imports the other, which is what keeps TASK-003 and TASK-004 genuinely parallel. TASK-026 imports `state/contracts` and nothing else, so adding the eighth module adds no edge between the roots.
 
 `src/shared/` is deliberately not used by the runtime. It is outside every runtime task's write scope, so a module placed there would have no owner.
 
@@ -62,10 +87,12 @@ TASK-002 recorded one, and stated it was the only one. TASK-016 adds a second un
 
 | Duplication | Declared in | Mirrors | Why |
 |---|---|---|---|
-| `RunId`, `TaskId`, `Sha256Hex`, `IsoTimestamp`, `FencingToken`, `TaskProposal` | `agents/contracts` | `state/contracts` | Lets TASK-004 compile in parallel with TASK-003 with no import edge between the roots |
+| `RunId`, `TaskId`, `Sha256Hex`, `IsoTimestamp`, `FencingToken`, `TaskProposal`, and — under TASK-016 — `InvocationId`, `WorkspaceId`, `InvocationRecord`, `ProcessTreeOutcome`, and — under TASK-024 — `StateVersion`, `WriterEpoch`, `BatchId`, `DurableAppendReceipt`, `ProcessGroupRegistrationReceipt` | `agents/contracts` | `state/contracts` | Lets TASK-004 compile in parallel with TASK-003 with no import edge between the roots |
 | `WorkspaceFailureClass` | `state/contracts` | `FailureClass` in `agents/contracts` | The workspace module must classify a script failure into the same closed taxonomy the recovery layer acts on, and it imports `state/contracts` only. An import edge to `agents/contracts` would give the workspace module two contract roots and couple TASK-017 to TASK-004's authoring order for no behavioral gain |
 
-Both are structurally identical string-literal unions, so TypeScript treats the two views as interchangeable at every consumer. Neither is checked by the compiler, so both are review obligations: the reviewer of TASK-004 checks the six aliases and the reviewer of TASK-017 checks that `WorkspaceFailureClass` and `FailureClass` have identical members. A third duplication requires a new ADR.
+There are still exactly **two** permitted duplications. TASK-024 extends the alias list inside the first one; it does not open a third. That distinction matters: a duplication is a pair of roots holding the same shape, and the number of such pairs is what the rule bounds. Adding a receipt alias to a list that already exists for one stated reason is the same duplication, larger.
+
+Both are structurally identical declarations, so TypeScript treats the two views as interchangeable at every consumer. Neither is checked by the compiler, so both are review obligations: the reviewer of TASK-004 checks the fifteen aliases and the reviewer of TASK-017 checks that `WorkspaceFailureClass` and `FailureClass` have identical members. A third duplication requires a new ADR.
 
 ## Allowed dependency directions
 
@@ -78,6 +105,7 @@ state/contracts   <-  supervisor
 state/contracts   <-  lifecycle
 state/contracts   <-  recovery
 state/contracts   <-  workspace
+state/contracts   <-  ingress
 
 agents/contracts  <-  agents
 agents/contracts  <-  scheduling
@@ -86,6 +114,7 @@ agents/contracts  <-  lifecycle
 agents/contracts  <-  recovery
 
 state             <-  (nobody; reached only through the StateStore interface)
+ingress           <-  (nobody; reached only through the IngressInbox interface)
 scheduling        <-  supervisor
 supervisor        <-  lifecycle
 supervisor        <-  recovery
@@ -94,26 +123,28 @@ workspace         <-  recovery
 agents            <-  (nobody; reached only through the AgentWorker and ProcessTreeController interfaces)
 ```
 
-`lifecycle -> agents/contracts` is added because drain must wait on `ProcessTreeController`. It is an interface import, not an implementation import, so it introduces no new coupling to TASK-004's code.
+`lifecycle -> agents/contracts` is added because drain must wait on `ProcessTreeController`. It is an interface import, not an implementation import, so it introduces no new coupling to TASK-004's code. `ingress -> state/contracts` is added under TASK-024 for the same reason: the ingress module declares no types of its own and imports one contract root.
 
 **The module graph remains acyclic.** Reading the edges as a partial order:
 
 ```text
 level 0   state/contracts, agents/contracts        leaves; import nothing
-level 1   state, agents, workspace                 import contract roots only
+level 1   state, agents, workspace, ingress        import contract roots only
 level 2   scheduling                               imports contract roots
 level 3   supervisor                               imports scheduling, workspace, contract roots
 level 4   lifecycle, recovery                      import supervisor, workspace, contract roots
 ```
 
-Every declared edge points from a higher level to a lower one, so no cycle exists. `workspace` sits at level 1 alongside `state` and `agents`: it consumes the state contract root and no module, and is consumed by `supervisor` and `recovery`. It does not import `state`, `scheduling`, `supervisor`, `recovery`, or `agents`, and none of those may import its implementation — they receive it through the `WorkspaceLifecycle` interface by constructor injection, like every other boundary.
+Every declared edge points from a higher level to a lower one, so no cycle exists. `workspace` and `ingress` sit at level 1 alongside `state` and `agents`: each consumes the state contract root and no module. `workspace` is consumed by `supervisor` and `recovery`; `ingress` is consumed by `scheduling`, through the `IngressInbox` interface by constructor injection. Neither imports `state`, `scheduling`, `supervisor`, `recovery`, or `agents`, and none of those may import either implementation.
+
+`ingress` is deliberately at level 1 and not below `scheduling`: the scheduler depends on the inbox interface, never the reverse, so the inbox can be implemented, tested, and integrated at Wave 4 while the scheduler is still unwritten. That is what allows TASK-026 and TASK-017 to run in parallel in the committed wave plan.
 
 Derived rules:
 
 1. Neither contract root imports anything. They are leaves of the dependency graph.
 2. Concrete implementations are never imported across module boundaries. A consumer depends on the interface declared in a contract root and receives the implementation by constructor injection. This is what allows TASK-005, TASK-006, TASK-007, TASK-008, and TASK-017 to be unit tested with fakes before their dependencies exist.
 3. There are no cycles. The graph is a strict partial order matching the TASK-001 wave order.
-4. `supervisor` is the only module that applies events to durable state. `scheduling`, `recovery`, and `workspace` produce events and hand them to the supervisor's append path; they never call `StateStore.append` with their own transition logic.
+4. `supervisor` is the only module that applies events to durable state. `scheduling`, `recovery`, `workspace`, and `ingress` produce events and hand them to the supervisor's append path; they never call `StateStore.append` with their own transition logic. `ingress` additionally owns a store of its own, the inbox, which holds no run state and is never folded into a `RunRecord`; the journal observes its high-water mark and nothing more.
 5. `agents` never touches durable state, never sees a fencing token as an authority, and never decides whether to retry. It classifies and returns. It does own the OS process tree of every process it spawns, which is a resource concern rather than a state concern.
 6. `lifecycle` never contains scheduling, state, provider, or retry logic. It composes the object graph, translates operator intent into run events, owns the control transport, and owns process signals and exit codes.
 7. `workspace` never invokes a provider, never decides scheduling or retry policy, and never modifies a human-controlled governance path. It invokes the tracked orchestration scripts and reimplements none of them.
@@ -152,7 +183,19 @@ It is separate from `lifecycle` because the two answer different questions: `lif
 
 Its full contract is in [WORKSPACE-LIFECYCLE.md](WORKSPACE-LIFECYCLE.md).
 
-## Cross-cutting rules binding all seven tasks
+### Durable ingress inbox (TASK-026)
+
+Added under TASK-024. The module exists because the activation model requires a durable, append-only store whose positions are assigned once and never derived from anything observable outside it, and no module owned such a store. Finding F-301 established that deriving the position from a scan of mutable refs is not a cursor: a backdated commit inserts a fact before it, a deleted branch lowers it, and a commit matching several classes has no reproducible type.
+
+It is separate from `state` because it has a different atomicity model and a different identity rule. The run journal is a single-writer fold whose position is `stateVersion`; the inbox is an identity-keyed set whose position is `seq` and whose deduplication key is a content hash over a source artifact. Giving TASK-003 both would give one module two stores with two append protocols and two crash-recovery stories, and would make the ingress epoch history a concern of the run's writer lock.
+
+It is separate from `scheduling` because the scheduler's concern is admission policy — who may run now — while the inbox's concern is durability of facts other owners produced. TASK-005 reads `highWaterMark()` and never learns how an entry is stored, which is the same relationship every other policy module has with the store it consults.
+
+It is separate from `workspace` because the workspace module acts on the repository under the runtime's own authority, while the ingress adapters only *read* what other owners already published. The workspace module writes Git; the ingress module never does.
+
+Its full contract is section 2b of [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md), and the model it implements is normative in [STATE-MACHINE.md](STATE-MACHINE.md#ingress-model-for-event-triggered-recurring-work).
+
+## Cross-cutting rules binding all eight tasks
 
 1. No module writes credentials, tokens, or provider payload secrets to state, checkpoints, journals, logs, run events, or test fixtures.
 2. Every module receives its `Clock`; no module reads wall-clock time directly. This is required for the fake-clock unit tests named in TASK-005, TASK-007, and TASK-008.
@@ -170,5 +213,6 @@ Its full contract is in [WORKSPACE-LIFECYCLE.md](WORKSPACE-LIFECYCLE.md).
 | Every component boundary maps to exactly one implementation task, with no shared module ownership | Module map and contract roots above |
 | Interface contracts consumed across implementation tasks are documented before implementation starts | [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md) |
 | Live-run control has one owning module and process-tree lifecycle has one owning module; neither is unassigned and neither has two owners (A-003) | [Responsibility assignments added under TASK-016](#responsibility-assignments-added-under-task-016) |
-| The module map contains exactly seven modules, each with exactly one owner task, and no module appears twice | Module map above; seven rows, seven distinct owner tasks, seven distinct source paths |
-| The allowed import directions are stated and the module dependency graph is shown to remain acyclic | [Allowed dependency directions](#allowed-dependency-directions), with the level assignment that exhibits the partial order |
+| The durable ingress inbox has one owning module and one owner task (A-101, F-301) | [Responsibility assignment added under TASK-024](#responsibility-assignment-added-under-task-024) |
+| The module map contains exactly **eight** modules, each with exactly one owner task, and no module appears twice | Module map above; eight rows, eight distinct owner tasks, eight distinct source paths |
+| The allowed import directions are stated, the module dependency graph is shown to remain acyclic, and the two contract roots stay independent of each other | [Allowed dependency directions](#allowed-dependency-directions), with the level assignment that exhibits the partial order |
