@@ -25,7 +25,7 @@ gate_for:
 parent_task: TASK-001
 publication_class: bootstrap
 review_target_branch: agent/claude/orchestrator/task-013
-review_target_commit: ACT-004-EFFECTS-COMMIT-PLACEHOLDER
+review_target_commit: ac9c8f2
 review_target_base: c325275
 review_target_note: The round 5 review target is the TASK-013 activation ACT-004 effects commit. Its hash is recorded here and in tasks/TASK-013-ACTIVATION-LOG.md by a follow-up commit on the same branch, because a commit cannot contain its own hash. Review the branch head, which includes both commits. The base is c325275 so the diff covers the ACT-003 and ACT-004 effects together, both of which are unreviewed.
 supersedes: TASK-022

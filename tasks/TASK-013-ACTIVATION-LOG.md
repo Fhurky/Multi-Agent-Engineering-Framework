@@ -466,5 +466,5 @@ No high or critical **security** finding exists yet. A-101 … A-104 are High ar
 
 - The effects commit is the single commit `chore: activate TASK-013 ACT-004, record two changes-required verdicts, and correct the ingress and lineage models` on `agent/claude/orchestrator/task-013`, base `d0c030a`, carrying the two ledger rows for seq 7 and 8, the epoch declaration, the cursor advance to 8, and every lifecycle effect together.
 - One follow-up commit records that hash here and in TASK-023's frontmatter as `review_target_commit`, because a commit cannot contain its own hash. That follow-up carries no effect, no ledger row, and no cursor change. TASK-023 reviews the branch head, which includes both commits, exactly as TASK-021 and TASK-022 were instructed to for `ACT-001` and `ACT-002`.
-- Effects commit hash: **`ACT-004-EFFECTS-COMMIT-PLACEHOLDER`**, replaced by the follow-up commit.
+- Effects commit hash: **`ac9c8f2`**, full `ac9c8f23c80a483e65450bfca52dbdb026b14695`, recorded by the follow-up commit. It is TASK-023's immutable review target, against base `c325275`.
 - This activation did **not** alter TASK-022's review target. Round 4 reviewed `f590749` against `c325275`, and that is a closed, durable fact.
