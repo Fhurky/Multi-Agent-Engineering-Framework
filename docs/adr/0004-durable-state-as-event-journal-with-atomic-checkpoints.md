@@ -1,9 +1,10 @@
 # ADR-0004: Durable state as an event journal with atomic checkpoints
 
-- Status: Accepted
+- Status: Accepted; superseded in part by [ADR-0012](0012-crash-atomic-journal-batches-with-commit-records.md)
 - Date: 2026-08-04
 - Deciders: Solution Architect under TASK-002
 - Affects: TASK-003 primarily; TASK-005, TASK-006, TASK-007, TASK-008 consume it
+- Superseded in part: the append protocol's claim that writing a validated batch as one buffer and fsyncing makes it all-or-nothing, and the restore rule that discards only a torn trailing line, are replaced by ADR-0012. Finding A-001 established that append and fsync give durability, not transaction atomicity for an arbitrarily sized buffer. The journal-plus-checkpoint model, the checkpoint protocol, compare-and-set concurrency control, the monotonicity derivation, and the single-writer lock all stand.
 
 ## Context
 

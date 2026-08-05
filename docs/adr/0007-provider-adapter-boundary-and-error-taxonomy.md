@@ -1,6 +1,7 @@
 # ADR-0007: Provider adapter boundary and error taxonomy
 
-- Status: Accepted
+- Status: Accepted; extended by [ADR-0014](0014-live-run-control-and-process-tree-ownership.md)
+- Extended: the adapter module additionally owns the OS process tree of every process it spawns — durable invocation identity before the spawn, an owned job object or process group, bounded escalation, and verified exit. The adapter boundary, the closed taxonomy, the single disposition mapping, and the credential rules below are unchanged.
 - Date: 2026-08-04
 - Deciders: Solution Architect under TASK-002
 - Affects: TASK-004 primarily; TASK-005, TASK-006, TASK-008 consume it
