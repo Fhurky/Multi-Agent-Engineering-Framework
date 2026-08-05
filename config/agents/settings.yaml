@@ -60,7 +60,7 @@ assignments:
     title: Solution Architect
     role_path: .agents/architect
     enabled: true
-    llm: claude
+    llm: gpt
     task_queue: tasks/ready
     write_scope:
       - docs/architecture/ARCHITECTURE.md

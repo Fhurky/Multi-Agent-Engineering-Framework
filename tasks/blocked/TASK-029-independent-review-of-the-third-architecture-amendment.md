@@ -56,7 +56,7 @@ remediates:
     source: reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md
     part: gate ownership for the remediation
 supersedes: TASK-025
-review_target_branch: agent/claude/architect/task-028
+review_target_branch: agent/gpt/architect/task-028
 review_target_commit: not yet published
 review_target_base: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
 review_target_applicability: applicable, resolved when TASK-028 publishes
@@ -66,10 +66,12 @@ scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
 scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
 scope_validation_note: Create agent/gpt/reviewer/task-029 from the head of agent/claude/orchestrator/task-013 at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/orchestrator/task-013 and pass that value to -BaseRef. Reading the review target does not require this branch to descend from it, and this record does not instruct otherwise — finding A-209 recorded what happens when a record prescribes a provenance the execution does not follow. Never pass a review-diff base, c2ee3eb, 8d0c570, c325275, or origin/main. Record the resolved value in the report so the Orchestrator can pin it.
 blocked_reason: TASK-028 has not published the third architecture amendment, so there is no immutable commit to review.
-exit_condition: TASK-028 is review_ready, with an immutable published commit on agent/claude/architect/task-028 satisfying its declared publication_class.
+exit_condition: TASK-028 is review_ready, with an immutable published commit on agent/gpt/architect/task-028 satisfying its declared publication_class.
 ---
 
 # TASK-029: Independent review of the third runtime architecture amendment
+
+TASK-028 was reassigned from `claude` to `gpt` by explicit user authority on 2026-08-05. This reviewer task remains assigned to `gpt`, so the mandatory independence boundary is execution-context separation: the TASK-028 author context must never execute this task, and this task must not reuse that context. The same-family assignment does not relax any gate or permit self-review.
 
 ## Objective
 
@@ -91,7 +93,7 @@ The cohort has grown by one at each round and no member has ever been removed, s
 
 ## Review target
 
-Branch `agent/claude/architect/task-028`, at the immutable published commit the Orchestrator binds into this record's `review_target_commit`, compared against **`c2ee3eb`** — the TASK-024 amendment this one revises. Read `8d0c570` and `9576fc9` where a judgment needs an earlier baseline.
+Branch `agent/gpt/architect/task-028`, at the immutable published commit the Orchestrator binds into this record's `review_target_commit`, compared against **`c2ee3eb`** — the TASK-024 amendment this one revises. Read `8d0c570` and `9576fc9` where a judgment needs an earlier baseline.
 
 **No document in this lineage has ever recorded a passing verdict.** `9576fc9`, `8d0c570`, and `c2ee3eb` are each superseded authoring baselines, not approved sources. Report any statement in the target that treats one of them as approved.
 

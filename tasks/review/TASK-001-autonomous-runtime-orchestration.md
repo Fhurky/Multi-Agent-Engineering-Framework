@@ -177,9 +177,11 @@ Current as of revision 7, produced by TASK-013 activation `ACT-006`. `tasks/TASK
 | TASK-025 Independent review of the second architecture amendment | reviewer | gpt | TASK-024 review_ready | done, `changes-required` |
 | TASK-026 Durable ingress inbox and activation cursor store | runtime | claude | LIN-ARCH-REVIEW gate r4, TASK-003, TASK-018 integrated | blocked |
 | TASK-027 Independent re-review of this decomposition, round 6 | reviewer | gpt | TASK-001 review_ready | done, `changes-required` |
-| TASK-028 Third architecture amendment: round-3 blocking findings and the approved pre-dispatch observer | architect | claude | TASK-025 gate_recorded | ready |
+| TASK-028 Third architecture amendment: round-3 blocking findings and the approved pre-dispatch observer | architect | gpt | TASK-025 gate_recorded | ready |
 | TASK-029 Independent review of the third architecture amendment | reviewer | gpt | TASK-028 review_ready | blocked |
 | TASK-030 Independent re-review of this decomposition, round 7 | reviewer | gpt | TASK-001 review_ready | ready |
+
+**Human-authorized provider reroute:** On 2026-08-05 the user reassigned TASK-028 from `claude` to `gpt` after managed policy blocked external transfer to Claude. The prior Claude process and lock are closed, its uncommitted draft is preserved as source material, and the GPT architect owns the complete final delta on `agent/gpt/architect/task-028`. Scope, dependencies, gates, and lineage are unchanged; TASK-029 must execute in a separate context.
 
 ## Revision 7 — remediation of the TASK-027 round 6 review and the TASK-025 round 3 architecture verdict
 
