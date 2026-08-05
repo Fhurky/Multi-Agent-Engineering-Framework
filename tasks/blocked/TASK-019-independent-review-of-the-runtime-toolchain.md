@@ -20,6 +20,8 @@ gate_for:
     verdict: pending
     gate_class: point
     retrospective: false
+    gate_lineage: LIN-TOOLCHAIN-REVIEW
+    lineage_round: 1
 parent_task: TASK-001
 publication_class: bootstrap
 blocked_reason: The toolchain has not been published.

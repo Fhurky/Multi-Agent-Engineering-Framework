@@ -27,12 +27,27 @@ gate_tasks:
     revalidated_by: TASK-020
     gate_class: point
     retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 1
   - task: TASK-020
     gate: review
     round: 2
+    verdict: changes-required
+    verdict_recorded_at: 4874a9d
+    remediated_by: TASK-024
+    revalidated_by: TASK-025
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 2
+  - task: TASK-025
+    gate: review
+    round: 3
     verdict: pending
     gate_class: point
     retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 3
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 9576fc9
@@ -77,11 +92,14 @@ These boxes record the author's own assessment. They are not an approval, and th
 | Round | Owner | Verdict | Commit | Findings |
 |---|---|---|---|---|
 | 1 | TASK-015, `reviewer` / `gpt` | `changes-required` | `8632469`, merged at `049158d` | A-001 … A-004, all High |
-| 2 | TASK-020, `reviewer` / `gpt` | pending | — | Verifies that TASK-016 resolves A-001 … A-004 |
+| 2 | TASK-020, `reviewer` / `gpt` | `changes-required` | `4874a9d` | A-101 … A-105. Dispositions: A-001 `resolved`; A-002 and A-003 `partially resolved`; A-004 `not resolved` |
+| 3 | TASK-025, `reviewer` / `gpt` | pending | — | Verifies that TASK-024 resolves A-101 … A-105 and the still-open A-002, A-003, and A-004 |
 
-The gate remains **open**. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, round 1's verdict is durable and is superseded rather than rewritten. This record reaches `done` only when TASK-020 records a passing verdict at round 2.
+The gate remains **open**. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, each round's verdict is durable and is superseded rather than rewritten. This record reaches `done` only when a round records a passing verdict.
 
-TASK-020 records **exactly one verdict**, applied atomically to the two gate relations it carries — this record's round 2 relation and TASK-016's round 1 relation — producing two durable gate-verdict facts. Both close together or both stay open together. Finding F-205 recorded that TASK-020's record previously stated three inconsistent cardinalities; activation `ACT-002` chose this one model and stated it in every place that describes it.
+All three rounds are rounds of the gate lineage `LIN-ARCH-REVIEW`, whose cohort is this record, then TASK-016, then TASK-024. The lineage is what the architecture-approval edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 now names, so that edge does not have to be retargeted each time a round is superseded. That retyping is the remediation for finding F-302.
+
+TASK-020 recorded **exactly one verdict**, applied atomically to the two relations it carried — this record's round 2 relation and TASK-016's round 1 relation — producing two durable gate-verdict facts. Both stayed open together. TASK-025 carries three relations and records one verdict on the same terms. Finding F-205 recorded that TASK-020's record previously stated three inconsistent cardinalities; activation `ACT-002` chose this one model and stated it in every place that describes it.
 
 The remediation is routed to **TASK-016**, which the Orchestrator reframed under TASK-013 activation `ACT-001` to carry all four findings alongside the workspace lifecycle module. The architect owns the resolution; the Orchestrator neither judges the findings nor decides the architecture.
 
@@ -134,6 +152,6 @@ The architect recorded two items it could not resolve inside its own role bounda
   - Wave 2 cannot compile until TASK-018 lands a toolchain, and TASK-018 is blocked on a human write-scope decision.
   - The two contract roots live inside TASK-003's and TASK-004's write scopes, so those tasks can physically change a normative contract. The contract change control procedure in `INTEGRATION-STRATEGY.md` is the only control; TASK-015 should confirm it is enforceable by review.
 - Gate outcome transcribed by the Orchestrator under TASK-013 activation `ACT-001`: TASK-015 round 1 recorded `changes-required` at commit `8632469`, merged at `049158d`, with findings A-001 through A-004, all High. The report states that TASK-003 through TASK-008 and TASK-017 must remain `blocked` on the strength of that verdict, and that all 25 target files were covered. Every finding is routed to TASK-016; the mapping is in `tasks/TASK-013-ACTIVATION-LOG.md`.
-- Next owner: **reviewer / gpt for TASK-020**, which closes this record's review gate at round 2. TASK-016 published its amendment at `8d0c570` with pull request #3, recorded by TASK-013 activation `ACT-003`, so the remediation half is delivered and TASK-020 is `ready`. Whether it resolves A-001 through A-004 is unjudged; this record's gate is **open** and it stays in `tasks/review/`. The Claude Architect that authored this output may not close that gate. After TASK-020 records a passing verdict, the Orchestrator unblocks TASK-018 and then Wave 3 under TASK-013.
+- Next owner: **architect / claude for TASK-024**, then **reviewer / gpt for TASK-025**, which records round 3 of this record's review gate. TASK-020 recorded `changes-required` at `4874a9d`: it judged A-001 `resolved`, A-002 and A-003 `partially resolved`, and A-004 `not resolved`, and added A-101 … A-105. The TASK-016 amendment is therefore delivered but not approved, and this record's gate stays **open** at round 2 with round 3 pending. It stays in `tasks/review/`. The Claude Architect that authored this output may not close that gate. After a round records a passing verdict, the Orchestrator unblocks TASK-018 and then Wave 3 under TASK-013.
 - Task lock released: yes, by the TASK-002 execution.
 </content>

@@ -23,6 +23,8 @@ gate_for:
     revalidated_by: TASK-020
     gate_class: point
     retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 1
 parent_task: TASK-001
 rounds_completed: 1
 publication_class: bootstrap

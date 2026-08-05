@@ -27,6 +27,8 @@ dependencies:
     edge: review_ready
   - task: TASK-018
     edge: review_ready
+  - task: TASK-026
+    edge: review_ready
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -36,53 +38,77 @@ gate_for:
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-004
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-005
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-006
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-007
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-008
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-017
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-018
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-TOOLCHAIN-SECURITY
+    lineage_round: 1
+  - task: TASK-026
+    gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
 gate_scheduling: Every gate this task owns is an aggregate assembly gate and every one is retrospective. Reasons and recorded risks are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, rows "TASK-010 / security / runtime cohort" and "TASK-010 / security / TASK-018". TASK-018 is not the only retrospective case; it is the earliest and longest-exposed one.
 parent_task: TASK-001
 publication_class: bootstrap
-blocked_reason: The runtime implementation tasks have not published their branches.
-exit_condition: TASK-003 through TASK-008, TASK-017, and TASK-018 are review_ready, each with an immutable published commit. This task does not wait for those tasks to be integrated or to reach done, because it is the gate that lets them reach done. It is nevertheless an aggregate gate for all eight targets, and every target is already integrated by the time it runs.
+blocked_reason: The runtime implementation tasks have not published their branches. The cohort gained TASK-026, the durable ingress inbox, at activation ACT-004.
+exit_condition: TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 are review_ready, each with an immutable published commit. This task does not wait for those tasks to be integrated or to reach done, because it is the gate that lets them reach done. It is nevertheless an aggregate gate for all nine targets, and every target is already integrated by the time it runs.
 ---
 
 # TASK-010: Security review of the autonomous runtime
@@ -124,13 +150,14 @@ Finding **F-202** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.
 - [ ] **`V10-A003-TREE` — process-tree ownership, child and grandchild termination.** Assess that every provider invocation runs inside an owned process group or Windows Job Object equivalent with a durable invocation identity, that cancellation escalates within a bounded time and verifies tree exit, and that a **grandchild** that ignores the first cancellation and outlives the command timeout cannot survive as an unmanaged descendant. Assess that recovery detects, fences, or terminates an orphan belonging to a recorded invocation. A surviving descendant holding a worktree, a lock, or a credential-bearing environment is a High finding.
 - [ ] **`V10-A004-LOCK` — named resource-lock integrity.** Assess whether named resource-lock admission can be bypassed to obtain concurrent write access to a shared surface, including through lease expiry, a stale fencing token, or a task record that declares no lock for a scope that overlaps one.
 - [ ] **`V10-F105` — publication and pull-request authorization.** Assess the publication path: that the constructed push refspec can target only `refs/heads/agent/<llm>/<role>/<task-id>`, that no path can push `main` or set `ALLOW_MAIN_PUSH` or bypass the tracked pre-push hook, that pull-request creation uses only credentials read through `SecretProvider` and leaks none into a command vector, a log, an event, or a persisted record, and that an unauthorized pull-request attempt produces a `blocked` outcome rather than a fallback to a different target. Assess that the persisted branch, commit, and pull-request identity contains no credential.
+- [ ] **`V10-F301-AUTH` — ingress fact authenticity and untrusted input.** Assess the ingress inbox as a trust boundary. An entry is derived from commit, report, and handoff text that agents and humans author, so assess: that every field is validated against the contract types before it becomes an entry field; that no entry field is used to derive a filesystem path, a ref name, an environment variable, or a command argument; that a forged or replayed fact cannot displace, renumber, or overwrite an existing entry, because `fact_id` is identity-keyed and `seq` is assigned once; that `content_hash` detects a source artifact rewritten under the same path; and that no credential, token, or secret value can reach an entry, the consumption ledger, or a log line. Assess the self-exclusion rule as a control: a commit authored by the recurring task's own activation must not be able to raise the dispatch signal.
 - [ ] **`V10-TOOLCHAIN` — retrospective toolchain assessment.** Using the dependency inventory TASK-019 produced, assess the supply-chain surface of every devDependency TASK-018 added, by name, version, and purpose, and confirm that ADR-0001's zero-third-party-runtime-dependency rule actually held in the delivered `package.json` and lockfile. Record explicitly that this assessment is retrospective and state the exposure window in waves.
 
 ## Expected artifacts
 
 - `reports/security/SECURITY_REPORT.md` summary.
 - Detailed findings under `reports/security/`.
-- `reports/security/AMENDED-BEHAVIOR-ASSESSMENT.md`, recording the result and evidence for each of `V10-A003-CTL`, `V10-A003-TREE`, `V10-A004-LOCK`, `V10-F105`, and `V10-TOOLCHAIN`.
+- `reports/security/AMENDED-BEHAVIOR-ASSESSMENT.md`, recording the result and evidence for each of the six tagged obligations: `V10-A003-CTL`, `V10-A003-TREE`, `V10-A004-LOCK`, `V10-F105`, `V10-TOOLCHAIN`, and `V10-F301-AUTH`.
 - Security requirements under `specs/security/` when a durable requirement is missing.
 
 ## Gate and remediation path

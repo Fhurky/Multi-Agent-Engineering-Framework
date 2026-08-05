@@ -23,9 +23,22 @@ gate_tasks:
   - task: TASK-020
     gate: review
     round: 1
+    verdict: changes-required
+    verdict_recorded_at: 4874a9d
+    remediated_by: TASK-024
+    revalidated_by: TASK-025
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 2
+  - task: TASK-025
+    gate: review
+    round: 2
     verdict: pending
     gate_class: point
     retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 3
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 8d0c570
@@ -197,14 +210,14 @@ Prove acyclicity across scheduling, gate, and integration preconditions rather t
 
 ## Resource lock
 
-This task declares `resource_lock: architecture-docs`, which TASK-002 also holds. The two scopes genuinely overlap: this task amends documents TASK-002 authored. They are serialized by the lock, not by path disjointness. The TASK-002 execution released the lock, which is why this task could be claimed; the TASK-016 execution has since released it as well, so `architecture-docs` is free.
+This task declares `resource_lock: architecture-docs`, which TASK-002 and TASK-024 also hold. The two scopes genuinely overlap: this task amends documents TASK-002 authored. They are serialized by the lock, not by path disjointness. The TASK-002 execution released the lock, which is why this task could be claimed; the TASK-016 execution has since released it as well, so `architecture-docs` is free.
 
 ## Dependency notes
 
 - `gate_recorded(TASK-015)` is the dependency, not `gate_passed(TASK-002)`. TASK-015 recorded `changes-required`, so `gate_passed(TASK-002)` is not satisfiable and never will be at round 1. This task **is** the remediation for that verdict, so it depends on the verdict having been recorded, at commit `8632469`.
 - This task's own review gate is owned by TASK-020, a separate reviewer task with an explicit `review_ready(TASK-016)` dependency. TASK-015 is not re-entered; its verdict is durable and its record is `done`. That removes finding F-102 at its source.
-- `gate_passed(TASK-016, review)` is the architecture-approval edge for TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, TASK-008, TASK-017, and TASK-018. The approved architecture is `9576fc9` as amended by this task.
-- TASK-020's passing verdict also closes TASK-002's review gate at round 2, because this amendment is what remediates A-001 through A-004.
+- The architecture-approval edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 no longer names this task. Activation `ACT-004` retyped it to `gate_passed(LIN-ARCH-REVIEW, review, 3)` under finding F-302, so it survives supersession without an edit. The approved architecture is `9576fc9` as amended by this task at `8d0c570` **and further amended by the TASK-024 commit that TASK-025 approves**.
+- TASK-020 recorded `changes-required` at `4874a9d`, so neither this task's review gate nor TASK-002's round 2 gate closed. Both are open, both name **TASK-024** as `remediated_by` and **TASK-025** as `revalidated_by`, and round 2 of this task's gate is TASK-025's.
 - Blocks TASK-017, which cannot implement without the workspace contract, and blocks Wave 2 onward.
 
 ## Task-record lifecycle
@@ -238,3 +251,20 @@ Transcribed by the Orchestrator under TASK-013 activation `ACT-003` from the own
   - The single TASK-020 verdict also closes or leaves open TASK-002's `review` gate at round 2, atomically with this one. A rejection here leaves both targets open.
   - The `ACT-002` amendment note in scope item 4 was appended after this task was claimed. Whether the published amendment incorporates the corrected three-surface ingress model is exactly what TASK-020's A-004 disposition must check; this activation does not assess it.
 - **Next owner:** reviewer / gpt for **TASK-020**, now `ready` and dispatchable on the satisfied `review_ready(TASK-016)` edge; then orchestrator via TASK-013 to record TASK-020's single verdict as the two durable gate-verdict facts, and — on a passing verdict — to unblock TASK-018 and Wave 3.
+
+## Review gate outcome — round 1
+
+**TASK-020 recorded `changes-required` at commit `4874a9d`.** The verdict is durable and is superseded rather than rewritten. This record stays in `tasks/review/`, is **not integrable** — `review` is in its `pre_merge_gates` and that relation is open — and cannot reach `done`.
+
+TASK-020's round 1 dispositions on the findings this amendment was created to resolve, transcribed from `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md`:
+
+| Finding | Disposition recorded by TASK-020 |
+|---|---|
+| A-001 | `resolved` |
+| A-002 | `partially resolved` — blocked by A-104 |
+| A-003 | `partially resolved` — blocked by A-102, and the pause post-condition admits a surviving `orphan_unresolved` descendant |
+| A-004 | `not resolved` — the contracts model neither the current scheduling vocabulary nor the corrected ingress model; A-101 is its successor |
+
+The five fresh findings A-101 through A-105 are routed to **TASK-024**, a new architect-owned amendment task, with the per-finding disposition register in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-004`. This record is not reopened and is not re-entered: TASK-024 is the remediation and TASK-025 records round 2.
+
+The Orchestrator recorded this verdict; it did not produce it, judge it, or assess whether the findings are correct.

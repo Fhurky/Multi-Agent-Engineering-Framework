@@ -23,6 +23,8 @@ gate_for:
     revalidated_by: TASK-022
     gate_class: point
     retrospective: true
+    gate_lineage: LIN-DECOMP-REVIEW
+    lineage_round: 3
 parent_task: TASK-001
 rounds_completed: 1
 publication_class: bootstrap
@@ -141,9 +143,9 @@ This task's single file is new and path-disjoint from TASK-009's `reports/code-r
 
 ## Gate and remediation path
 
-This task performed TASK-001's review gate at round 3, recorded as a `gate_for` reverse edge rather than a scheduling dependency, with `gate_class: point` and `retrospective: false`. It became dispatchable while TASK-001 was still in `review`; TASK-001 reaches `done` only after the gate closes. The two directions cannot deadlock.
+This task performed TASK-001's review gate at round 3, recorded as a `gate_for` reverse edge rather than a scheduling dependency. Its `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in the frontmatter above and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body does not restate them. Finding **F-303** recorded that this passage previously asserted `retrospective: false`, contradicting the frontmatter, the register, and the invariant-7 recomputation, all of which say `true` because TASK-001 declares `pre_merge_gates: []`. Activation `ACT-004` removed the duplicated claim rather than only correcting its value. It became dispatchable while TASK-001 was still in `review`; TASK-001 reaches `done` only after the gate closes. The two directions cannot deadlock.
 
-The reviewer is `gpt` and the decomposition author is `claude`, so author and reviewer were in separate execution contexts and separate LLM families. Findings returned to the Orchestrator, which applied the correction under TASK-013 activation `ACT-002` and created **TASK-022** for round 4; the reviewer never edited a task record.
+The reviewer is `gpt` and the decomposition author is `claude`, so author and reviewer were in separate execution contexts and separate LLM families. Findings returned to the Orchestrator, which applied the correction under TASK-013 activation `ACT-002` and created **TASK-022** for round 4; the reviewer never edited a task record. TASK-022 returned `changes-required` in turn, so this round's verdict remains superseded by a later `changes-required` rather than by a pass.
 
 ## Operational steps
 

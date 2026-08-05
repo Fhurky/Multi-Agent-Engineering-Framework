@@ -19,10 +19,10 @@ dependencies:
     edge: review_ready
   - task: TASK-017
     edge: review_ready
-  - task: TASK-011
+  - lineage: LIN-RUNTIME-QA
     edge: gate_passed
     gate: qa
-    round: 1
+    lineage_round: 1
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -32,26 +32,34 @@ gate_for:
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-PERFORMANCE
+    lineage_round: 1
   - task: TASK-006
     gate: performance
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-PERFORMANCE
+    lineage_round: 1
   - task: TASK-008
     gate: performance
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-PERFORMANCE
+    lineage_round: 1
 gate_scheduling: This gate is an aggregate assembly gate for every target and additionally waits on a passing QA baseline. Its reason and its recorded risk are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, row "TASK-012 / performance".
 parent_task: TASK-001
 publication_class: bootstrap
 remediates:
   - finding: F-204
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md
-blocked_reason: The scheduler, supervisor, recovery layer, and workspace lifecycle are not published, and the qa gate TASK-011 owns has not been closed by a passing verdict.
-exit_condition: TASK-005, TASK-006, TASK-008, and TASK-017 are review_ready, and the qa gate TASK-011 owns is closed by a passing or formally accepted verdict at round 1 or higher. The dependency is the owner form of gate_passed, not gate_recorded, because a changes-required QA verdict must not release performance validation against a failed baseline. TASK-011's terminal state is not required, because TASK-011 also cannot reach done until its own findings are routed.
+  - finding: F-302
+    source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md
+blocked_reason: The scheduler, supervisor, recovery layer, and workspace lifecycle are not published, and the LIN-RUNTIME-QA lineage has recorded no verdict at all.
+exit_condition: TASK-005, TASK-006, TASK-008, and TASK-017 are review_ready, and the LIN-RUNTIME-QA lineage records a passing or formally accepted authoritative verdict at lineage round 1 or higher. The dependency is the lineage form of gate_passed, not gate_recorded, because a changes-required QA verdict must not release performance validation against a failed baseline; and it names the lineage rather than TASK-011, because finding F-302 recorded that an edge bound to one gate task can never be satisfied by the successor round that a changes-required verdict requires. No gate task's terminal state is required.
 ---
 
 # TASK-012: Performance validation of scheduling, checkpointing, and recovery
