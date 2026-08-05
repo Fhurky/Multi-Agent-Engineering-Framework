@@ -23,14 +23,25 @@ gate_tasks:
   - task: TASK-029
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 3df261fa8f3a65bb20b9c5d6d316d8cb600a0d8c
+    remediated_by: TASK-032
+    revalidated_by: TASK-033
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 4
+  - task: TASK-033
+    gate: review
+    round: 2
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 5
 parent_task: TASK-001
 publication_class: bootstrap
-normative_architecture_source: 9576fc9 as amended by 8d0c570 and by c2ee3eb; this task produces the next amendment in the same lineage. Neither 8d0c570 nor c2ee3eb is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 2 and 3 — so each is a superseded authoring baseline to amend, never an approved source to build on.
+normative_architecture_source: 9576fc9 as amended by 8d0c570 and by c2ee3eb; this task produced the round-4 amendment in the same lineage. Neither 8d0c570 nor c2ee3eb is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 2 and 3 — so each is a superseded authoring baseline to amend, never an approved source to build on. This task's own commit fe0374c is now a third such baseline: LIN-ARCH-REVIEW recorded changes-required on it at round 4, at 3df261fa. The next amendment is TASK-032's.
 remediates:
   - finding: A-201
     source: reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md
@@ -77,7 +88,8 @@ published_branch: agent/gpt/architect/task-028
 published_remote_ref: refs/heads/agent/gpt/architect/task-028
 pull_request: 15
 publication: published
-integration_state: not integrable. pull_request 15 is open and reports CONFLICTING against main. review is in pre_merge_gates and that gate is open, so the amendment may not be merged regardless. The conflict is recorded as an integration risk below and is not resolved by this activation.
+integration_state: not integrable, and now for a recorded reason rather than a pending one. LIN-ARCH-REVIEW round 4 recorded changes-required on this amendment at 3df261fa, so the review gate in pre_merge_gates is open with a durable failing verdict and the amendment may not be merged. Pull request 15 additionally remains open and CONFLICTING against main; TASK-029's read-only local merge-tree simulation found 15 content conflicts and its report states that resolving them "would not change this semantic result". Neither the conflict nor the pull request was queried, changed, resolved, or merged by activation ACT-008.
+verdict_recorded_summary: changes-required at round 1 of this record's review gate, recorded by TASK-029 at 3df261fa and consumed as ingress entry seq 16 by activation ACT-008. Open findings carried forward to TASK-032 - A-202 high not resolved, A-203 high partially resolved, A-206 high partially resolved, A-105 medium partially resolved, A-301 low new. Recorded resolved - A-201, A-204, A-205, A-207, A-208, A-002, A-003, A-103. Recorded as inherited views with no separate remediation obligation - A-004, A-101, A-102, A-104. Acceptance criteria 1, 6, 7, 10, and 17 recorded not met; the other 15 met. All six HUMAN-002 contract checks recorded satisfied, which the reviewer states does not cure A-202.
 ---
 
 # TASK-028: Third architecture amendment for the round-3 blocking findings and the approved pre-dispatch ingress observer contract

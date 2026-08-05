@@ -1,7 +1,7 @@
 ---
 task_id: TASK-029
 title: Independent review of the third runtime architecture amendment
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-029
@@ -17,7 +17,10 @@ gate_for:
   - task: TASK-028
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 3df261fa8f3a65bb20b9c5d6d316d8cb600a0d8c
+    remediated_by: TASK-032
+    revalidated_by: TASK-033
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -25,7 +28,10 @@ gate_for:
   - task: TASK-024
     gate: review
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 3df261fa8f3a65bb20b9c5d6d316d8cb600a0d8c
+    remediated_by: TASK-032
+    revalidated_by: TASK-033
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -33,7 +39,10 @@ gate_for:
   - task: TASK-016
     gate: review
     round: 3
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 3df261fa8f3a65bb20b9c5d6d316d8cb600a0d8c
+    remediated_by: TASK-032
+    revalidated_by: TASK-033
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -41,11 +50,16 @@ gate_for:
   - task: TASK-002
     gate: review
     round: 4
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 3df261fa8f3a65bb20b9c5d6d316d8cb600a0d8c
+    remediated_by: TASK-032
+    revalidated_by: TASK-033
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 4
+verdict_recorded: changes-required
+verdict_recorded_note: One verdict, recorded once at 3df261fa8f3a65bb20b9c5d6d316d8cb600a0d8c and applied atomically to all four relations above, producing four durable gate-verdict facts. All four stay open together. The Orchestrator recorded this verdict at activation ACT-008; it did not author it and did not judge it.
 verdict_cardinality: one
 verdict_application: atomic
 verdict_note: This task records exactly one verdict. That single verdict is applied atomically to all four gate relations above, producing four durable gate-verdict facts. All four close together or all four stay open together; a split outcome is not representable.
@@ -65,9 +79,11 @@ review_target_authored_delta: git diff 0b413b7ab7a48dc4d02f0439bd50f1626dde4685.
 review_target_cumulative_diff: git diff c2ee3eb..fe0374c -- docs diagrams - 32 paths. This is the cumulative architecture change against the round-3 amendment and is what the round judges as a change.
 review_target_ancestry_note: The unrestricted git diff c2ee3eb..fe0374c returns 66 paths, of which 34 are ancestry differences under tasks/** and config/ that TASK-028's owner did not author. TASK-028's branch point 0b413b7 descends from e7bd748, which does not contain 8d0c570 or c2ee3eb although both are on main through pull requests 3 and 9, so twelve ADRs numbered 0011 through 0022 appear as additions rather than modifications and pull request 15 reports CONFLICTING against main. Do not attribute any of the 34 ancestry paths to this owner, and state the target diff and the review scope as two separate sets - finding F-502 recorded what conflating them costs.
 branch_point_of: agent/claude/orchestrator/task-013
-scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
-scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
-scope_validation_note: Create agent/gpt/reviewer/task-029 from the head of agent/claude/orchestrator/task-013 at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/orchestrator/task-013 and pass that value to -BaseRef. Reading the review target does not require this branch to descend from it, and this record does not instruct otherwise — finding A-209 recorded what happens when a record prescribes a provenance the execution does not follow. Never pass a review-diff base, c2ee3eb, 8d0c570, c325275, or origin/main. Record the resolved value in the report so the Orchestrator can pin it.
+scope_validation_base: c0be70ba7be4166e8ba575f5f096c282ee023b1a
+scope_validation_applicability: applicable and resolved, pinned by TASK-013 activation ACT-008 from the branch as published
+scope_validation_note: The execution followed this record's prescription exactly. The branch was created from the head of agent/claude/orchestrator/task-013, which was the ACT-007 follow-up commit c0be70b, and the owner resolved, reported, and validated against that value. It is confirmed from the repository as the parent of this branch's single authored commit 3df261fa, and git diff --name-only c0be70ba...3df261fa returns exactly one path, reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md, which is this task's whole declared write scope. Unlike A-209 there is no divergence between what this record prescribed and what the branch did. The superseded prescription was the reproducible expression git merge-base HEAD agent/claude/orchestrator/task-013, retained here as provenance.
+scope_validation_derivation_expired: true. The prescribed expression no longer returns the branch point. Pull request 18 merged this branch into main at fd7ce90, which is the ACT-008 activation base, so git merge-base 3df261fa agent/claude/orchestrator/task-013 now returns 3df261fa itself rather than c0be70ba. This is rule 1 of Task baselines observed live for the second time, after TASK-030 at ACT-007, and it is why the durable 40-hex value rather than the expression is what this record carries.
+scope_validation_acceptance_result: valid, changed_files 1, as reported by the owner in the report's Independent verification table from branch point c0be70ba7be4166e8ba575f5f096c282ee023b1a, and independently reconfirmed by ACT-008 with git diff --name-only
 dependencies_satisfied:
   - edge: review_ready
     task: TASK-028
@@ -78,6 +94,13 @@ dependencies_satisfied:
     publication_class: bootstrap
     publication: published
     recorded_by: TASK-013 activation ACT-007, consuming ingress entry seq 15
+published_commit: 3df261fa8f3a65bb20b9c5d6d316d8cb600a0d8c
+published_branch: agent/gpt/reviewer/task-029
+published_remote_ref: refs/heads/agent/gpt/reviewer/task-029
+pull_request: 18
+publication: published
+publication_owner_statement: local-only, reason "public remote egress approval is pending"
+publication_divergence_note: The owner's own report records publication as local-only with the reason that public remote egress approval is pending. The durable repository state disagrees - 3df261fa is present at refs/remotes/origin/agent/gpt/reviewer/task-029 and was merged into main at fd7ce907 through pull request 18 - because the push happened outside the reviewer's own execution. Both facts are recorded and the owner's statement is not overwritten. This is the same divergence TASK-020, TASK-021, TASK-022, TASK-023, TASK-025, and TASK-027 produced and it is recorded the same way.
 resource_lock_state_at_dispatch: this task declares no resource lock. Its single report path reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md is disjoint from every other task's write scope, so it may run concurrently with TASK-031 and with any architecture-docs holder.
 ---
 
@@ -193,7 +216,11 @@ This task records four gate relations as `gate_for` reverse edges rather than sc
 
 **One verdict, applied atomically to four relations, yielding four durable gate-verdict facts.** This is the model stated in "Verdict cardinality" above, in the acceptance criteria, in the frontmatter fields `verdict_cardinality` and `verdict_application`, and in gate-round rule clause 5.
 
-The reviewer is `gpt` and the architect is `claude`, so author and reviewer are in separate execution contexts and separate LLM families. This task reviews an artifact it did not author and did not previously review; no earlier `LIN-ARCH-REVIEW` execution context is reused. The architect may not close any of these gates. Publishing this task's report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
+~~The reviewer is `gpt` and the architect is `claude`, so author and reviewer are in separate execution contexts and separate LLM families.~~ **Struck and quarantined by activation `ACT-008` as factually false at the time this round ran.** `HUMAN-003` set `assignments.architect.llm` to `gpt` at `0b413b7` before TASK-028 was authored, so the architect was `gpt` and **not** `claude`, and this round's author and reviewer were in the **same** LLM family. The sentence survived the human's own edit to this record, which added the correct statement at the top of the body but did not reach this passage; `ACT-007` did not catch it either. The passage is struck rather than rewritten, under the F-402 pattern, because this record is closing and its recorded verdict must stay durable.
+
+**What was actually true of this round, restated correctly.** The mandatory guarantee is **execution-context separation**, which held: this task reviewed an artifact it did not author and did not previously review, and no earlier `LIN-ARCH-REVIEW` execution context was reused. The cross-family preference did **not** hold, which the graph's `HUMAN-003` section already recorded as a narrowed margin. The architect may not close any of these gates. Publishing this task's report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
+
+**The verdict is unaffected by this correction.** `ACT-008` recorded the verdict exactly as the report states it and made no judgment about the review's independence beyond verifying that the report was authored on a separate branch, in a separate worktree, by a context that authored no reviewed artifact.
 
 ## Operational steps
 
@@ -211,9 +238,15 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
+Transcribed by the Orchestrator under TASK-013 activation `ACT-008` from the reviewer's own report at `3df261fa`. The owner's words are quoted or summarized and their source is named; nothing is invented, and no claim is upgraded.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to record the single verdict as four durable gate-verdict facts — closing all four relations together and unblocking TASK-018 and the runtime waves on a passing verdict, or leaving all four open, routing findings back to the architect, and creating the next round's reviewer task
+- Commit or pull request: the report `reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md` was committed at `3df261fa8f3a65bb20b9c5d6d316d8cb600a0d8c` on `agent/gpt/reviewer/task-029`, parent `c0be70ba`, adding 286 lines in exactly one file. It is present on `origin` and was merged into `main` at `fd7ce907` through pull request 18. The owner's report records publication as `local-only`; both facts are recorded above and the owner's statement is not overwritten.
+- Verdict recorded: **`changes-required`**, one verdict applied atomically to all four relations, which stay open together. The report states plainly that the amendment **may not be integrated** and that TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 **may not leave `blocked`**.
+- Findings, as the owner recorded them: the open remediation set is **A-202** (High, not resolved), **A-203** (High, partially resolved), **A-206** (High, partially resolved), **A-105** (Medium, partially resolved), and **A-301** (Low, new — numbering correctly started at A-301). The owner states that **A-004, A-101, A-102, and A-104 are inherited views of the same unresolved projection, registration-proof, and result-adoption defects and do not create duplicate implementation obligations.** A-201, A-204, A-205, A-207, A-208, A-002, A-003, and A-103 are recorded `resolved`.
+- HUMAN-002 contract checks: the owner assessed all six Part B checks individually and recorded **all six satisfied**, with ADR-0031 and `INTERFACE-CONTRACTS.md` line evidence, and stated explicitly that this "does not cure A-202".
+- TASK-028 acceptance criteria: 14 of 20 recorded `met`; criteria 1, 6, 7, 10, and 17 recorded `not met`.
+- Verification, as the owner recorded it: `validate-assignment.ps1 -Role reviewer -Llm gpt` valid `True`; framework validator passed for 13 roles; orchestration unit checks passed; scope base resolved with `git merge-base` to `c0be70ba`; `validate-write-scope.ps1 -IncludeWorkingTree -BaseRef c0be70ba…` valid `True` with `changed_files: 1`; `git diff --check` clean on both the authored delta and the cumulative architecture diff; 44 target paths all under `docs/` or `diagrams/`; 645 relative links and 64 fragments checked with one failure, which is A-301; module graph 8 modules / 8 owners / 8 paths, acyclic, 2 independent roots; 30 committed task records, 92 relation documents, 46 mirrored pairs, 0 cardinality or mirror failures; 31 ADRs with 9 new, all carrying the required sections; language scan over 44 artifacts with 12 Turkish-character lines, all confirmed user-visible copy.
+- Known risks, as the owner recorded them: A-202, A-203, A-206, A-105, and A-301 remain open; a read-only local `git merge-tree` simulation found **15 content conflicts** between `origin/main` and the target, which the owner records as an integration-order risk that "does not change the dispositions" and that would not make the amendment integrable even if resolved; and no live remote state was confirmed because network egress was prohibited.
+- Owner-stated limitations, transcribed rather than smoothed: the host sandbox helper was unavailable and native `index.lock` creation was denied, so the local commit was built with a temporary index and the native worktree index "may report stale status until a later Git refresh"; the TASK-028 owner-side scope validator was not rerun inside another agent's worktree; and this is a static review of an immutable documentation target with no runtime to execute against.
+- What the owner did **not** do, stated because it bounds the verdict: pull request 15 "was not queried, changed, resolved, merged, or otherwise acted upon", no merge simulation result was written to the worktree, no conflict was resolved, and no governance, task, architecture, decomposition, implementation, or pull-request artifact was changed.
+- Next owner: **architect / gpt for TASK-032**, the fourth architecture amendment carrying A-202, A-203, A-206, A-105, and A-301, `ready` on the satisfied `gate_recorded(TASK-029)` edge at `3df261fa`. **reviewer / gpt for TASK-033** performs `LIN-ARCH-REVIEW` round 5 and is `blocked` until TASK-032 publishes. The Orchestrator recorded the verdict at `ACT-008`; it closed no gate and authored none.

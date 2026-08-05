@@ -13,7 +13,7 @@ dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
-    lineage_round: 4
+    lineage_round: 5
   - task: TASK-003
     edge: integrated
   - task: TASK-004
@@ -63,9 +63,9 @@ gate_tasks:
     lineage_round: 1
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, and by the TASK-028 commit that TASK-029 approves. None of 9576fc9, 8d0c570, and c2ee3eb is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, and 3, the round-3 verdict at aa38c7d2 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 4 or later, which TASK-029 owns. A record that cites any of the three as approved is a finding.
-blocked_reason: TASK-015 returned changes-required on the base architecture and TASK-020 returned changes-required on the first amendment, so the recovery and retry contracts are not approved and findings A-001, A-002, and A-003 change the recovery batch, transition legality, and orphan termination behavior this task implements. The state store, error taxonomy, supervisor, and workspace lifecycle are not integrated.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 4 or higher, and TASK-003, TASK-004, TASK-006, and TASK-017 are integrated into integration/autonomous-runtime.
+normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, and by the TASK-032 commit that TASK-033 approves. None of 9576fc9, 8d0c570, c2ee3eb, and fe0374c is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, and 4, the round-4 verdict at 3df261fa — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 5 or later, which TASK-033 owns. A record that cites any of the four as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
+blocked_reason: TASK-015 returned changes-required on the base architecture and TASK-020 returned changes-required on the first amendment, so the recovery and retry contracts are not approved and findings A-001, A-002, and A-003 change the recovery batch, transition legality, and orphan termination behavior this task implements. The state store, error taxonomy, supervisor, and workspace lifecycle are not integrated. LIN-ARCH-REVIEW has since recorded changes-required at round 3 on the TASK-024 amendment c2ee3eb at aa38c7d2 and at round 4 on the TASK-028 amendment fe0374c at 3df261fa, so the authoritative round is 4 and it failed. The remediation is TASK-032 and the revalidation is TASK-033 at round 5. This task is exactly as far from dispatch as it was before round 4.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 5 or higher, and TASK-003, TASK-004, TASK-006, and TASK-017 are integrated into integration/autonomous-runtime.
 review_target_base: not applicable until this task publishes
 review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
 branch_point_of: integration/autonomous-runtime
