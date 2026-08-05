@@ -1,9 +1,10 @@
 # ADR-0003: Deterministic run and task state machine
 
-- Status: Accepted
+- Status: Accepted; extended by [ADR-0013](0013-single-decision-recovery-reconciliation.md) and [ADR-0015](0015-typed-scheduling-gate-and-activation-contracts.md)
 - Date: 2026-08-04
 - Deciders: Solution Architect under TASK-002
-- Affects: TASK-006 primarily; TASK-003, TASK-005, TASK-007, TASK-008 consume it
+- Affects: TASK-006 primarily; TASK-003, TASK-005, TASK-007, TASK-008, TASK-017 consume it
+- Extended: the task state set gains `quiescent`, and the event union grows from 25 to 44 members, both under ADR-0015; recovery's use of the transition function is constrained by ADR-0013. The decision below — one pure, total transition function as the sole authority on legality — is unchanged, and the three named choices stand.
 
 ## Context
 

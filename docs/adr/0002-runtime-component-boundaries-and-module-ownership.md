@@ -1,9 +1,10 @@
 # ADR-0002: Runtime component boundaries and module ownership
 
-- Status: Accepted
+- Status: Accepted; superseded in part by [ADR-0011](0011-agent-workspace-lifecycle-module.md) and by [ADR-0021](0021-durable-ingress-module-and-the-eight-module-map.md), which replaces the module count for a second time. The contract-root split, the injection rule, the acyclicity requirement, and the `src/shared/` exclusion stand.
 - Date: 2026-08-04
 - Deciders: Solution Architect under TASK-002
 - Affects: TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, TASK-008
+- Superseded in part: the six-module map and the "one permitted duplication" clause are replaced by ADR-0011, which adds `src/orchestrator/workspace/` owned by TASK-017 and a second permitted duplication. Everything else below stands.
 
 ## Context
 
