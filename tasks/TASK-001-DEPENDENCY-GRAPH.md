@@ -6,6 +6,8 @@ Durable handoff note for the autonomous multi-agent runtime task graph. It recor
 
 Revision history: revision 2 was reviewed by TASK-014 round 2 (`changes-required`, F-101 … F-105); TASK-015 round 1 returned `changes-required` on the TASK-002 architecture (A-001 … A-004); human governance decision HUMAN-001 was recorded at `fb9f45c`; revision 3 was produced by `ACT-001`.
 
+**Lifecycle updates applied after revision 4 was authored.** Activation `ACT-003` consumed ingress fact seq 6, the TASK-016 architecture-amendment publication at `8d0c570` with pull request #3, and updated this document's lifecycle, publication, ownership-gap, and resource-lock statements so it does not disagree with the individual records. It is **not** revision 5: no edge semantics, gate class, finding disposition, validator obligation, wave, write scope, resource-lock declaration, invariant, or gate verdict changed. Revision 4 as authored by `ACT-002` at `f590749` remains the artifact TASK-022 reviews at round 4.
+
 ## Dependency edge semantics
 
 Revision 2 used a single `implementation_published` edge that required the target to be **merged to `main`**. That was the root cause of F-101: a pre-merge review gate waits for merge while merge waits for the gate. Revision 3 split that edge into two typed conditions with distinct satisfying states and added a per-task declaration of which gates block integration. Revision 4 adds the gate-owner form of `gate_passed` required by F-204 and the publication classes required by the residual half of F-101 and F-104.
@@ -45,9 +47,10 @@ Three rules keep the two classes from contaminating each other:
 | TASK-002 | `bootstrap` | `9576fc9` | `agent/claude/architect/task-002` | `local-only` — the executing session was instructed not to push |
 | TASK-014 | `bootstrap` | `abb85d9` | `agent/gpt/reviewer/task-014` | `local-only` — same reason |
 | TASK-015 | `bootstrap` | `8632469` | `agent/gpt/reviewer/task-015` | `local-only` — same reason |
+| TASK-016 | `bootstrap` | `8d0c570` | `agent/claude/architect/task-016` | `published` — pushed to `origin/agent/claude/architect/task-016` and opened as pull request #3 by the owner's own execution |
 | TASK-021 | `bootstrap` | `adfb982` | `agent/gpt/reviewer/task-021` | `published` — pushed to `origin` and opened as pull request #2 after the reviewer's own session recorded `local-only` |
 
-TASK-021 is the first record in this graph whose publication was completed rather than deferred. Its own report still records `publication: local-only`, because the push succeeded outside the reviewer's execution. TASK-013 transcribes both facts and does not overwrite the reviewer's statement.
+TASK-021 is the first record in this graph whose publication was completed rather than deferred. Its own report still records `publication: local-only`, because the push succeeded outside the reviewer's execution. TASK-013 transcribes both facts and does not overwrite the reviewer's statement. TASK-016 is the first whose owner completed the remote step inside its own execution, so its `published` state carries no such divergence.
 
 ### Gate rounds and gate closure
 
@@ -167,11 +170,11 @@ TASK-005 owns enforcement: it implements ready-task selection over these edge ty
 | TASK-013 | Task-record lifecycle transitions and gate closure | orchestrator | claude | — (event-triggered) | blocked, quiescent |
 | TASK-014 | Independent review of this decomposition, rounds 1–2 | reviewer | gpt | TASK-001 `review_ready` | done |
 | TASK-015 | Independent architecture review of TASK-002, round 1 | reviewer | gpt | TASK-002 `review_ready` | done |
-| TASK-016 | Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 `gate_recorded` | ready |
+| TASK-016 | Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 `gate_recorded` | review |
 | TASK-017 | Agent workspace lifecycle automation | runtime | claude | TASK-016 `gate_passed(review)`; TASK-003, TASK-018 `integrated` | blocked |
 | TASK-018 | Runtime toolchain bootstrap | devops | claude | TASK-016 `gate_passed(review)` | blocked |
 | TASK-019 | Independent review of the runtime toolchain | reviewer | gpt | TASK-018 `review_ready` | blocked |
-| TASK-020 | Independent review of the architecture amendment | reviewer | gpt | TASK-016 `review_ready` | blocked |
+| TASK-020 | Independent review of the architecture amendment | reviewer | gpt | TASK-016 `review_ready` — satisfied at `8d0c570` | ready |
 | TASK-021 | Independent re-review of the corrected decomposition, round 3 | reviewer | gpt | TASK-001 `review_ready` | done |
 | TASK-022 | Independent re-review of the corrected decomposition, round 4 | reviewer | gpt | TASK-001 `review_ready` | ready |
 
@@ -269,7 +272,7 @@ The **ingress source set** is the closed set of fact classes the observer scans.
 
 The producer and the consumer are now different roles writing different surfaces. TASK-021 published its report at `adfb982` on its own branch and it was opened as pull request #2 — an act entirely inside the reviewer's configured write scope, requiring no access to `tasks/**`. That publication *is* ingress fact seq 5. The observer sees `ingress_seq = 5 > cursor = 3` and TASK-013 becomes dispatchable. Nothing had to be typed into a file that only TASK-013 can write.
 
-The same holds for every future round: TASK-022 publishing its round-4 report raises `ingress_seq` to 6 without editing any existing row, which is the property this model was required to preserve.
+The same has since held a second time, for a different `event_type` and a different producing role. TASK-016 published its architecture amendment at `8d0c570` on its own branch and opened pull request #3 — an act entirely inside the architect's configured write scope, touching 29 files under `docs/` and `diagrams/` and none under `tasks/`. That publication *is* ingress fact seq 6. The observer sees `ingress_seq = 6 > cursor = 5`, TASK-013 becomes dispatchable, consumes the range `(5, 6]`, and returns to quiescence at 6. Whichever owner publishes next — TASK-020's verdict, TASK-022's round-4 report, or an integration merge — raises `ingress_seq` to 7 by appending, without editing any existing row, which is the property this model was required to preserve.
 
 ### Ownership of the observer
 
@@ -317,7 +320,7 @@ The architecture at commit `9576fc9` on `agent/claude/architect/task-002` was th
 | Gap recorded in `INTEGRATION-STRATEGY.md` | Routed to | Status |
 |---|---|---|
 | No task owns the root toolchain manifests or `scripts/quality/**` | TASK-018 | Ownership resolved by HUMAN-001 at `fb9f45c`; now blocked only on `gate_passed(TASK-016)` |
-| No module owns the agent workspace lifecycle that `AgentInvocation.worktreePath` presupposes | TASK-016 then TASK-017 | TASK-016 is `ready` and claimed |
+| No module owns the agent workspace lifecycle that `AgentInvocation.worktreePath` presupposes | TASK-016 then TASK-017 | TASK-016 published its amendment at `8d0c570` and is `review`. The commit adds `docs/architecture/runtime/WORKSPACE-LIFECYCLE.md` and ADR-0011, which the owner records as assigning the module to TASK-017; whether the gap is actually closed is TASK-020's judgment and is unrecorded |
 
 ## Write-scope partition
 
@@ -368,7 +371,7 @@ Resource-lock semantics, which TASK-005 must enforce at admission alongside writ
 3. The scheduler refuses admission of a task whose lock is held and returns it to the ready set rather than queueing behind it.
 4. A resource lock is declared in the task record's `resource_lock` field and is machine-readable.
 
-TASK-002's execution has released the `architecture-docs` lock, which is why TASK-016 could be claimed and is currently held by the TASK-016 execution.
+TASK-002's execution released the `architecture-docs` lock, which is why TASK-016 could be claimed. The TASK-016 execution has since released it too, so `architecture-docs` is currently free. `task-records` is held by the TASK-013 activation that is running; TASK-001 is not claimed.
 
 ## Task-record lifecycle ownership
 

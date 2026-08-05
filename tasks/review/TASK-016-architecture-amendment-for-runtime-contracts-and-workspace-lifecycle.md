@@ -1,7 +1,7 @@
 ---
 task_id: TASK-016
 title: Amend the runtime architecture for crash-atomic journal batches, legal recovery transitions, live control and process-tree ownership, typed scheduling contracts, and the agent workspace lifecycle module
-status: ready
+status: review
 owner_role: architect
 llm: claude
 branch: agent/claude/architect/task-016
@@ -28,6 +28,13 @@ gate_tasks:
     retrospective: false
 parent_task: TASK-001
 publication_class: bootstrap
+published_commit: 8d0c570
+published_branch: agent/claude/architect/task-016
+published_remote_ref: origin/agent/claude/architect/task-016
+pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/3
+pull_request_target: main
+publication: published
+publication_recorded_by: ACT-003
 amended_by:
   - activation: ACT-002
     change: additive
@@ -190,7 +197,7 @@ Prove acyclicity across scheduling, gate, and integration preconditions rather t
 
 ## Resource lock
 
-This task declares `resource_lock: architecture-docs`, which TASK-002 also holds. The two scopes genuinely overlap: this task amends documents TASK-002 authored. They are serialized by the lock, not by path disjointness. The TASK-002 execution released the lock, so this task may be claimed.
+This task declares `resource_lock: architecture-docs`, which TASK-002 also holds. The two scopes genuinely overlap: this task amends documents TASK-002 authored. They are serialized by the lock, not by path disjointness. The TASK-002 execution released the lock, which is why this task could be claimed; the TASK-016 execution has since released it as well, so `architecture-docs` is free.
 
 ## Dependency notes
 
@@ -206,9 +213,28 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the owner's commit and pull request.
+Transcribed by the Orchestrator under TASK-013 activation `ACT-003` from the owner's commit `8d0c570`, its commit message, and its pull request. The Orchestrator did not read, judge, or verify the architecture content; it records what the owner published and names the source of each statement.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: reviewer / gpt for TASK-020, the independent review of this amendment; then orchestrator via TASK-013 to close the TASK-016 and TASK-002 review gates and unblock TASK-018 and Wave 3
+- **Commit or pull request:** commit `8d0c570` `docs: amend the runtime architecture for TASK-016` on `agent/claude/architect/task-016`, branch point `c325275`. Pushed to `origin/agent/claude/architect/task-016` and opened as pull request `https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/3`, targeting `main`. Under the `bootstrap` publication class this satisfies `review_ready(TASK-016)`; `publication: published`.
+- **Files changed:** 29 — verified from `git diff-tree --no-commit-id --name-only -r 8d0c570`. 22 amended (`docs/architecture/ARCHITECTURE.md`, the eleven documents under `docs/architecture/runtime/`, seven existing ADRs, `docs/adr/README.md`, and the three diagrams under `diagrams/architecture/`) and 7 added (`docs/architecture/runtime/WORKSPACE-LIFECYCLE.md` and ADR-0011 … ADR-0016). Every path is inside this task's declared write scope; no file under `tasks/` was touched.
+- **What the owner recorded as delivered**, quoted from the commit message of `8d0c570`:
+  - A-001 — "Adopt a batch identifier plus a durable commit record: event lines carry a `batchId` and `batchIndex`, the final line commits the batch with an event count and a digest over its envelopes, and restore exposes every event of a committed batch or none of it. Ten crash-point obligations stated."
+  - A-002 — "Recovery now computes exactly one reconciliation decision per task from lease state, ledger state and an elapsed deadline, each expanding to one proven-legal event sequence. Add `TaskRecord.attemptStartedAt` so the deadline is a function of the record. Transition-table and batch-order obligations stated."
+  - A-003 — "Define a durable file-based control protocol with request identity, journal-order consumption, acknowledgement, epoch ownership check and stale-request sweep, owned by TASK-007. Define process-tree lifecycle owned by TASK-004: durable invocation identity before the spawn, a Windows job object with kill-on-close or a POSIX process group, bounded escalation, verified exit, and a persisted outcome before the writer lock is released. Pause may not return while an unmanaged descendant remains."
+  - A-004 — "Add `review_ready`, `integrated`, `gate_passed` with gate and round, `gate_recorded`, `human_decision` and `terminal` edges; `pre_merge_gates`; append-only gate verdicts that supersede across rounds; named resource locks; and monotonic event-triggered activation with a quiescent state, an exactly-once cursor and a starvation bound. Prove acyclicity over the expanded precondition graph and reject a violating graph at load. Vocabulary matches `tasks/TASK-001-DEPENDENCY-GRAPH.md` name for name."
+  - Workspace lifecycle module — "add the seventh module, `src/orchestrator/workspace/`, owned by TASK-017, with prepare/finalize/abandon/reconcile, delegation to the human-controlled PowerShell orchestration scripts, session-token ownership with no force release, crash-safe cleanup, branch publication and idempotent pull-request identity, and structural unavailability of pushing `main`, `ALLOW_MAIN_PUSH`, hook bypass and governance-path writes. Resolves F-105."
+  - Decision records — "New ADR-0011 through ADR-0016. ADR-0002, ADR-0004, ADR-0009 and ADR-0010 are superseded in part and carry forward references only; their decisions are unchanged."
+- **Verification, as recorded by the owner** in the commit message of `8d0c570` and in the execution handoff read by this activation:
+  - `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef c325275` — valid `True`, 29 files.
+  - `scripts/ci/validate-framework.ps1` — passed for 13 roles.
+  - `scripts/ci/test-orchestration.ps1` — orchestration unit checks passed.
+  - `git diff --check` — clean.
+  - Link and anchor integrity across `docs/` and `diagrams/` — 0 broken.
+  - Task lock released; worktree clean. The `architecture-docs` resource lock is therefore free.
+- **Limitations of that evidence, recorded by this activation rather than claimed by the owner:** every check above is a repository-structure, scope, or link validator. None of them evaluates whether A-001 … A-004 are actually resolved, whether the module map is correct, or whether the ADRs are coherent. This task's own acceptance criteria are self-asserted until an independent gate owner judges them. **No verdict exists on this amendment.**
+- **Known risks:**
+  - `gate_tasks: TASK-020 round 1` is `pending`. This record's `review` gate is **open**, and `review` is in its `pre_merge_gates`, so TASK-016 is `review_ready` but **not integrable**. The Orchestrator has not closed and may not close this gate.
+  - `gate_passed(TASK-016, review)` is the architecture edge for TASK-003 … TASK-008, TASK-017, and TASK-018. All of them stay `blocked` until TASK-020 records a passing verdict. Publication alone releases nothing beyond TASK-020's own dependency.
+  - The single TASK-020 verdict also closes or leaves open TASK-002's `review` gate at round 2, atomically with this one. A rejection here leaves both targets open.
+  - The `ACT-002` amendment note in scope item 4 was appended after this task was claimed. Whether the published amendment incorporates the corrected three-surface ingress model is exactly what TASK-020's A-004 disposition must check; this activation does not assess it.
+- **Next owner:** reviewer / gpt for **TASK-020**, now `ready` and dispatchable on the satisfied `review_ready(TASK-016)` edge; then orchestrator via TASK-013 to record TASK-020's single verdict as the two durable gate-verdict facts, and — on a passing verdict — to unblock TASK-018 and Wave 3.

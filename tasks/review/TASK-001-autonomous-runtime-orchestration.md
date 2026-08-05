@@ -99,7 +99,7 @@ These boxes record the author's own assessment. They are **not confirmed.** TASK
 
 ## Produced task graph
 
-Current as of revision 4. `tasks/TASK-001-DEPENDENCY-GRAPH.md` is authoritative for edge types, publication classes, gate assignment and gate scheduling classes, resource locks, the write-scope partition, the activation and event-ingress model, the architecture reconciliation, the required-behavior coverage matrix, and the findings return path.
+Current as of revision 4, with the lifecycle states refreshed by TASK-013 activation `ACT-003`. `tasks/TASK-001-DEPENDENCY-GRAPH.md` is authoritative for edge types, publication classes, gate assignment and gate scheduling classes, resource locks, the write-scope partition, the activation and event-ingress model, the architecture reconciliation, the required-behavior coverage matrix, and the findings return path. The **State** column is a lifecycle snapshot only; `ACT-003` changed nothing else in this table and nothing at all in the revision sections below.
 
 | Task | Owner role | LLM | Depends on | State |
 |---|---|---|---|---|
@@ -117,11 +117,11 @@ Current as of revision 4. `tasks/TASK-001-DEPENDENCY-GRAPH.md` is authoritative 
 | TASK-013 Task-record lifecycle transitions and gate closure | orchestrator | claude | — event-triggered | blocked, quiescent |
 | TASK-014 Independent review of this decomposition, rounds 1–2 | reviewer | gpt | TASK-001 review_ready | done, `changes-required` |
 | TASK-015 Independent architecture review of TASK-002, round 1 | reviewer | gpt | TASK-002 review_ready | done, `changes-required` |
-| TASK-016 Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 gate_recorded | ready |
+| TASK-016 Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 gate_recorded | review, published at `8d0c570`, review gate open |
 | TASK-017 Agent workspace lifecycle automation | runtime | claude | TASK-016 gate, TASK-003, TASK-018 integrated | blocked |
 | TASK-018 Runtime toolchain bootstrap | devops | claude | TASK-016 gate | blocked |
 | TASK-019 Independent review of the runtime toolchain | reviewer | gpt | TASK-018 review_ready | blocked |
-| TASK-020 Independent review of the architecture amendment | reviewer | gpt | TASK-016 review_ready | blocked |
+| TASK-020 Independent review of the architecture amendment | reviewer | gpt | TASK-016 review_ready | ready |
 | TASK-021 Independent re-review of this decomposition, round 3 | reviewer | gpt | TASK-001 review_ready | done, `changes-required` |
 | TASK-022 Independent re-review of this decomposition, round 4 | reviewer | gpt | TASK-001 review_ready | ready |
 
@@ -317,8 +317,8 @@ The gate relation is recorded as `gate_for` on TASK-014, TASK-021, and TASK-022 
   - The validation tasks depend on `gpt` and `gemini` assignments being available. If a family is unavailable, the affected gate must be reassigned by the user before its wave starts, since an author may not review their own change.
   - Runtime task write scopes name directories such as `src/orchestrator/workspace/` that do not exist yet; the owning task creates them.
   - TASK-014 recorded its round 2 dispositions on F-001 through F-007: five `resolved`, two `partially resolved`. TASK-021 recorded its round 3 dispositions on F-101 through F-105: three `resolved`, two `partially resolved`, both of which `ACT-002` closed out. The revision dispositions in this record are the author's claims and carry no gate authority. The same applies to revision 4's claims, which TASK-022 decides.
-  - Revisions 3 and 4 presume the shape of an amendment TASK-016 has not yet published and TASK-020 has not yet approved. If TASK-020 returns `changes-required`, the architecture-approval edge retargeting and the ingress contract representation may need a further correction. TASK-022 is asked to report this explicitly.
+  - Revisions 3 and 4 presume the shape of an amendment TASK-020 has not yet approved. As of `ACT-003` TASK-016 **has** published, at `8d0c570` with pull request #3, so the presumption is now testable rather than hypothetical — but no verdict exists. If TASK-020 returns `changes-required`, the architecture-approval edge retargeting and the ingress contract representation may need a further correction. TASK-022 is asked to report this explicitly.
   - `ACT-002` appended an additive amendment note to TASK-016's record while that task was claimed and in progress in a concurrent execution. A running execution that had already read the record may not see it. The mitigation is TASK-020's explicit A-004 ingress check.
   - The ingress observer that makes TASK-013 dispatchable is specified and routed to TASK-005 but is not executable yet. Until TASK-005 is integrated the observer is the human operator who launches each CLI session.
-- Next owner: **reviewer / gpt for TASK-022**, round 4 of this decomposition's review gate, dispatchable now. **Architect / claude for TASK-016** is already claimed and in progress; **reviewer / gpt for TASK-020** follows once TASK-016 publishes. TASK-022's write scope is disjoint from every other active task.
+- Next owner: **reviewer / gpt for TASK-022**, round 4 of this decomposition's review gate, dispatchable now and claimed. **Reviewer / gpt for TASK-020** became `ready` at `ACT-003` when TASK-016 published at `8d0c570`, and may run in parallel: the two report paths are disjoint and neither holds a resource lock. TASK-022's write scope is disjoint from every other active task.
 </content>

@@ -1,7 +1,7 @@
 ---
 task_id: TASK-020
 title: Independent review of the runtime architecture amendment
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-020
@@ -34,8 +34,20 @@ publication_class: bootstrap
 remediates:
   - finding: F-205
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md
-blocked_reason: The architecture amendment has not been published.
-exit_condition: TASK-016 is review_ready, with an immutable published commit on agent/claude/architect/task-016. This task does not wait for TASK-016 to be integrated or to reach done, because it is the pre-merge gate that lets it be integrated.
+dependencies_satisfied:
+  - task: TASK-016
+    edge: review_ready
+    satisfied_by_commit: 8d0c570
+    satisfied_by_branch: agent/claude/architect/task-016
+    published_remote_ref: origin/agent/claude/architect/task-016
+    pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/3
+    publication_class: bootstrap
+    publication: published
+    observed_as: ingress fact seq 6
+    recorded_by: ACT-003
+review_target_branch: agent/claude/architect/task-016
+review_target_commit: 8d0c570
+review_target_base: 9576fc9
 ---
 
 # TASK-020: Independent review of the runtime architecture amendment
@@ -60,7 +72,9 @@ The single verdict emits one `gate_verdict_recorded` ingress fact, whose payload
 
 ## Review target
 
-Branch `agent/claude/architect/task-016`, at the immutable commit recorded in TASK-016's record, compared against `9576fc9` — the TASK-002 baseline this amendment revises. Everything TASK-016 lists under **Expected artifacts** is in scope, including the amended `docs/architecture/ARCHITECTURE.md`, the amended documents under `docs/architecture/runtime/`, the new and superseding ADRs from `docs/adr/0011`, and the updated diagrams under `diagrams/architecture/`.
+Branch `agent/claude/architect/task-016`, at the immutable commit **`8d0c570`** `docs: amend the runtime architecture for TASK-016`, compared against `9576fc9` — the TASK-002 baseline this amendment revises. The target commit was published to `origin/agent/claude/architect/task-016` and opened as pull request #3; it branches from `c325275` and changes 29 files, all under `docs/` and `diagrams/`. TASK-013 activation `ACT-003` recorded that publication as ingress fact seq 6 and moved this record to `ready` on the strength of it. The target is immutable: a later activation does not change it.
+
+Everything TASK-016 lists under **Expected artifacts** is in scope, including the amended `docs/architecture/ARCHITECTURE.md`, the amended documents under `docs/architecture/runtime/`, the new and superseding ADRs from `docs/adr/0011`, and the updated diagrams under `diagrams/architecture/`.
 
 The round 1 baseline is `reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md`. Read it first; this review decides whether its four findings are resolved.
 
@@ -112,7 +126,7 @@ This task's single file is path-disjoint from TASK-009's `reports/code-review/RE
 
 ## Gate and remediation path
 
-This task performs two gate relations, recorded as `gate_for` reverse edges rather than scheduling dependencies, both `gate_class: point` and `retrospective: false`. It becomes dispatchable when TASK-016 is `review_ready` — an immutable published commit, no merge required. TASK-016 becomes integrable only after this task's verdict closes its review gate, which is what removes finding F-101 for this pair.
+This task performs two gate relations, recorded as `gate_for` reverse edges rather than scheduling dependencies, both `gate_class: point` and `retrospective: false`. It becomes dispatchable when TASK-016 is `review_ready` — an immutable published commit, no merge required. **That edge is now satisfied**, at `8d0c570` with pull request #3, so this task is `ready`. TASK-016 becomes integrable only after this task's verdict closes its review gate, which is what removes finding F-101 for this pair. No verdict has been recorded for either relation; both `gate_for` entries remain `pending`, and the Orchestrator neither authored nor pre-judged one.
 
 It also carries TASK-002's review gate at round 2. TASK-015 recorded `changes-required` at round 1 and TASK-016 is the remediation for that verdict, so the verdict on the remediation is what closes TASK-002's gate. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, round 1's verdict stays recorded and is superseded, never rewritten.
 
@@ -124,7 +138,7 @@ The reviewer is `gpt` and the architect is `claude`, so author and reviewer are 
 
 1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-020 -Role reviewer -Llm gpt`.
 2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-020 -Role reviewer -Llm gpt` before editing.
-3. Review with `git diff 9576fc9..agent/claude/architect/task-016`.
+3. Review with `git diff 9576fc9..8d0c570`, and read `reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md` first for the four round 1 findings this review decides on.
 4. Before handoff, run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree`.
 5. Commit, publish the task branch and open or update a pull request when a remote and credentials are available — otherwise record `publication: local-only` with the reason — and run `scripts/orchestration/release-task.ps1 -TaskId TASK-020 -Role reviewer -Llm gpt`.
 
