@@ -50,7 +50,7 @@ gate_tasks:
     lineage_round: 1
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by 8d0c570 and by the TASK-024 commit that TASK-025 approves
+normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, and by the TASK-028 commit that TASK-029 approves. None of 9576fc9, 8d0c570, and c2ee3eb is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, and 3, the round-3 verdict at aa38c7d2 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 4 or later, which TASK-029 owns. A record that cites any of the three as approved is a finding.
 remediates:
   - finding: F-001
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md

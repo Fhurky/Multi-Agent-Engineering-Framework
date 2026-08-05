@@ -57,7 +57,7 @@ dependencies_satisfied:
     recorded_by: ACT-003
 review_target_branch: agent/claude/architect/task-016
 review_target_commit: 8d0c570
-review_target_base: 9576fc9
+review_target_base: 9576fc96d0fa5ec8460c0208995bd2fe2295523c
 verdict: changes-required
 verdict_recorded_at: 4874a9d
 published_commit: 4874a9d

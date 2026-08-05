@@ -29,7 +29,7 @@ parent_task: TASK-001
 publication_class: bootstrap
 review_target_branch: agent/claude/orchestrator/task-013
 review_target_commit: ac9c8f2
-review_target_base: c325275
+review_target_base: c325275ea13918a9766b71a6350821af1c3c471d
 review_target_note: The round 5 review target was the TASK-013 activation ACT-004 effects commit, reviewed at branch head 890b8e0 against review-diff base c325275 so the diff covered the ACT-003 and ACT-004 effects together. That target is closed and durable.
 scope_validation_base: 890b8e0d0ed45f64ec913f952058e942668d784e
 branch_point_of: agent/claude/orchestrator/task-013

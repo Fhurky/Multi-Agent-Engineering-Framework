@@ -1,7 +1,7 @@
 ---
 task_id: TASK-029
 title: Independent review of the third runtime architecture amendment
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-029
@@ -57,16 +57,28 @@ remediates:
     part: gate ownership for the remediation
 supersedes: TASK-025
 review_target_branch: agent/gpt/architect/task-028
-review_target_commit: not yet published
+review_target_commit: fe0374c45aaa51e589525cee978c8ff244837163
 review_target_base: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
-review_target_applicability: applicable, resolved when TASK-028 publishes
-review_target_note: The target is TASK-028's immutable published commit, compared against review-diff base c2ee3eb, the TASK-024 amendment it revises. Read 8d0c570 and 9576fc9 where a judgment needs an earlier baseline. The Orchestrator binds review_target_commit at the activation that consumes TASK-028's publication, from the branch as published; it is not guessed here and it is not changed by a later activation once bound.
+review_target_applicability: applicable and resolved, bound by TASK-013 activation ACT-007
+review_target_note: The target is TASK-028's immutable published commit fe0374c, compared against review-diff base c2ee3eb, the TASK-024 amendment it revises. Read 8d0c570 and 9576fc9 where a judgment needs an earlier baseline. The Orchestrator bound review_target_commit at ACT-007, the activation that consumed TASK-028's publication, reading it from origin/agent/gpt/architect/task-028 rather than guessing it. It is immutable and is not changed by a later activation.
+review_target_authored_delta: git diff 0b413b7ab7a48dc4d02f0439bd50f1626dde4685..fe0374c45aaa51e589525cee978c8ff244837163 - 44 paths, all under docs/ and diagrams/. This is what TASK-028's owner authored.
+review_target_cumulative_diff: git diff c2ee3eb..fe0374c -- docs diagrams - 32 paths. This is the cumulative architecture change against the round-3 amendment and is what the round judges as a change.
+review_target_ancestry_note: The unrestricted git diff c2ee3eb..fe0374c returns 66 paths, of which 34 are ancestry differences under tasks/** and config/ that TASK-028's owner did not author. TASK-028's branch point 0b413b7 descends from e7bd748, which does not contain 8d0c570 or c2ee3eb although both are on main through pull requests 3 and 9, so twelve ADRs numbered 0011 through 0022 appear as additions rather than modifications and pull request 15 reports CONFLICTING against main. Do not attribute any of the 34 ancestry paths to this owner, and state the target diff and the review scope as two separate sets - finding F-502 recorded what conflating them costs.
 branch_point_of: agent/claude/orchestrator/task-013
 scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
 scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
 scope_validation_note: Create agent/gpt/reviewer/task-029 from the head of agent/claude/orchestrator/task-013 at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/orchestrator/task-013 and pass that value to -BaseRef. Reading the review target does not require this branch to descend from it, and this record does not instruct otherwise — finding A-209 recorded what happens when a record prescribes a provenance the execution does not follow. Never pass a review-diff base, c2ee3eb, 8d0c570, c325275, or origin/main. Record the resolved value in the report so the Orchestrator can pin it.
-blocked_reason: TASK-028 has not published the third architecture amendment, so there is no immutable commit to review.
-exit_condition: TASK-028 is review_ready, with an immutable published commit on agent/gpt/architect/task-028 satisfying its declared publication_class.
+dependencies_satisfied:
+  - edge: review_ready
+    task: TASK-028
+    satisfied_at: fe0374c45aaa51e589525cee978c8ff244837163
+    satisfied_branch: agent/gpt/architect/task-028
+    satisfied_remote_ref: refs/heads/agent/gpt/architect/task-028
+    pull_request: 15
+    publication_class: bootstrap
+    publication: published
+    recorded_by: TASK-013 activation ACT-007, consuming ingress entry seq 15
+resource_lock_state_at_dispatch: this task declares no resource lock. Its single report path reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md is disjoint from every other task's write scope, so it may run concurrently with TASK-031 and with any architecture-docs holder.
 ---
 
 # TASK-029: Independent review of the third runtime architecture amendment
@@ -93,7 +105,15 @@ The cohort has grown by one at each round and no member has ever been removed, s
 
 ## Review target
 
-Branch `agent/gpt/architect/task-028`, at the immutable published commit the Orchestrator binds into this record's `review_target_commit`, compared against **`c2ee3eb`** — the TASK-024 amendment this one revises. Read `8d0c570` and `9576fc9` where a judgment needs an earlier baseline.
+Branch `agent/gpt/architect/task-028`, at the immutable published commit **`fe0374c`**, which activation `ACT-007` bound into this record's `review_target_commit` from the branch as published, compared against **`c2ee3eb`** — the TASK-024 amendment this one revises. Read `8d0c570` and `9576fc9` where a judgment needs an earlier baseline.
+
+**Read the target as three separate sets, and say which is which in the report.** The frontmatter declares all three and this body does not restate their values:
+
+- the **authored delta**, what TASK-028's owner wrote;
+- the **cumulative architecture diff** against the round-3 amendment, what this round judges as a change;
+- the **ancestry difference**, paths under `tasks/**` and `config/` that appear in an unrestricted `c2ee3eb..fe0374c` diff because TASK-028's branch point predates the merges of pull requests 3 and 9 into `main`. **None of them was authored by TASK-028 and none may be attributed to it.** Finding F-502 recorded what conflating a target diff with a review scope costs; finding A-209 recorded what attributing inherited paths to the wrong owner costs.
+
+Pull request 15 reports **`CONFLICTING`** against `main` for the same ancestry reason. Report whether that integration state affects the amendment's correctness, and whether the twelve ADRs 0011 … 0022 that appear as additions rather than modifications preserve what TASK-016 and TASK-024 published. The Orchestrator verified only that no architecture document present at `c2ee3eb` is absent at `fe0374c`; it made no judgment about content, and neither that check nor this note is a finding.
 
 **No document in this lineage has ever recorded a passing verdict.** `9576fc9`, `8d0c570`, and `c2ee3eb` are each superseded authoring baselines, not approved sources. Report any statement in the target that treats one of them as approved.
 
