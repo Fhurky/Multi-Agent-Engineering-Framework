@@ -47,6 +47,9 @@ findings_raised:
 
 # TASK-022: Independent re-review of the corrected TASK-001 decomposition, round 4
 
+> **Historical record.** This task is `done` and its verdict is durable. Sections below describe the state of the graph at the time it ran. Under the single-source rule a pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are normative only in the pair's own frontmatter and in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; where this body names such a value it is quarantined history and is superseded by those sources. This is the correction finding F-402 required.
+
+
 ## Objective
 
 Perform round 4 of the independent review gate that TASK-001 declares, on the decomposition as corrected by TASK-013 activation `ACT-002`, and record the single verdict that decides whether TASK-001 may reach `done`.
@@ -174,4 +177,4 @@ Transcribed by the Orchestrator under TASK-013 activation `ACT-004` from `report
 - **Findings raised:** F-301 (High) — the ingress count is not a monotonic, one-to-one consumption cursor; F-302 (High) — a failed TASK-011 verdict permanently blocks TASK-012 across a new-task QA round; F-303 (Medium) — three active record bodies retain the gate-ordering claim F-203 corrected. Each names locations, affected task IDs, and `orchestrator` as the responsible owner for the specification, with `runtime` named for the F-301 implementation after correction. All three are dispositioned in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-004`.
 - **Verification, as recorded by the reviewer:** immutable target `4f8a1ccec664b9f909c9a063d8c6e86a477c297c`, parent `f5907493570060bad41432fa4d525c0f55cd89bc`, base `c325275ea13918a9766b71a6350821af1c3c471d`; 24 logical artifacts under `tasks/`; `git diff --check` clean; 22 task IDs audited with no missing field, assignment, naming, scope, pair, ownership, or static-invariant failure; exactly two scope overlaps; 33 of 33 gate pairs matched; 19 of 19 tagged obligations confirmed in the records they are cited from; ledger rows 1 through 3 byte-identical to `c325275` with rows 4 and 5 added, and their SHA-256 row hashes recorded; reachability of `8ac0dbd`, `e8edbcd`, and `c325275` confirmed, which is the evidence for F-301. The report notes that the live target branch advanced during review and that all evidence is pinned to `4f8a1cc` under the immutable-target rule.
 - **Known risks, as recorded by the reviewer:** F-301 and F-302 are blocking High findings and F-303 is Medium; F-201, F-203, F-204, and F-104 remain partial. No reviewed task, graph, log, architecture, runtime source, governance, test, or enforcement file was changed by this task, which the Orchestrator confirmed from the commit's file list.
-- **Next owner:** **reviewer / gpt for TASK-023**, which records `LIN-DECOMP-REVIEW` lineage round 5 against the `ACT-004` effects commit. TASK-001's review gate is not closed.
+- **Next owner:** **reviewer / gpt for TASK-023**, which records the next round of the same lineage against the `ACT-004` effects commit. TASK-001's review gate is not closed.

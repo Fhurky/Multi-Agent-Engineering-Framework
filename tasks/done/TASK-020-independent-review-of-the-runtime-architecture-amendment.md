@@ -75,6 +75,9 @@ findings_raised:
 
 # TASK-020: Independent review of the runtime architecture amendment
 
+> **Historical record.** This task is `done` and its verdict is durable. Sections below describe the state of the graph at the time it ran. Under the single-source rule a pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are normative only in the pair's own frontmatter and in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; where this body names such a value it is quarantined history and is superseded by those sources. This is the correction finding F-402 required.
+
+
 ## Objective
 
 Perform the independent review gate that TASK-016 declares, and decide whether the amended runtime architecture may be integrated and whether TASK-003 through TASK-008, TASK-017, and TASK-018 may leave `blocked`.
@@ -149,11 +152,11 @@ This task's single file is path-disjoint from TASK-009's `reports/code-review/RE
 
 ## Gate and remediation path
 
-This task performs two gate relations, recorded as `gate_for` reverse edges rather than scheduling dependencies, both `gate_class: point` and `retrospective: false`. It becomes dispatchable when TASK-016 is `review_ready` — an immutable published commit, no merge required. **That edge is now satisfied**, at `8d0c570` with pull request #3, so this task is `ready`. TASK-016 becomes integrable only after this task's verdict closes its review gate, which is what removes finding F-101 for this pair. No verdict has been recorded for either relation; both `gate_for` entries remain `pending`, and the Orchestrator neither authored nor pre-judged one.
+This task performs two gate relations, recorded as `gate_for` reverse edges rather than scheduling dependencies. Each pair's scheduling class, ordering against integration, lineage, and lineage round are declared in the frontmatter above and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body names the register and does not restate them, which is the correction finding F-402 required. It became dispatchable when TASK-016 is `review_ready` — an immutable published commit, no merge required. **That edge is now satisfied**, at `8d0c570` with pull request #3, so this task is `ready`. TASK-016 becomes integrable only after this task's verdict closes its review gate, which is what removes finding F-101 for this pair. No verdict has been recorded for either relation; both `gate_for` entries remain `pending`, and the Orchestrator neither authored nor pre-judged one.
 
 It also carries TASK-002's review gate at round 2. TASK-015 recorded `changes-required` at round 1 and TASK-016 is the remediation for that verdict, so the verdict on the remediation is what closes TASK-002's gate. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, round 1's verdict stays recorded and is superseded, never rewritten.
 
-**Outcome.** This task recorded `changes-required` at commit `4874a9d`. Both relations stayed open together, as the model requires. Both name **TASK-024** as `remediated_by` and **TASK-025** as `revalidated_by`. Both are rounds of the gate lineage `LIN-ARCH-REVIEW`, which TASK-025 continues at lineage round 3. This task is not re-entered.
+**Outcome.** This task recorded `changes-required` at commit `4874a9d`. Both relations stayed open together, as the model requires. Both name **TASK-024** as `remediated_by` and **TASK-025** as `revalidated_by`. Both belong to the architecture review lineage declared in this record's frontmatter, which TASK-025 continues at the round its own frontmatter declares. This task is not re-entered.
 
 **One verdict, applied atomically to both relations, yielding two durable gate-verdict facts.** This is the model stated in "Verdict cardinality" above, in the acceptance criteria, in the frontmatter, and in gate-round rule clause 5. Nothing in this record asks for two verdicts.
 
@@ -185,4 +188,4 @@ Transcribed by the Orchestrator under TASK-013 activation `ACT-004` from `report
 - **Findings raised:** A-101, A-102, A-103, A-104 (High) and A-105 (Medium). Each names a location, an affected task ID, and `architect` as the responsible owner role. All five are routed to **TASK-024**; the per-finding disposition register is in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-004`.
 - **Verification, as recorded by the reviewer:** reviewed `git diff 9576fc9..8d0c570` and `git diff c325275..8d0c570`; enumerated exactly 29 changed files, all under `docs/` and `diagrams/`; `git diff --check` clean for both the target range and the report; `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef c325275` reported `valid: True`, role `reviewer`, LLM `gpt`, `changed_files: 1`. All 29 artifacts are covered in the report's coverage table.
 - **Known risks, as recorded by the reviewer:** A-101 through A-104 are unresolved blockers; A-105 is non-blocking by severity but must be corrected in the same amendment to restore cross-document consistency. No architecture, ADR, diagram, task record, runtime source, governance, or enforcement file was modified by this task, which the Orchestrator confirmed from the commit's file list.
-- **Next owner:** **architect / claude for TASK-024**, the remediation, `ready` now. Then **reviewer / gpt for TASK-025**, which records `LIN-ARCH-REVIEW` lineage round 3 across three relations. Neither gate this task carried is closed.
+- **Next owner:** **architect / claude for TASK-024**, the remediation, `ready` now. Then **reviewer / gpt for TASK-025**, which records the next round of the same lineage across three relations. Neither gate this task carried is closed.

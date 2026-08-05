@@ -1,7 +1,7 @@
 ---
 task_id: TASK-025
 title: Independent review of the second runtime architecture amendment
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-025
@@ -48,15 +48,29 @@ remediates:
     source: reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md
     part: gate ownership for the remediation
 supersedes: TASK-020
-blocked_reason: TASK-024 has not published the second architecture amendment, so there is no immutable commit to review.
-exit_condition: TASK-024 is review_ready, with an immutable published commit on agent/claude/architect/task-024. This task does not wait for TASK-024 to be integrated or to reach done, because it is the pre-merge gate that lets it be integrated.
+dependencies_satisfied:
+  - edge: review_ready
+    task: TASK-024
+    satisfied_at: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
+    satisfied_branch: agent/claude/architect/task-024
+    satisfied_remote_ref: refs/heads/agent/claude/architect/task-024
+    pull_request: 9
+    publication_class: bootstrap
+    recorded_by: TASK-013 activation ACT-005
+review_target_branch: agent/claude/architect/task-024
+review_target_commit: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
+review_target_base: 8d0c570e190a534a7ae929377ed19b1675bbde86
+review_target_note: Immutable. The target is the TASK-024 amendment commit c2ee3eb, compared against review-diff base 8d0c570, the TASK-016 amendment it revises. The authored delta is 6e5a9df..c2ee3eb, 28 files; 6e5a9df is the merge that brought 8d0c570 onto the branch and is not itself part of the amendment. Read 9576fc9 where a judgment needs the original baseline. A later TASK-013 activation does not change this target.
+branch_point_of: agent/claude/architect/task-024
+scope_validation_base: git merge-base HEAD agent/claude/architect/task-024
+scope_validation_note: Not yet resolvable, because this task's branch does not exist. Create agent/gpt/reviewer/task-025 from the review target commit c2ee3eb, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/architect/task-024 and pass that value to -BaseRef. Never pass a review-diff base, c325275, or origin/main. Finding F-403 recorded why. Record the resolved value in the report so the Orchestrator can pin it.
 ---
 
 # TASK-025: Independent review of the second runtime architecture amendment
 
 ## Objective
 
-Record `LIN-ARCH-REVIEW` lineage round 3 — the independent review gate that TASK-024 declares — and decide whether the amended runtime architecture may be integrated and whether TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 may leave `blocked`.
+Record the `LIN-ARCH-REVIEW` round declared in this record's frontmatter — the independent review gate that TASK-024 declares — and decide whether the amended runtime architecture may be integrated and whether TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 may leave `blocked`. The lineage identifier and the round are normative in the frontmatter above and in the gate-lineage register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body names them and does not restate their values.
 
 ## Why this task exists rather than a second round of TASK-020
 
@@ -74,7 +88,9 @@ The single verdict emits one `gate_verdict_recorded` fact, whose payload names a
 
 ## Review target
 
-Branch `agent/claude/architect/task-024`, at the immutable commit TASK-024 publishes, compared against **`8d0c570`** — the TASK-016 amendment this one revises. Read `9576fc9` for the original baseline where a judgment needs it.
+Branch `agent/claude/architect/task-024`, at the immutable published commit **`c2ee3eb`**, compared against **`8d0c570`** — the TASK-016 amendment this one revises. Read `9576fc9` for the original baseline where a judgment needs it.
+
+The authored delta is `6e5a9df..c2ee3eb`, 28 files. `6e5a9df` is the merge commit that brought `8d0c570` onto the amendment branch; it introduces no amendment content of its own and is not part of what this round judges. The target is immutable and is not changed by a later TASK-013 activation.
 
 Everything TASK-024 lists under **Expected artifacts** is in scope.
 
@@ -111,6 +127,17 @@ This task performs three gate relations and records **one** verdict for all of t
 - Ingress epochs with a `seq_base`, and the rule that a prior epoch's entries are never re-derived, renumbered, or reclassified.
 - An owning module for the inbox, mapped to exactly one owner task.
 
+**Part D — the F-401 correction, checked specifically and separately from Part B.** Finding **F-401** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-5.md` at commit `667d3b8` was recorded **after** this amendment was authored, so the amendment was written against the superseded revision-5 model. This part exists because the correction must be judged, not assumed, and because the Orchestrator has deliberately not decided it. Assess each of the following individually and report it as satisfied or not satisfied:
+
+- The **inbox entry schema and the consumption-ledger row schema are two distinct schemas.** A single schema serving both is `not resolved`.
+- The **inbox entry declares no consumption field of any kind.** The published contract at `c2ee3eb` declares `consumedBy: ActivationId | null` on the inbox entry at `docs/architecture/runtime/INTERFACE-CONTRACTS.md:551`, and repeats the single-schema model in ADR-0017 and `docs/architecture/runtime/STATE-MACHINE.md`. State plainly whether that is present, and whether it can be reconciled with the contract's own claim that consumption state lives only in the cursor.
+- A ledger row **references** an entry by `seq` and `fact_id` and never writes back to it, so an entry is byte-identical before and after its consumption.
+- The contract names **two disjoint bootstrap dispatch contracts** — a `durable-bootstrap-append` contract in which an authorized appender commits the entry outside `tasks/**` **before** the recurring task is selected, and an `interim-operator-authorized` contract that does not claim the durable predicate is satisfied — and requires a recurring task to declare which one it runs under.
+- The contract names **who may append** in each phase and requires an append from any other principal, including the recurring task itself, to be rejected.
+- The contract does not claim that during bootstrap discovery affects only liveness while the consuming activation is also the first durable appender.
+
+Where a Part D item is not satisfied, record it as a finding against the architect with a severity, and state whether it blocks integration. Do **not** treat the decomposition's revision-6 correction as evidence that the contract was amended; judge the contract as published. If you judge that the decomposition rather than the contract is at fault, say so and route it to the Orchestrator.
+
 **Part C — fresh review of the amendment as an architecture change.**
 
 - Verify that the module map contains exactly eight modules, each with exactly one owner task, and that no runtime responsibility remains unassigned.
@@ -131,16 +158,18 @@ The decomposition is reviewed by **TASK-023**, not by this task. Report a diverg
 - [ ] Every artifact listed under **Review target** is covered, and coverage is stated explicitly, including artifacts reviewed with no finding.
 - [ ] Each of A-101 … A-105 and the still-open A-002, A-003, and A-004 receives an explicit `resolved`, `partially resolved`, or `not resolved` disposition with supporting file and line evidence.
 - [ ] Each of the eleven Part B ingress checks is assessed individually and reported as satisfied or not satisfied.
+- [ ] Each of the six Part D F-401 checks is assessed individually and reported as satisfied or not satisfied, with the file and line that supports the judgment. The `consumedBy` field on the inbox entry is addressed explicitly rather than by omission.
+- [ ] Every acceptance criterion TASK-024's own record declares is assessed and reported as met or not met, including the eight-module map with one owner each, the acyclic module dependency graph with independent contract roots, the eight-invariant validator contract proven against the revision-5 graph, durable process registration before the worker-owned spawn, durable workspace intent before any side effect, recoverable adopted results with the fate of `proposedTasks` stated, diagram agreement with the normative contracts, name-for-name vocabulary representability, amendment-with-supersession for every changed decision, the language policy, and the recorded publication outcome.
 - [ ] Each new finding records a severity, the file and line, the affected task ID, and the responsible owner role, and uses an identifier that does not collide with earlier rounds — round 3 findings are numbered from **A-201**.
 - [ ] The report records **exactly one** verdict, one of `approved`, `approved-with-findings`, or `changes-required`, with rationale, and states explicitly that it applies atomically to all three gate relations — `(TASK-024, review, round 1)`, `(TASK-016, review, round 2)`, and `(TASK-002, review, round 3)` — producing three durable gate-verdict facts that close together or stay open together. Recording more than one verdict, or a verdict for a subset of the relations, does not satisfy this criterion.
 - [ ] The report states plainly whether the amendment may be integrated, and whether TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 may leave `blocked`.
 - [ ] Any runtime responsibility with no assigned module owner is reported explicitly, or its absence is stated explicitly.
 - [ ] No file outside `reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md` is modified by this task.
-- [ ] `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree` reports a valid result and its output is recorded in the report.
+- [ ] `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef <resolved scope_validation_base>` reports a valid result, and both the resolved branch point and the output are recorded in the report.
 
 ## Expected artifacts
 
-- `reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md` containing the coverage statement, the Part A dispositions, the eleven Part B ingress assessments, the fresh findings, the single verdict, and the statement of its atomic application to all three gate relations.
+- `reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md` containing the coverage statement, the Part A dispositions, the eleven Part B ingress assessments, the six Part D F-401 assessments, the assessment of every TASK-024 acceptance criterion, the fresh findings, the single verdict, and the statement of its atomic application to all three gate relations.
 
 ## Write-scope isolation
 
@@ -148,7 +177,7 @@ This task's single file is new and path-disjoint from TASK-009's `reports/code-r
 
 ## Gate and remediation path
 
-This task records three gate relations as `gate_for` reverse edges rather than scheduling dependencies. Their `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in the frontmatter above and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body does not restate them. It becomes dispatchable when TASK-024 is `review_ready` — an immutable published commit, no merge required. TASK-024 becomes integrable only after this task's verdict closes its review gate.
+This task records three gate relations as `gate_for` reverse edges rather than scheduling dependencies. Their `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in the frontmatter above and summarized in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body does not restate them. It became dispatchable when TASK-024 reached `review_ready` at `c2ee3eb` — an immutable published commit, no merge required. TASK-024 becomes integrable only after this task's verdict closes its review gate.
 
 **One verdict, applied atomically to three relations, yielding three durable gate-verdict facts.** This is the model stated in "Verdict cardinality" above, in the acceptance criteria, in the frontmatter fields `verdict_cardinality` and `verdict_application`, and in gate-round rule clause 5.
 
@@ -158,8 +187,8 @@ The reviewer is `gpt` and the architect is `claude`, so author and reviewer are 
 
 1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-025 -Role reviewer -Llm gpt`.
 2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-025 -Role reviewer -Llm gpt` before editing.
-3. Review with `git diff 8d0c570..<TASK-024 commit>`, and read both baseline reports first for the findings this review decides on.
-4. Before handoff, run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree`.
+3. Create the branch from the review target commit `c2ee3eb`. Review with `git diff 8d0c570..c2ee3eb` for the cumulative amendment and `git diff 6e5a9df..c2ee3eb` for the authored delta, and read both baseline reports plus `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-5.md` for F-401 before judging Part D.
+4. Before handoff, resolve the immutable branch point with `git merge-base HEAD agent/claude/architect/task-024` and run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef <that value>`. Do not pass a review-diff base, `c325275`, or `origin/main`; finding F-403 recorded why.
 5. Commit, publish the task branch and open or update a pull request when a remote and credentials are available — otherwise record `publication: local-only` with the reason — and run `scripts/orchestration/release-task.ps1 -TaskId TASK-025 -Role reviewer -Llm gpt`.
 
 Do not move this record between lifecycle directories and do not edit its `status` field. `tasks/**` is outside the reviewer role's configured write scope. Record the handoff in the report and the pull request description; the Orchestrator performs the transition under TASK-013.
@@ -175,4 +204,4 @@ Maintained by the Orchestrator under TASK-013 from the reviewer's report and pul
 - Commit or pull request:
 - Verification:
 - Known risks:
-- Next owner: orchestrator via TASK-013, to record the single verdict as three durable gate-verdict facts — closing the TASK-024 round 1, TASK-016 round 2, and TASK-002 round 3 relations together and unblocking TASK-018 and Wave 3 on a passing verdict, or leaving all three open, routing findings back to the architect, and creating the next round's reviewer task
+- Next owner: orchestrator via TASK-013, to record the single verdict as three durable gate-verdict facts — closing all three relations together and unblocking TASK-018 and the runtime waves on a passing verdict, or leaving all three open, routing findings back to the architect, and creating the next round's reviewer task

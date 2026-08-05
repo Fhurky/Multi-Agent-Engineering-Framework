@@ -1,7 +1,7 @@
 ---
 task_id: TASK-023
 title: Independent re-review of the corrected TASK-001 decomposition, round 5
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-023
@@ -17,7 +17,10 @@ gate_for:
   - task: TASK-001
     gate: review
     round: 5
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 667d3b8
+    remediated_by: TASK-013 activation ACT-005
+    revalidated_by: TASK-027
     gate_class: point
     retrospective: true
     gate_lineage: LIN-DECOMP-REVIEW
@@ -27,11 +30,25 @@ publication_class: bootstrap
 review_target_branch: agent/claude/orchestrator/task-013
 review_target_commit: ac9c8f2
 review_target_base: c325275
-review_target_note: The round 5 review target is the TASK-013 activation ACT-004 effects commit. Its hash is recorded here and in tasks/TASK-013-ACTIVATION-LOG.md by a follow-up commit on the same branch, because a commit cannot contain its own hash. Review the branch head, which includes both commits. The base is c325275 so the diff covers the ACT-003 and ACT-004 effects together, both of which are unreviewed.
+review_target_note: The round 5 review target was the TASK-013 activation ACT-004 effects commit, reviewed at branch head 890b8e0 against review-diff base c325275 so the diff covered the ACT-003 and ACT-004 effects together. That target is closed and durable.
+scope_validation_base: 890b8e0d0ed45f64ec913f952058e942668d784e
+branch_point_of: agent/claude/orchestrator/task-013
+scope_validation_note: Resolved by this activation from the published branch; git merge-base agent/gpt/reviewer/task-023 agent/claude/orchestrator/task-013 returns 890b8e0. Finding F-403 recorded that this record originally prescribed -BaseRef c325275, which cannot pass because the branch inherits the ACT-003 and ACT-004 tasks/** effects. The owner ran the target-aware check against 890b8e0 and recorded valid True with changed_files 1.
 supersedes: TASK-022
+published_commit: 667d3b8b4be055304bffd538f965c001aebea7f4
+published_branch: agent/gpt/reviewer/task-023
+published_remote_ref: refs/heads/agent/gpt/reviewer/task-023
+pull_request: 8
+publication: published
+publication_reason: The reviewer's own report records publication: local-only because the user directed the root execution to publish. The push and pull request #8 succeeded outside the reviewer's execution. Both facts are recorded; neither overwrites the other.
+verdict: changes-required
+verdict_recorded_at: 667d3b8b4be055304bffd538f965c001aebea7f4
 ---
 
 # TASK-023: Independent re-review of the corrected TASK-001 decomposition, round 5
+
+> **Historical record.** This task is `done` and its verdict is durable. Sections below describe the state of the graph at the time it ran. Under the single-source rule a pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are normative only in the pair's own frontmatter and in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; where this body names such a value it is quarantined history and is superseded by those sources. This is the correction finding F-402 required.
+
 
 ## Objective
 
@@ -41,7 +58,7 @@ Perform round 5 of the independent review gate that TASK-001 declares, on the de
 
 TASK-022 recorded one durable verdict — `changes-required` at round 4, commit `e8eb23d` — and its record is `done`. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, a recorded verdict is durable and is superseded rather than rewritten, and **each superseding round is a new task with its own explicit dependency and its own single verdict**. Reusing TASK-022 would reopen a completed task, make its dependency set ambiguous across rounds, and reproduce the defect finding F-102 recorded against TASK-015.
 
-This task records `LIN-DECOMP-REVIEW` lineage round 5. The lineage is the durable relation; the task is one round of it.
+This task records the `LIN-DECOMP-REVIEW` round declared in its own frontmatter and registered in the gate-lineage register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body names those sources and does not restate their values. The lineage is the durable relation; the task is one round of it.
 
 **This task is not re-entrant.** It declares one round, records exactly one verdict, and is not re-entered. If round 5 returns `changes-required`, TASK-013 creates a new task for round 6.
 
@@ -127,7 +144,7 @@ The reviewer is `gpt` and the decomposition author is `claude`, so author and re
 2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-023 -Role reviewer -Llm gpt` before editing.
 3. Review with `git diff c325275..agent/claude/orchestrator/task-013 -- tasks/`, and read `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md` for the round 4 findings this round verifies.
 4. Recompute the ledger hashes with `git show <commit>:<path>` and SHA-256, and compare them with rows 7 and 8.
-5. Before handoff, run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef c325275`.
+5. Before handoff, run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef <scope_validation_base>` — the immutable branch point declared in this record's frontmatter, not the review-diff base. The originally prescribed `-BaseRef c325275` is **superseded**: finding F-403 recorded that it attributes inherited Orchestrator-authored `tasks/**` paths to the reviewer and cannot pass.
 6. Commit, publish the task branch and open or update a pull request when a remote and credentials are available — otherwise record `publication: local-only` with the reason, which this task's `publication_class: bootstrap` permits — and run `scripts/orchestration/release-task.ps1 -TaskId TASK-023 -Role reviewer -Llm gpt`.
 
 Do not move this record between lifecycle directories and do not edit its `status` field. `tasks/**` is outside the reviewer role's configured write scope. Record the handoff in the report and the pull request description; the Orchestrator performs the transition under TASK-013.
@@ -136,11 +153,16 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013.
 
+## Outcome
+
+**Round 5 recorded `changes-required` at commit `667d3b8`.** TASK-001 may not reach `done`. The `(TASK-001, review, round 5)` relation is superseded by round 6 and stays open; the verdict itself is durable and is never rewritten. This task is not re-entered.
+
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
+Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request. Transcribed by activation `ACT-005` from `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-5.md` at `667d3b8`; quoted, not invented.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to close the TASK-001 review gate on a passing verdict, or to route round 5 findings back to the decomposition owner and create the round 6 reviewer task
+- Commit or pull request: `667d3b8b4be055304bffd538f965c001aebea7f4` `review: assess TASK-001 decomposition round 5` on `agent/gpt/reviewer/task-023`, parent `890b8e0`, one file changed. Published at `refs/heads/agent/gpt/reviewer/task-023` on `origin` and opened as pull request #8. The report itself records `publication: local-only` because the user directed the root execution to publish; both facts are recorded and neither overwrites the other.
+- Verdict: **`changes-required`**, one verdict applied to the single relation this task carries. New findings **F-401** (High), **F-402** (Medium), **F-403** (Medium). Round-4 dispositions recorded by the owner: F-301 `partially resolved`, F-302 `partially resolved`, F-303 `partially resolved`, and the F-201, F-203, F-204, and F-104 residuals each `partially resolved`.
+- Verification, as the owner recorded it: `scripts/ci/validate-framework.ps1` passed for 13 roles; `scripts/ci/test-orchestration.ps1` passed; a read-only graph audit over 26 records, 40 of 40 gate pairs, eight lineages, zero cycles, four serialized overlap pairs, and 26 of 26 validator tags; `git diff --name-status c325275..890b8e0` returned 29 entries with no path outside `tasks/`; `git diff --check c325275..890b8e0` clean; `git diff ac9c8f2..890b8e0` showed only the three placeholder-to-`ac9c8f2` target-hash substitutions; the ledger hashes for rows 7 and 8 recomputed and matched. The owner recorded that `validate-write-scope.ps1 -IncludeWorkingTree -BaseRef c325275` **failed**, listing 28 inherited non-deleted `tasks/**` paths — this is finding F-403 — and that the target-aware run against the immutable branch point `890b8e0` returned `valid: True` with `changed_files: 1`.
+- Known risks, as the owner recorded them: F-401 blocks durable bootstrap activation correctness; F-402 leaves active records contradictory; F-403 prevented the exact prescribed scope command from passing. TASK-001's review gate remains open. The owner recorded the task lock as not yet released at the time of writing.
+- Next owner: orchestrator via TASK-013. Activation `ACT-005` consumed this verdict, routed F-401, F-402, and F-403, kept TASK-001 in `review`, and created **TASK-027** for round 6.

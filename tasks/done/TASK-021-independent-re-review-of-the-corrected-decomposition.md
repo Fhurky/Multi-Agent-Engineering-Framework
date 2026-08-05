@@ -42,6 +42,9 @@ superseded_by: TASK-022
 
 # TASK-021: Independent re-review of the corrected TASK-001 decomposition, round 3
 
+> **Historical record.** This task is `done` and its verdict is durable. Sections below describe the state of the graph at the time it ran. Under the single-source rule a pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are normative only in the pair's own frontmatter and in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; where this body names such a value it is quarantined history and is superseded by those sources. This is the correction finding F-402 required.
+
+
 ## Objective
 
 Perform round 3 of the independent review gate that TASK-001 declares, on the decomposition as corrected by TASK-013 activation `ACT-001`, and record the verdict that decides whether TASK-001 may reach `done`.
