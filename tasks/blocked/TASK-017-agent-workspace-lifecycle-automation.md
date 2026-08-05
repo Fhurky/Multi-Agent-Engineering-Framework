@@ -27,15 +27,23 @@ gate_tasks:
     gate: review
     round: 1
     verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-010
     gate: security
     round: 1
     verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-011
     gate: qa
     round: 1
     verdict: pending
+    gate_class: aggregate
+    retrospective: true
 parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
 remediates:
   - finding: F-001
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
@@ -98,6 +106,9 @@ The mandatory handoff in `AGENTS.md` includes pushing the task branch and openin
 - [ ] When the remote is unreachable, credentials are absent, or pull-request creation is unauthorized, `finalize` returns an explicit `blocked` outcome with a typed failure class and a recorded reason. A test asserts that no `succeeded` outcome is produced for a local-only commit and that no alternative push target is attempted.
 - [ ] Every constructed push command vector is asserted to target only `refs/heads/agent/<llm>/<role>/<task-id>`. A test feeds a task record whose fields would produce another ref and asserts the dispatch is refused before any process is spawned.
 - [ ] A crash after publication and before lock release leaves the branch, commit, and pull-request identity readable by `reconcile`, which does not republish or reopen.
+- [ ] `publication_class: runtime` is enforced in behavior, not only declared: a local-only commit never satisfies `review_ready` for a task the runtime dispatches. A test asserts that the recorded outcome for an unreachable remote is `blocked`, never `local-only` and never `succeeded`. The `bootstrap` publication class in `tasks/TASK-001-DEPENDENCY-GRAPH.md` applies only to human-launched sessions and is not reachable from this module.
+
+These implementation criteria resolve the implementation half of finding F-105. They do **not** satisfy the graph's independent-validation claim: that is discharged by TASK-009 `V9-F105`, TASK-010 `V10-F105`, and TASK-011 `V11-F105`, which finding F-202 required.
 
 ### Crash safety
 
@@ -126,7 +137,7 @@ The mandatory handoff in `AGENTS.md` includes pushing the task branch and openin
 
 ## Dependency notes
 
-- `gate_passed(TASK-016, review)` supplies the workspace lifecycle contract, the publication and pull-request contract, and the crash-safe cleanup specification. Implementation cannot start before the module is part of the approved architecture. That gate is owned by TASK-020.
+- `gate_passed(TASK-016, review)` supplies the workspace lifecycle contract, the publication and pull-request contract, and the crash-safe cleanup specification. The normative source is `9576fc9` **as amended by the TASK-016 commit that TASK-020 approves**; the workspace lifecycle module does not exist in the rejected baseline at all, so there is nothing for this task to implement from it. Implementation cannot start before the module is part of the approved architecture. That gate is owned by TASK-020.
 - `integrated(TASK-003)` supplies the durable state store and the intent-then-commit substrate used for replayable workspace operations. It is `integrated` and not `review_ready` because this is a compile-time import.
 - `integrated(TASK-018)` supplies the toolchain.
 - May execute in parallel with TASK-005; `src/orchestrator/workspace/**` and `src/orchestrator/scheduling/**` do not overlap.

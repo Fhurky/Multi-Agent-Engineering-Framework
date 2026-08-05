@@ -32,23 +32,57 @@ pre_merge_gates: []
 gate_for:
   - task: TASK-003
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-004
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-005
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-006
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-007
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-008
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-017
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-018
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
+gate_scheduling: Every gate this task owns is an aggregate assembly gate and every one is retrospective. Reasons and recorded risks are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, rows "TASK-010 / security / runtime cohort" and "TASK-010 / security / TASK-018". TASK-018 is not the only retrospective case; it is the earliest and longest-exposed one.
 parent_task: TASK-001
+publication_class: bootstrap
 blocked_reason: The runtime implementation tasks have not published their branches.
-exit_condition: TASK-003 through TASK-008 and TASK-017 are review_ready, each with an immutable published commit. This task does not wait for those tasks to be integrated or to reach done, because it is the gate that lets them reach done.
+exit_condition: TASK-003 through TASK-008, TASK-017, and TASK-018 are review_ready, each with an immutable published commit. This task does not wait for those tasks to be integrated or to reach done, because it is the gate that lets them reach done. It is nevertheless an aggregate gate for all eight targets, and every target is already integrated by the time it runs.
 ---
 
 # TASK-010: Security review of the autonomous runtime
@@ -66,7 +100,7 @@ Threat model the autonomous runtime, perform the security gate for TASK-003 thro
 - Verify that agent output, task records, and provider responses are treated as untrusted input.
 - Verify that the one-input bootstrap cannot be used to write outside its intended run-scoped output location.
 - Verify that lease and fencing token handling cannot be bypassed to gain unauthorized concurrent write access.
-- Assess the TASK-018 toolchain retrospectively: review the dependency inventory TASK-019 produced, assess the supply-chain surface of every added devDependency, and confirm that ADR-0001's zero-third-party-runtime-dependency rule held. This assessment is retrospective by design — the toolchain merges at Wave 2 because no code exists to threat-model before it.
+- Assess the TASK-018 toolchain retrospectively: review the dependency inventory TASK-019 produced, assess the supply-chain surface of every added devDependency, and confirm that ADR-0001's zero-third-party-runtime-dependency rule held. This assessment is retrospective by design — the toolchain merges at Wave 2 because no code exists to threat-model before it. It is **not** the only retrospective gate this task owns; every security gate in the runtime cohort is retrospective as well, and all of them are registered in `tasks/TASK-001-DEPENDENCY-GRAPH.md`.
 - Record security requirements under `specs/security/` where a durable requirement is missing.
 - Assign a severity to each finding and mark high and critical findings as delivery blocking.
 - Exclude implementing remediation code, feature work, and approval of another role's gate.
@@ -82,17 +116,30 @@ Threat model the autonomous runtime, perform the security gate for TASK-003 thro
 - [ ] No secret value or scanner output containing a secret is committed.
 - [ ] All changed files remain inside this task's declared write scope.
 
+### Amended-behavior obligations
+
+Finding **F-202** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md` recorded that the required-behavior coverage matrix named this task as the independent validator of several amended behaviors that this record did not require it to assess. Each criterion below is cited by exactly one row of that matrix and must be answered explicitly, with an assessment result and the affected component. An implementing task's own tests do not satisfy any of them.
+
+- [ ] **`V10-A003-CTL` — live-run control protocol.** Assess the delivered live-run control path against the amended contract: transport, request identity, acknowledgement, durable ordering, the ownership or authentication check, and stale-request behavior. An unauthenticated or unowned control channel that can pause or stop a foreground supervisor, or a replayable control request, is a High finding.
+- [ ] **`V10-A003-TREE` — process-tree ownership, child and grandchild termination.** Assess that every provider invocation runs inside an owned process group or Windows Job Object equivalent with a durable invocation identity, that cancellation escalates within a bounded time and verifies tree exit, and that a **grandchild** that ignores the first cancellation and outlives the command timeout cannot survive as an unmanaged descendant. Assess that recovery detects, fences, or terminates an orphan belonging to a recorded invocation. A surviving descendant holding a worktree, a lock, or a credential-bearing environment is a High finding.
+- [ ] **`V10-A004-LOCK` — named resource-lock integrity.** Assess whether named resource-lock admission can be bypassed to obtain concurrent write access to a shared surface, including through lease expiry, a stale fencing token, or a task record that declares no lock for a scope that overlaps one.
+- [ ] **`V10-F105` — publication and pull-request authorization.** Assess the publication path: that the constructed push refspec can target only `refs/heads/agent/<llm>/<role>/<task-id>`, that no path can push `main` or set `ALLOW_MAIN_PUSH` or bypass the tracked pre-push hook, that pull-request creation uses only credentials read through `SecretProvider` and leaks none into a command vector, a log, an event, or a persisted record, and that an unauthorized pull-request attempt produces a `blocked` outcome rather than a fallback to a different target. Assess that the persisted branch, commit, and pull-request identity contains no credential.
+- [ ] **`V10-TOOLCHAIN` — retrospective toolchain assessment.** Using the dependency inventory TASK-019 produced, assess the supply-chain surface of every devDependency TASK-018 added, by name, version, and purpose, and confirm that ADR-0001's zero-third-party-runtime-dependency rule actually held in the delivered `package.json` and lockfile. Record explicitly that this assessment is retrospective and state the exposure window in waves.
+
 ## Expected artifacts
 
 - `reports/security/SECURITY_REPORT.md` summary.
 - Detailed findings under `reports/security/`.
+- `reports/security/AMENDED-BEHAVIOR-ASSESSMENT.md`, recording the result and evidence for each of `V10-A003-CTL`, `V10-A003-TREE`, `V10-A004-LOCK`, `V10-F105`, and `V10-TOOLCHAIN`.
 - Security requirements under `specs/security/` when a durable requirement is missing.
 
 ## Gate and remediation path
 
-This task performs the security gate for TASK-003 through TASK-008 and TASK-017, declared in the `gate_for` field. A `gate_for` declaration is not a scheduling dependency: this task becomes dispatchable when its targets reach `review`, and its targets reach `done` only after this task records a verdict.
+This task performs the security gate for TASK-003 through TASK-008, TASK-017, and TASK-018, declared in the `gate_for` field. A `gate_for` declaration is not a scheduling dependency: this task becomes dispatchable when its targets reach `review`, and its targets reach `done` only after this task records a verdict.
 
-Remediation is performed by the responsible implementation owner, not by this role. Findings return through TASK-013, which reopens the named child task, and this role revalidates afterward. High and critical findings block delivery until they are resolved or formally accepted by an authorized human.
+**Every gate this task owns is `aggregate` and `retrospective`**, declared on both sides of each pair and registered with a reason and a recorded risk in `tasks/TASK-001-DEPENDENCY-GRAPH.md`. The consequence is stated plainly: eight targets are already integrated on `integration/autonomous-runtime` before this gate runs, so a High or Critical finding at Wave 7 blocks delivery for the whole graph rather than for one branch. Finding F-203 recorded that revision 3 claimed only the TASK-018 pair was retrospective.
+
+Remediation is performed by the responsible implementation owner, not by this role. Findings return through TASK-013, which reopens the named child task, and this role revalidates afterward in a new round with a new task. High and critical findings block delivery until they are resolved or formally accepted by an authorized human. Publishing this task's report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
 ## Task-record lifecycle
 

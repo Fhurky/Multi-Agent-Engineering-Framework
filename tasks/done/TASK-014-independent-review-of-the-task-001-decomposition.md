@@ -19,13 +19,22 @@ gate_for:
     round: 1
     verdict: changes-required
     verdict_recorded_at: 8ac0dbd
+    remediated_by: TASK-001 revision 2
+    revalidated_by: TASK-014 round 2
+    gate_class: point
+    retrospective: true
   - task: TASK-001
     gate: review
     round: 2
     verdict: changes-required
     verdict_recorded_at: abb85d9
+    remediated_by: TASK-013 activation ACT-001
+    revalidated_by: TASK-021
+    gate_class: point
+    retrospective: true
 parent_task: TASK-001
 rounds_completed: 2
+publication_class: bootstrap
 published_commit: abb85d9
 published_branch: agent/gpt/reviewer/task-014
 publication: local-only
@@ -48,7 +57,9 @@ Perform the independent review gate required by TASK-001 on the decomposition ar
 | 1 | `agent/claude/orchestrator/task-001` revision 1 | `changes-required` | `8ac0dbd` | F-001 … F-007 |
 | 2 | `agent/claude/orchestrator/task-001` revision 2 at `657b83a`, integration ref `fb9f45c` | `changes-required` | `abb85d9`, merged at `b6fe228` | F-101 … F-105 |
 
-Round 3 is **TASK-021**, a separate reviewer task with its own explicit dependency and its own report file. The re-entrancy described below applied to rounds 1 and 2 and is retained as history; it is not the model the graph uses any longer. Making a gate task re-entrant is what finding F-102 recorded as a defect for TASK-015, and TASK-013 activation `ACT-001` applied the same correction here.
+Round 3 was **TASK-021**, which recorded `changes-required` at `adfb982` and is `done`; round 4 is **TASK-022**. Each is a separate reviewer task with its own explicit dependency and its own report file. The re-entrancy described below applied to rounds 1 and 2 and is retained as history; it is not the model the graph uses any longer. Making a gate task re-entrant is what finding F-102 recorded as a defect for TASK-015, and TASK-013 activation `ACT-001` applied the same correction here.
+
+Both of this task's `gate_for` entries name a `remediated_by` and a `revalidated_by`, as the gate-round rule requires of every `changes-required` round. Finding F-205 recorded that metadata as missing on the round 1 pair; activation `ACT-002` completed it on both sides.
 
 ## Round model as executed
 

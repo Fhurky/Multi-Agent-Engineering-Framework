@@ -27,12 +27,18 @@ gate_tasks:
     gate: review
     round: 1
     verdict: pending
+    gate_class: point
+    retrospective: false
   - task: TASK-010
     gate: security
     round: 1
     verdict: pending
+    gate_class: aggregate
     retrospective: true
+gate_scheduling: The security gate is aggregate and retrospective. Its reason and its recorded risk are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, row "TASK-010 / security / TASK-018". It has the longest exposure window in the graph but it is not the only retrospective gate; every runtime assembly gate is retrospective as well.
 parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
 human_decisions:
   - id: HUMAN-001
     status: resolved
@@ -98,7 +104,7 @@ Once unblocked:
 - [ ] No human-controlled governance path is modified, including `.github/workflows/ci.yml`, `.github/workflows/security.yml`, and `config/agents/settings.yaml`.
 - [ ] `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree` reports a valid result.
 - [ ] All changed files remain inside this task's declared write scope.
-- [ ] The task branch is published and a pull request is opened or updated, or the publication failure is recorded explicitly as `publication: local-only` with its reason, so the Orchestrator can transcribe the outcome accurately.
+- [ ] The task branch is published and a pull request is opened or updated. This task declares `publication_class: runtime`, so an unavailable remote or an unauthorized pull request is an explicit `blocked` outcome with its reason recorded — **not** a `local-only` success. The `bootstrap` class in `tasks/TASK-001-DEPENDENCY-GRAPH.md` does not apply to this task.
 
 ## Expected artifacts
 
@@ -119,7 +125,9 @@ This task declares `pre_merge_gates: [review]`. Its review gate is owned by **TA
 
 The gate is deliberately not owned by TASK-009: TASK-009 runs at Wave 7 and reviews runtime source, so assigning this gate to it would leave an unreviewed toolchain integrated for five waves with three tasks compiling against it.
 
-The security gate is owned by TASK-010 and is an **assembly gate, retrospective**: this task integrates at Wave 2, while TASK-010 threat-models the whole runtime at Wave 7. This task therefore reaches `integrated` long before it reaches `done`, which the edge vocabulary in `tasks/TASK-001-DEPENDENCY-GRAPH.md` distinguishes. The consequence is accepted because there is no code to threat-model before a toolchain exists; the mitigations are ADR-0001's zero-third-party-runtime-dependency rule, the dependency inventory TASK-019 must produce, and the repository's baseline security CI workflow running on the pull request.
+The security gate is owned by TASK-010 and is declared `gate_class: aggregate`, `retrospective: true`: this task integrates at Wave 2, while TASK-010 threat-models the whole runtime at Wave 7. This task therefore reaches `integrated` long before it reaches `done`, which the edge vocabulary in `tasks/TASK-001-DEPENDENCY-GRAPH.md` distinguishes. The consequence is accepted because there is no code to threat-model before a toolchain exists; the mitigations are ADR-0001's zero-third-party-runtime-dependency rule, the dependency inventory TASK-019 must produce as a pre-merge gate, and the repository's baseline security CI workflow running on the pull request. The independent assessment obligation is TASK-010 `V10-TOOLCHAIN`.
+
+Finding F-203 recorded that revision 3 called this the graph's only retrospective gate. It is not: every assembly gate on TASK-003 … TASK-008 and TASK-017 is retrospective too. This one has the longest exposure window, which is why it is registered first.
 
 ## Task-record lifecycle
 

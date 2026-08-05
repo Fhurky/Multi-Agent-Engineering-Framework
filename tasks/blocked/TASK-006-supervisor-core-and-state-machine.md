@@ -30,13 +30,31 @@ pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-010
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-011
     gate: qa
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-012
     gate: performance
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
 parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
 blocked_reason: TASK-015 returned changes-required on the base architecture, so the state machine contract is not approved and finding A-002 changes the recovery transitions this task implements. The state store, worker contract, scheduler, and workspace lifecycle are not integrated.
 exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-003, TASK-004, TASK-005, and TASK-017 are integrated into integration/autonomous-runtime.
 ---
@@ -49,7 +67,7 @@ Implement the supervisor run loop and the deterministic task state machine that 
 
 ## Scope
 
-- Implement the run and task state machine defined by TASK-002 as an explicit transition function that rejects illegal transitions.
+- Implement the run and task state machine defined by the normative architecture — `9576fc9` as amended by the approved TASK-016 commit — as an explicit transition function that rejects illegal transitions.
 - Implement the supervisor loop that requests dispatchable work from the scheduler, prepares the isolated agent workspace through the TASK-017 workspace lifecycle interface, invokes agent workers, finalizes or releases the workspace, and applies results to durable state under the holder's fencing token.
 - Implement result aggregation, including how a worker outcome advances, fails, or blocks a task.
 - Implement run completion detection and the terminal run states for success, failure, and cancellation.
@@ -76,7 +94,7 @@ Implement the supervisor run loop and the deterministic task state machine that 
 
 ## Dependency notes
 
-- `gate_passed(TASK-016, review)` supplies the transition function, run events, and dynamic admission guards from `docs/architecture/runtime/STATE-MACHINE.md`.
+- `gate_passed(TASK-016, review)` supplies the transition function, run events, and dynamic admission guards from `docs/architecture/runtime/STATE-MACHINE.md` at commit `9576fc9` **as amended by the TASK-016 commit that TASK-020 approves**. The rejected baseline alone is not the normative source; A-002 changes the recovery transitions this task implements.
 - `integrated(TASK-003)` supplies the state store and its contract root; `integrated(TASK-005)` supplies the scheduler and lease grant.
 - `integrated(TASK-004)` supplies the `AgentWorker` and `WorkerResult` contract that this loop invokes. This edge was missing in the first decomposition; the supervisor invokes agent workers and cannot be built or tested against a contract that has not been published.
 - `integrated(TASK-017)` supplies the workspace lifecycle interface the supervisor calls before and after each dispatch.

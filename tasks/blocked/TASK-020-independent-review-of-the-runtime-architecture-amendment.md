@@ -17,10 +17,23 @@ gate_for:
   - task: TASK-016
     gate: review
     round: 1
+    verdict: pending
+    gate_class: point
+    retrospective: false
   - task: TASK-002
     gate: review
     round: 2
+    verdict: pending
+    gate_class: point
+    retrospective: false
+verdict_cardinality: one
+verdict_application: atomic
+verdict_note: This task records exactly one verdict. That single verdict is applied atomically to both gate relations above, producing two durable gate-verdict facts. Both relations close together or both stay open together; a split outcome is not representable.
 parent_task: TASK-001
+publication_class: bootstrap
+remediates:
+  - finding: F-205
+    source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md
 blocked_reason: The architecture amendment has not been published.
 exit_condition: TASK-016 is review_ready, with an immutable published commit on agent/claude/architect/task-016. This task does not wait for TASK-016 to be integrated or to reach done, because it is the pre-merge gate that lets it be integrated.
 ---
@@ -37,6 +50,14 @@ TASK-015 was declared re-entrant across two rounds against two different targets
 
 TASK-013 activation `ACT-001` removed the re-entrancy. TASK-015's round 1 verdict is durable and its record is `done`. This task carries the round 2 obligation as a first-class node with an explicit `review_ready(TASK-016)` dependency, so the scheduler can see it. Each round is now a task, and each task has exactly one dependency set and records exactly one verdict.
 
+## Verdict cardinality — one verdict, two gate-verdict facts
+
+Finding **F-205** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md` recorded that this record previously stated three mutually inconsistent cardinalities: that each task records exactly one verdict, that this task performs two gates in one verdict, and that the report must record two verdicts. Activation `ACT-002` chose one model and states it here, in the gate section below, in `tasks/TASK-001-DEPENDENCY-GRAPH.md` gate-round rule clause 5, and in the frontmatter fields `verdict_cardinality` and `verdict_application`. It is stated identically in all four places.
+
+**This task records exactly one verdict.** That single verdict is applied **atomically** to the two gate relations it carries, `(TASK-016, review, round 1)` and `(TASK-002, review, round 2)`, producing **two durable gate-verdict facts** — one per relation, so that each target reads its own gate status from its own relation. Both relations close together or both stay open together. A split outcome, in which the amendment is approved as an artifact but rejected as the remediation for A-001 … A-004 or the reverse, is deliberately not representable: the amendment *is* the remediation, so a judgment that separated them would have no coherent meaning.
+
+The single verdict emits one `gate_verdict_recorded` ingress fact, whose payload names both relations it closes or leaves open. TASK-013 records both facts from that one event.
+
 ## Review target
 
 Branch `agent/claude/architect/task-016`, at the immutable commit recorded in TASK-016's record, compared against `9576fc9` — the TASK-002 baseline this amendment revises. Everything TASK-016 lists under **Expected artifacts** is in scope, including the amended `docs/architecture/ARCHITECTURE.md`, the amended documents under `docs/architecture/runtime/`, the new and superseding ADRs from `docs/adr/0011`, and the updated diagrams under `diagrams/architecture/`.
@@ -45,7 +66,7 @@ The round 1 baseline is `reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md`. R
 
 ## Scope
 
-This task performs two gates in one verdict, and both must be stated separately in the report.
+This task performs two gate relations and records **one** verdict for both. Both relations must be named separately in the report, and the report must state explicitly that the single verdict applies to both.
 
 **Part A — remediation verification for TASK-002 round 2.** For each of A-001, A-002, A-003, and A-004, state one of `resolved`, `partially resolved`, or `not resolved`, with the file and line that supports the judgment.
 
@@ -54,7 +75,7 @@ This task performs two gates in one verdict, and both must be stated separately 
 | A-001 | A recoverable batch boundary is defined, the restore post-condition exposes a committed batch entirely or not at all, the false all-or-nothing claim is explicitly superseded, and crash-point test obligations are stated. |
 | A-002 | Every recovery batch is legal by construction, each combination of lease state, ledger state, and elapsed deadline maps to exactly one legal transition, and the diagrams agree with the amended table. |
 | A-003 | Live-run control and provider process-tree lifecycle each have exactly one owning module, and their contracts state transport, identity, acknowledgement, ordering, ownership check, stale-request behavior, owned process group or Job Object, bounded escalation, verified tree exit, and orphan detection. |
-| A-004 | The contracts represent `review_ready`, `integrated`, `gate_passed` with gate and round, `gate_recorded`, `pre_merge_gates`, named resource locks, and monotonic event-triggered activation with a quiescent state, and acyclicity is proven across scheduling, gate, and integration preconditions together. |
+| A-004 | The contracts represent `review_ready` with its publication classes, `integrated`, **both forms of** `gate_passed` with gate and round and the rule that disambiguates them, `gate_recorded`, `pre_merge_gates`, gate scheduling class and retrospective status, named resource locks, and monotonic **event-ingress** activation with a durable cursor and a quiescent state. Acyclicity is proven across scheduling, gate, and integration preconditions together. **The ingress half is checked specifically:** the contracts must represent an ingress source set whose facts are produced by owners other than the recurring task, a cursor that is the only representation of consumption state, and an append-only consumption ledger that is never edited — the model `tasks/blocked/TASK-013-task-record-lifecycle-and-gate-closure.md` defines and that finding F-201 required. A contract in which the recurring task must write its own trigger, or in which consumption is represented by mutating a ledger row, is `not resolved`. |
 
 **Part B — fresh review of the amendment as an architecture change.**
 
@@ -75,7 +96,7 @@ This task performs two gates in one verdict, and both must be stated separately 
 - [ ] Every artifact listed under **Review target** is covered, and coverage is stated explicitly, including artifacts reviewed with no finding.
 - [ ] Each of A-001 through A-004 receives an explicit `resolved`, `partially resolved`, or `not resolved` disposition with supporting file and line evidence.
 - [ ] Each new finding records a severity, the file and line, the affected task ID, and the responsible owner role, and uses an identifier that does not collide with round 1 — round 2 findings are numbered from A-101.
-- [ ] The report records **two** verdicts, each one of `approved`, `approved-with-findings`, or `changes-required`, with rationale: one closing or leaving open TASK-016's review gate at round 1, and one closing or leaving open TASK-002's review gate at round 2.
+- [ ] The report records **exactly one** verdict, one of `approved`, `approved-with-findings`, or `changes-required`, with rationale, and states explicitly that it applies atomically to both gate relations — `(TASK-016, review, round 1)` and `(TASK-002, review, round 2)` — producing two durable gate-verdict facts that close together or stay open together. Recording two independent verdicts, or a verdict for one relation only, does not satisfy this criterion.
 - [ ] The report states plainly whether the amendment may be integrated, and whether TASK-003 through TASK-008, TASK-017, and TASK-018 may leave `blocked` on the strength of these verdicts.
 - [ ] Any runtime responsibility with no assigned module owner is reported explicitly, or its absence is stated explicitly.
 - [ ] No file outside `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md` is modified by this task.
@@ -83,7 +104,7 @@ This task performs two gates in one verdict, and both must be stated separately 
 
 ## Expected artifacts
 
-- `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md` containing the coverage statement, the A-001 through A-004 dispositions, the fresh findings, and both verdicts.
+- `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md` containing the coverage statement, the A-001 through A-004 dispositions, the fresh findings, the single verdict, and the statement of its atomic application to both gate relations.
 
 ## Write-scope isolation
 
@@ -91,11 +112,13 @@ This task's single file is path-disjoint from TASK-009's `reports/code-review/RE
 
 ## Gate and remediation path
 
-This task performs two gates, recorded as `gate_for` reverse edges rather than scheduling dependencies. It becomes dispatchable when TASK-016 is `review_ready` — an immutable published commit, no merge required. TASK-016 becomes integrable only after this task's round 1 verdict closes its review gate, which is what removes finding F-101 for this pair.
+This task performs two gate relations, recorded as `gate_for` reverse edges rather than scheduling dependencies, both `gate_class: point` and `retrospective: false`. It becomes dispatchable when TASK-016 is `review_ready` — an immutable published commit, no merge required. TASK-016 becomes integrable only after this task's verdict closes its review gate, which is what removes finding F-101 for this pair.
 
 It also carries TASK-002's review gate at round 2. TASK-015 recorded `changes-required` at round 1 and TASK-016 is the remediation for that verdict, so the verdict on the remediation is what closes TASK-002's gate. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, round 1's verdict stays recorded and is superseded, never rewritten.
 
-The reviewer is `gpt` and the architect is `claude`, so author and reviewer are in separate execution contexts and separate LLM families. This task reviews an artifact it did not author and did not previously review; TASK-015's execution context is not reused. Findings return to the Orchestrator under TASK-013, which routes a further amendment to the architect and creates the next round's reviewer task. The architect may not close either gate.
+**One verdict, applied atomically to both relations, yielding two durable gate-verdict facts.** This is the model stated in "Verdict cardinality" above, in the acceptance criteria, in the frontmatter, and in gate-round rule clause 5. Nothing in this record asks for two verdicts.
+
+The reviewer is `gpt` and the architect is `claude`, so author and reviewer are in separate execution contexts and separate LLM families. This task reviews an artifact it did not author and did not previously review; TASK-015's execution context is not reused. Findings return to the Orchestrator under TASK-013, which routes a further amendment to the architect and creates the next round's reviewer task. The architect may not close either gate. Publishing this task's report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
 ## Operational steps
 
@@ -118,4 +141,4 @@ Maintained by the Orchestrator under TASK-013 from the reviewer's report and pul
 - Commit or pull request:
 - Verification:
 - Known risks:
-- Next owner: orchestrator via TASK-013, to close the TASK-016 and TASK-002 review gates and unblock TASK-018 and Wave 3 on passing verdicts, or to route findings back to the architect and create the next round's reviewer task
+- Next owner: orchestrator via TASK-013, to record the single verdict as two durable gate-verdict facts — closing the TASK-016 round 1 and TASK-002 round 2 relations together and unblocking TASK-018 and Wave 3 on a passing verdict, or leaving both open, routing findings back to the architect, and creating the next round's reviewer task

@@ -24,7 +24,14 @@ gate_tasks:
     gate: review
     round: 1
     verdict: pending
+    gate_class: point
+    retrospective: false
 parent_task: TASK-001
+publication_class: bootstrap
+amended_by:
+  - activation: ACT-002
+    change: additive
+    summary: Scope item 4's referenced specification in tasks/blocked/TASK-013-task-record-lifecycle-and-gate-closure.md was rewritten to the three-surface event-ingress model under finding F-201. This record's scope, dependencies, gates, and write scope are unchanged; the incorporation is by reference and was already present.
 remediates:
   - finding: A-001
     source: reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md
@@ -94,6 +101,16 @@ The runtime contracts model dependencies as task identifiers satisfied only when
 
 Prove acyclicity across scheduling, gate, and integration preconditions rather than over scheduling edges alone, and state the idle-quiescence and exactly-once activation test obligations. Amend `INTERFACE-CONTRACTS.md`, `STATE-MACHINE.md`, `LEASES-AND-SCHEDULING.md`, and `INTEGRATION-STRATEGY.md`.
 
+> **Amendment note — TASK-013 activation `ACT-002`, additive.** The specification this scope item incorporates by reference, `tasks/blocked/TASK-013-task-record-lifecycle-and-gate-closure.md`, was rewritten after this record was authored, to remediate finding **F-201** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md`. **Re-read it before writing the activation contract.** The recurring-activation model is now a three-surface model, and the contracts must be able to represent all three:
+>
+> 1. an **ingress source set** of durable facts produced by owners *other than* the recurring task, each inside its own write scope, with a deterministic total order and an `ingress_seq` high-water mark;
+> 2. a **cursor** that is the only representation of consumption state; and
+> 3. an **append-only consumption ledger** written by the consuming activation and never edited, in which `consumed_by` is stamped at write time rather than mutated later.
+>
+> A contract in which the recurring task must write its own trigger, or in which consumption is represented by mutating an existing row, reproduces the deadlock F-201 recorded and will be judged `not resolved` by TASK-020, whose A-004 disposition now checks this specifically. Nothing else in this record's scope, dependencies, gates, write scope, or acceptance criteria changed; the incorporation by reference was already present, and this note only flags that the referenced text moved.
+>
+> The graph's own vocabulary also gained two items scope item 4 must now represent, both defined in `tasks/TASK-001-DEPENDENCY-GRAPH.md`: the **owner form** of `gate_passed`, satisfied only by a passing verdict from a named gate task, with a resolution rule that disambiguates it from the target form; and per-gate-pair **`gate_class`** and **`retrospective`** metadata.
+
 ### 5. Agent workspace lifecycle module
 
 - Add a seventh module, the agent workspace lifecycle, to the module map in `COMPONENT-BOUNDARIES.md` with `src/orchestrator/workspace/` as its source path and TASK-017 as its sole owner.
@@ -138,7 +155,8 @@ Prove acyclicity across scheduling, gate, and integration preconditions rather t
 
 ### A-004 — typed scheduling contracts
 
-- [ ] The contracts represent `review_ready`, `integrated`, `gate_passed` with gate and round, `gate_recorded`, `pre_merge_gates`, named resource locks, monotonic event-triggered activation, and a waiting/quiescent state.
+- [ ] The contracts represent `review_ready`, `integrated`, **both forms of** `gate_passed` with gate and round plus the rule that disambiguates them, `gate_recorded`, `pre_merge_gates`, per-gate-pair `gate_class` and `retrospective`, named resource locks, monotonic event-**ingress** activation, and a waiting/quiescent state.
+- [ ] The activation contract represents the three surfaces separately: an ingress source set whose facts are produced by owners other than the recurring task, a cursor that is the only representation of consumption state, and an append-only consumption ledger that is never edited. See the amendment note in scope item 4.
 - [ ] Gate verdicts are durable and supersede across rounds rather than being rewritten.
 - [ ] Acyclicity is proven across scheduling, gate, and integration preconditions together, not over scheduling edges alone.
 - [ ] Idle-quiescence, exactly-once activation, monotonic-cursor, and no-starvation test obligations are stated.

@@ -25,11 +25,16 @@ gate_tasks:
     verdict_recorded_at: 8632469
     remediated_by: TASK-016
     revalidated_by: TASK-020
+    gate_class: point
+    retrospective: false
   - task: TASK-020
     gate: review
     round: 2
     verdict: pending
+    gate_class: point
+    retrospective: false
 parent_task: TASK-001
+publication_class: bootstrap
 published_commit: 9576fc9
 published_branch: agent/claude/architect/task-002
 publication: local-only
@@ -75,6 +80,8 @@ These boxes record the author's own assessment. They are not an approval, and th
 | 2 | TASK-020, `reviewer` / `gpt` | pending | — | Verifies that TASK-016 resolves A-001 … A-004 |
 
 The gate remains **open**. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, round 1's verdict is durable and is superseded rather than rewritten. This record reaches `done` only when TASK-020 records a passing verdict at round 2.
+
+TASK-020 records **exactly one verdict**, applied atomically to the two gate relations it carries — this record's round 2 relation and TASK-016's round 1 relation — producing two durable gate-verdict facts. Both close together or both stay open together. Finding F-205 recorded that TASK-020's record previously stated three inconsistent cardinalities; activation `ACT-002` chose this one model and stated it in every place that describes it.
 
 The remediation is routed to **TASK-016**, which the Orchestrator reframed under TASK-013 activation `ACT-001` to carry all four findings alongside the workspace lifecycle module. The architect owns the resolution; the Orchestrator neither judges the findings nor decides the architecture.
 
