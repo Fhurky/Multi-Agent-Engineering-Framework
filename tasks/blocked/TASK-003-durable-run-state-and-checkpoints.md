@@ -23,11 +23,25 @@ pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-010
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-011
     gate: qa
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
 parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
 blocked_reason: TASK-015 returned changes-required on the base architecture, so the durable state contract is not approved and finding A-001 changes the journal batch contract this task implements. No toolchain is integrated to compile or test against.
 exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-018 is integrated into integration/autonomous-runtime with a compiling toolchain.
 ---
@@ -66,14 +80,14 @@ Implement the durable run state store that persists run and task records, writes
 
 ## Dependency notes
 
-- `gate_passed(TASK-016, review)` supplies the state machine, checkpoint contract, and record schema. The normative source is `docs/architecture/runtime/DURABLE-STATE-AND-CHECKPOINTS.md`, `docs/architecture/runtime/INTERFACE-CONTRACTS.md`, and `docs/architecture/runtime/STATE-MACHINE.md` from commit `9576fc9`.
+- `gate_passed(TASK-016, review)` supplies the state machine, checkpoint contract, and record schema. The normative source is `docs/architecture/runtime/DURABLE-STATE-AND-CHECKPOINTS.md`, `docs/architecture/runtime/INTERFACE-CONTRACTS.md`, and `docs/architecture/runtime/STATE-MACHINE.md` at commit `9576fc9` **as amended by the TASK-016 commit that TASK-020 approves**. Finding F-202 recorded that this record previously pinned the rejected baseline alone: TASK-015 judged three of TASK-002's seven acceptance criteria `not met`, and A-001 changes the journal batch contract this task implements, so `9576fc9` on its own is not implementable as written. Where the amendment supersedes a claim in those documents, the amendment governs.
 - `integrated(TASK-018)` supplies the TypeScript and Node.js toolchain required by ADR-0001. Without it this task cannot compile or run a test without writing outside its declared scope.
 - May execute in parallel with TASK-004; their write scopes do not overlap.
 - Blocks TASK-005, TASK-006, TASK-008, and TASK-017.
 
 ## Contract root ownership
 
-This task owns the contract root `src/orchestrator/state/contracts/`, which is normatively defined by `docs/architecture/runtime/INTERFACE-CONTRACTS.md`. Transcribe that document; do not reinterpret it. Changing a type, signature, field name, or string-literal union declared there is prohibited during Waves 2 through 5 even though this task physically can. If a contract is wrong, stop at the boundary and hand off to the Orchestrator, which routes an amendment to the architect. See the contract change control procedure in `docs/architecture/runtime/INTEGRATION-STRATEGY.md`.
+This task owns the contract root `src/orchestrator/state/contracts/`, which is normatively defined by `docs/architecture/runtime/INTERFACE-CONTRACTS.md` **as amended by the approved TASK-016 commit**. Transcribe that document; do not reinterpret it. Changing a type, signature, field name, or string-literal union declared there is prohibited during Waves 2 through 5 even though this task physically can. If a contract is wrong, stop at the boundary and hand off to the Orchestrator, which routes an amendment to the architect. See the contract change control procedure in `docs/architecture/runtime/INTEGRATION-STRATEGY.md`.
 
 ## Task-record lifecycle
 

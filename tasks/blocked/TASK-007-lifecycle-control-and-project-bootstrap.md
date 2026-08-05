@@ -24,11 +24,25 @@ pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-010
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-011
     gate: qa
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
 parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
 blocked_reason: TASK-015 returned changes-required on the base architecture, so the bootstrap and lifecycle contracts are not approved and finding A-003 adds the live run control protocol this task implements. The supervisor run loop is not integrated.
 exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-006 is integrated into integration/autonomous-runtime.
 ---
@@ -72,7 +86,7 @@ Implement the single-command entry point and the lifecycle control surface that 
 
 ## Dependency notes
 
-- `gate_passed(TASK-016, review)` supplies the bootstrap contract, drain, pause, resume, and exit codes from `docs/architecture/runtime/LIFECYCLE-AND-BOOTSTRAP.md`.
+- `gate_passed(TASK-016, review)` supplies the bootstrap contract, drain, pause, resume, exit codes, and the A-003 live-run control protocol from `docs/architecture/runtime/LIFECYCLE-AND-BOOTSTRAP.md` at commit `9576fc9` **as amended by the TASK-016 commit that TASK-020 approves**. The rejected baseline alone is not the normative source; A-003 adds the live-run control protocol and the process-tree ownership rules this task implements.
 - `integrated(TASK-006)` supplies the supervisor loop and terminal states. TASK-006 in turn carries the TASK-003, TASK-004, TASK-005, and TASK-017 edges, so this task does not restate them; the transitive closure is recorded in `tasks/TASK-001-DEPENDENCY-GRAPH.md`.
 - May execute in parallel with TASK-008; their write scopes do not overlap.
 - Required by TASK-011 for end-to-end validation.

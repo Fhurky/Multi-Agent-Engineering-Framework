@@ -1,7 +1,7 @@
 ---
 task_id: TASK-021
 title: Independent re-review of the corrected TASK-001 decomposition, round 3
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-021
@@ -17,10 +17,25 @@ gate_for:
   - task: TASK-001
     gate: review
     round: 3
+    verdict: changes-required
+    verdict_recorded_at: adfb982
+    remediated_by: TASK-013 activation ACT-002
+    revalidated_by: TASK-022
+    gate_class: point
+    retrospective: true
 parent_task: TASK-001
+rounds_completed: 1
+publication_class: bootstrap
+published_commit: adfb982
+published_branch: agent/gpt/reviewer/task-021
+publication: published
+publication_reason: The reviewer's own session recorded publication as local-only after its push was rejected by an environment safeguard. The branch was subsequently pushed to origin at adfb982 and opened as pull request #2 outside that execution. Both facts are recorded; the reviewer's statement is not overwritten.
+pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/2
 review_target_branch: agent/claude/orchestrator/task-013
 review_target_commit: 5febe3b
+review_target_head: 88dc554
 review_target_base: 049158d
+superseded_by: TASK-022
 ---
 
 # TASK-021: Independent re-review of the corrected TASK-001 decomposition, round 3
@@ -28,6 +43,18 @@ review_target_base: 049158d
 ## Objective
 
 Perform round 3 of the independent review gate that TASK-001 declares, on the decomposition as corrected by TASK-013 activation `ACT-001`, and record the verdict that decides whether TASK-001 may reach `done`.
+
+## Completion
+
+**This task is complete and its record is `done`.** It performed one round, recorded one durable verdict, and is not re-entered.
+
+| Round | Target | Verdict | Commit | Findings |
+|---|---|---|---|---|
+| 1 (gate round 3) | `agent/claude/orchestrator/task-013`, `ACT-001` effects `5febe3b`, head `88dc554`, base `049158d` | `changes-required` | `adfb982`, published as pull request #2 | F-201 … F-205 |
+
+The verdict states plainly that **TASK-001 may not reach `done`**. It is durable: round 4 supersedes it, and nothing rewrites it. Round 4 is **TASK-022**, a separate reviewer task with its own dependency, its own report file, and its own single verdict.
+
+The publication of this task's report is what woke TASK-013 for activation `ACT-002`. It is recorded as ingress fact seq 5 in `tasks/TASK-013-ACTIVATION-LOG.md`, and it required no write under `tasks/` by this role — which is the property finding F-201 required the graph to have.
 
 ## Why this task exists rather than a third round of TASK-014
 
@@ -114,9 +141,9 @@ This task's single file is new and path-disjoint from TASK-009's `reports/code-r
 
 ## Gate and remediation path
 
-This task performs TASK-001's review gate at round 3, recorded as a `gate_for` reverse edge rather than a scheduling dependency. It becomes dispatchable while TASK-001 is still in `review`; TASK-001 reaches `done` only after this gate closes. The two directions cannot deadlock.
+This task performed TASK-001's review gate at round 3, recorded as a `gate_for` reverse edge rather than a scheduling dependency, with `gate_class: point` and `retrospective: false`. It became dispatchable while TASK-001 was still in `review`; TASK-001 reaches `done` only after the gate closes. The two directions cannot deadlock.
 
-The reviewer is `gpt` and the decomposition author is `claude`, so author and reviewer are in separate execution contexts and separate LLM families. Findings return to the Orchestrator, which applies the correction under a further TASK-013 activation and creates the round 4 reviewer task; the reviewer never edits a task record.
+The reviewer is `gpt` and the decomposition author is `claude`, so author and reviewer were in separate execution contexts and separate LLM families. Findings returned to the Orchestrator, which applied the correction under TASK-013 activation `ACT-002` and created **TASK-022** for round 4; the reviewer never edited a task record.
 
 ## Operational steps
 
@@ -134,9 +161,15 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
+Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request. Transcribed by activation `ACT-002`; quoted from `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md` at `adfb982` unless another source is named.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to close the TASK-001 review gate on a passing verdict, or to route round 3 findings back to the decomposition owner and create the round 4 reviewer task
+- Commit or pull request: local review commit `a2aad47` `review: assess TASK-001 decomposition round 3`, amended by `adfb982` `review: record TASK-021 publication outcome`, on `agent/gpt/reviewer/task-021`. Published to `origin` and opened as pull request #2 at `https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/2`.
+- Verdict: `changes-required`. The report states: "TASK-001 may **not** reach `done`."
+- Round 2 finding dispositions recorded by this round: F-101 `partially resolved`, F-102 `resolved`, F-103 `resolved`, F-104 `partially resolved`, F-105 `resolved`.
+- New findings: F-201 High, F-202 High, F-203 Medium, F-204 Medium, F-205 Medium. Every one is routed or dispositioned in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-002`.
+- Structural verification recorded by the reviewer: required record fields, role and LLM assignments, branch and worktree convention, role-scope subset, cross-task scope isolation, graph/frontmatter dependency equality, `gate_for` / `gate_tasks` bijection, required gate ownership, architecture dependency retargeting, finding disposition mapping, independence and authority, language policy, and target-branch path integrity all `pass`. Gate-round semantics and required-behavior coverage both `fail`, as F-205 and F-202.
+- No-deadlock assessment recorded by the reviewer: all five invariants stated at revision 3 `pass` mechanically; the constructed activation deadlock is "outside those five relations" and is recorded as F-201. No livelock in the literal graph.
+- Commands quoted from the report: `git rev-parse HEAD` before review returned `c325275ea13918a9766b71a6350821af1c3c471d`; `git diff --name-status 049158d..agent/claude/orchestrator/task-013 -- tasks/` listed only the 25 reviewed task artifacts and `git diff --check` produced no whitespace error; `scripts/ci/validate-framework.ps1` passed with `Framework validation passed for 13 roles.`; `scripts/ci/test-orchestration.ps1` passed with `Orchestration unit checks passed.`; `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef c325275` returned `valid: True`, branch `agent/gpt/reviewer/task-021`, role `reviewer`, LLM `gpt`, `changed_files: 1`.
+- Known risks, quoted from the reviewer's handoff: "Unresolved blockers: F-201 and F-202 are High; F-203 through F-205 are Medium. F-101 and F-104 remain partially resolved." The reviewer also recorded that no reviewed task record, dependency graph, activation log, architecture document, runtime source, governance file, or enforcement script was modified.
+- Publication, both facts recorded: the reviewer's own handoff states `publication: local-only`, because `git push -u origin agent/gpt/reviewer/task-021` was rejected by its environment's external-data safeguard while remote visibility and tenant trust were unverified. The branch was subsequently published to `origin` at `adfb982` and opened as pull request #2 outside that execution. The Orchestrator records both and does not overwrite the reviewer's statement.
+- Next owner: **reviewer / gpt for TASK-022**, round 4. The reviewer's own handoff named "orchestrator through TASK-013, once an authorized event-ingress path exists, to route the findings to the responsible owner and create a separate round-4 reviewer task after correction. Runtime owns the TASK-005 implementation obligations; Architect work remains TASK-016 and is independently gated by TASK-020." Activation `ACT-002` performed the orchestrator half, established the ingress path the reviewer required, routed the runtime half to TASK-005 and TASK-011, and created TASK-022.

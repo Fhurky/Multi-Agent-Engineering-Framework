@@ -23,11 +23,25 @@ pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-010
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-011
     gate: qa
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
 parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
 blocked_reason: TASK-015 returned changes-required on the base architecture, so the adapter interface is not approved and finding A-003 adds a process-tree ownership contract this task implements. No toolchain is integrated to compile or test against.
 exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-018 is integrated into integration/autonomous-runtime with a compiling toolchain.
 ---
@@ -52,7 +66,7 @@ An adapter is "working" only when it can discover its executable, construct a no
 
 ## Scope
 
-- Implement the `ProviderAdapter` interface, `AdapterRegistry`, `SecretProvider`, `AgentInvocation`, `AdapterOutcome`, `AdapterFailure`, `FailureClass`, `DISPOSITION_BY_CLASS`, and `WorkerResult` exactly as declared in `docs/architecture/runtime/INTERFACE-CONTRACTS.md`.
+- Implement the `ProviderAdapter` interface, `AdapterRegistry`, `SecretProvider`, `AgentInvocation`, `AdapterOutcome`, `AdapterFailure`, `FailureClass`, `DISPOSITION_BY_CLASS`, and `WorkerResult` exactly as declared in `docs/architecture/runtime/INTERFACE-CONTRACTS.md` **as amended by the approved TASK-016 commit**.
 - Implement the `claude`, `gpt`, and `gemini` adapters, each covering:
   - **Command discovery** — resolve the provider's command-line executable from an explicit configuration override first, then `PATH`, on Windows and POSIX, and report a specific, actionable failure when it is absent instead of a generic error.
   - **Invocation construction** — build a fully non-interactive child-process invocation from `AgentInvocation`: argument vector, working directory set to `invocation.worktreePath`, environment, prompt or input file, and an output mode the adapter can parse. No adapter may depend on a terminal, an interactive prompt, or a human keystroke.
@@ -122,14 +136,14 @@ An adapter is "working" only when it can discover its executable, construct a no
 
 ## Dependency notes
 
-- `gate_passed(TASK-016, review)` supplies the adapter interface, the closed error taxonomy, the timeout layering, and the credential rules from `docs/architecture/runtime/PROVIDER-ADAPTERS.md` and `docs/architecture/runtime/INTERFACE-CONTRACTS.md`.
+- `gate_passed(TASK-016, review)` supplies the adapter interface, the closed error taxonomy, the timeout layering, the credential rules, and the A-003 process-tree ownership contract from `docs/architecture/runtime/PROVIDER-ADAPTERS.md` and `docs/architecture/runtime/INTERFACE-CONTRACTS.md` at commit `9576fc9` **as amended by the TASK-016 commit that TASK-020 approves**. The rejected baseline alone is not the normative source; A-003 adds the process-tree ownership and termination contract this task implements.
 - `integrated(TASK-018)` supplies the toolchain required by ADR-0001.
 - May execute in parallel with TASK-003; their write scopes do not overlap and neither contract root imports the other.
 - **Consumed by TASK-005, TASK-006, TASK-008, and TASK-011.** Those tasks now carry an explicit `integrated(TASK-004)` edge; none of them may start or claim to validate this task's behavior before it is published.
 
 ## Contract root ownership
 
-This task owns the contract root `src/agents/contracts/`. The same contract change control applies as to TASK-003: transcribe `docs/architecture/runtime/INTERFACE-CONTRACTS.md`, never amend it locally, and route a wrong contract through the Orchestrator to the architect.
+This task owns the contract root `src/agents/contracts/`. The same contract change control applies as to TASK-003: transcribe `docs/architecture/runtime/INTERFACE-CONTRACTS.md` **as amended by the approved TASK-016 commit**, never amend it locally, and route a wrong contract through the Orchestrator to the architect.
 
 ## Task-record lifecycle
 

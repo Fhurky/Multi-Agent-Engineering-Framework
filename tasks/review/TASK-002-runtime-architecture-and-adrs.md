@@ -25,11 +25,16 @@ gate_tasks:
     verdict_recorded_at: 8632469
     remediated_by: TASK-016
     revalidated_by: TASK-020
+    gate_class: point
+    retrospective: false
   - task: TASK-020
     gate: review
     round: 2
     verdict: pending
+    gate_class: point
+    retrospective: false
 parent_task: TASK-001
+publication_class: bootstrap
 published_commit: 9576fc9
 published_branch: agent/claude/architect/task-002
 publication: local-only
@@ -75,6 +80,8 @@ These boxes record the author's own assessment. They are not an approval, and th
 | 2 | TASK-020, `reviewer` / `gpt` | pending | — | Verifies that TASK-016 resolves A-001 … A-004 |
 
 The gate remains **open**. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, round 1's verdict is durable and is superseded rather than rewritten. This record reaches `done` only when TASK-020 records a passing verdict at round 2.
+
+TASK-020 records **exactly one verdict**, applied atomically to the two gate relations it carries — this record's round 2 relation and TASK-016's round 1 relation — producing two durable gate-verdict facts. Both close together or both stay open together. Finding F-205 recorded that TASK-020's record previously stated three inconsistent cardinalities; activation `ACT-002` chose this one model and stated it in every place that describes it.
 
 The remediation is routed to **TASK-016**, which the Orchestrator reframed under TASK-013 activation `ACT-001` to carry all four findings alongside the workspace lifecycle module. The architect owns the resolution; the Orchestrator neither judges the findings nor decides the architecture.
 
@@ -127,6 +134,6 @@ The architect recorded two items it could not resolve inside its own role bounda
   - Wave 2 cannot compile until TASK-018 lands a toolchain, and TASK-018 is blocked on a human write-scope decision.
   - The two contract roots live inside TASK-003's and TASK-004's write scopes, so those tasks can physically change a normative contract. The contract change control procedure in `INTEGRATION-STRATEGY.md` is the only control; TASK-015 should confirm it is enforceable by review.
 - Gate outcome transcribed by the Orchestrator under TASK-013 activation `ACT-001`: TASK-015 round 1 recorded `changes-required` at commit `8632469`, merged at `049158d`, with findings A-001 through A-004, all High. The report states that TASK-003 through TASK-008 and TASK-017 must remain `blocked` on the strength of that verdict, and that all 25 target files were covered. Every finding is routed to TASK-016; the mapping is in `tasks/TASK-013-ACTIVATION-LOG.md`.
-- Next owner: **architect / claude for TASK-016**, to resolve A-001 through A-004 and add the workspace lifecycle module; then **reviewer / gpt for TASK-020**, which closes this record's review gate at round 2. The Claude Architect that authored this output may not close that gate. After TASK-020 records a passing verdict, the Orchestrator unblocks TASK-018 and then Wave 3 under TASK-013.
+- Next owner: **reviewer / gpt for TASK-020**, which closes this record's review gate at round 2. TASK-016 published its amendment at `8d0c570` with pull request #3, recorded by TASK-013 activation `ACT-003`, so the remediation half is delivered and TASK-020 is `ready`. Whether it resolves A-001 through A-004 is unjudged; this record's gate is **open** and it stays in `tasks/review/`. The Claude Architect that authored this output may not close that gate. After TASK-020 records a passing verdict, the Orchestrator unblocks TASK-018 and then Wave 3 under TASK-013.
 - Task lock released: yes, by the TASK-002 execution.
 </content>

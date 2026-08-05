@@ -16,7 +16,12 @@ pre_merge_gates: []
 gate_for:
   - task: TASK-018
     gate: review
+    round: 1
+    verdict: pending
+    gate_class: point
+    retrospective: false
 parent_task: TASK-001
+publication_class: bootstrap
 blocked_reason: The toolchain has not been published.
 exit_condition: TASK-018 is review_ready, with an immutable published commit on agent/claude/devops/task-018. This task does not wait for TASK-018 to be integrated or to reach done, because it is the pre-merge gate that lets it be integrated.
 ---
@@ -25,15 +30,17 @@ exit_condition: TASK-018 is review_ready, with an immutable published commit on 
 
 ## Objective
 
-Perform the review gate that TASK-018 declares, before the toolchain merges to `main` and three implementation tasks begin building on it.
+Perform the review gate that TASK-018 declares, before the toolchain is integrated into `integration/autonomous-runtime` and three implementation tasks begin building on it.
 
 ## Why this task exists
 
-TASK-018 declares `required_gates: [review]`, and the integration order in `docs/architecture/runtime/INTEGRATION-STRATEGY.md` puts the toolchain on `main` at step 2 — before Wave 3. TASK-009 cannot own that gate: it runs at Wave 7 and reviews runtime source. Assigning TASK-018's review to TASK-009 would let an unreviewed toolchain sit on `main` for five waves with three tasks compiling against it, which is the same defect the round 1 review recorded as F-002 for TASK-002. This task gives the gate an owner that is schedulable immediately after TASK-018 publishes.
+TASK-018 declares `required_gates: [review]` and `pre_merge_gates: [review]`, and the integration order in `docs/architecture/runtime/INTEGRATION-STRATEGY.md` puts the toolchain on `integration/autonomous-runtime` at step 2 — before Wave 3. No agent branch is ever merged to `main` by this graph; `main` is reached only through a human-approved pull request from the integration branch. TASK-009 cannot own this gate: it runs at Wave 7, reviews runtime source, and is an aggregate gate. Assigning TASK-018's review to TASK-009 would let an unreviewed toolchain sit on the integration branch for five waves with three tasks compiling against it, which is the same defect the round 1 review recorded as F-002 for TASK-002. This task gives the gate an owner that is schedulable immediately after TASK-018 publishes; it is `gate_class: point` and `retrospective: false`.
 
 ## Review target
 
-Branch `agent/claude/devops/task-018`, compared against `main` at the commit where TASK-002 merged. In scope: `package.json`, `package-lock.json`, `tsconfig.json`, the lint and format configuration under `scripts/quality/`, the runtime CI workflow under `.github/workflows/`, and the entry points under `scripts/ci/`.
+Branch `agent/claude/devops/task-018`, compared against its merge base with `integration/autonomous-runtime` — the integration-branch commit TASK-018 branched from, recorded in TASK-018's record as its review target base. In scope: `package.json`, `package-lock.json`, `tsconfig.json`, the lint and format configuration under `scripts/quality/`, the runtime CI workflow under `.github/workflows/`, and the entry points under `scripts/ci/`.
+
+Finding F-101 was recorded as only `partially resolved` at round 3 because this section previously named `main` as both the merge destination and the comparison base. Both are `integration/autonomous-runtime`, which is what the `integrated` edge in `tasks/TASK-001-DEPENDENCY-GRAPH.md` means.
 
 ## Scope
 
@@ -52,7 +59,7 @@ Branch `agent/claude/devops/task-018`, compared against `main` at the commit whe
 - [ ] Every added dependency is inventoried by name, version, and purpose.
 - [ ] Governance-path integrity and write-scope compliance are each explicitly confirmed or reported as violated.
 - [ ] Each finding records severity, file and line, and the responsible owner role.
-- [ ] The verdict is one of `approved`, `approved-with-findings`, or `changes-required`, and states plainly whether the toolchain may merge.
+- [ ] The verdict is one of `approved`, `approved-with-findings`, or `changes-required`, and states plainly whether the toolchain may be integrated into `integration/autonomous-runtime`.
 - [ ] No file outside `reports/code-review/TASK-018-TOOLCHAIN-REVIEW.md` is modified by this task.
 - [ ] `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree` reports a valid result and its output is recorded in the report.
 
@@ -68,16 +75,16 @@ This task's single file is path-disjoint from TASK-009's `reports/code-review/RE
 
 This task performs the review gate declared by TASK-018, recorded as a `gate_for` reverse edge rather than a scheduling dependency. TASK-018 declares `pre_merge_gates: [review]`, so this task becomes dispatchable when TASK-018 is `review_ready` — an immutable published commit, no merge required — and TASK-018 becomes integrable only after this task's verdict closes the gate. That ordering is the correction for finding F-101: the gate no longer waits for a merge that waits for the gate. TASK-018 reaches `done` only after this task and TASK-010 both record verdicts.
 
-TASK-018's security gate is owned by TASK-010 and is an assembly gate, retrospective: the toolchain integrates at Wave 2 while TASK-010 runs at Wave 7. That is a recorded and accepted consequence of needing a toolchain before any code exists to threat-model, and it is why this task must inventory every dependency it adds. The repository's baseline security CI workflow runs on the pull request in the meantime.
+TASK-018's security gate is owned by TASK-010 and is declared `gate_class: aggregate`, `retrospective: true`: the toolchain integrates at Wave 2 while TASK-010 runs at Wave 7. Its reason and its recorded risk are in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, row "TASK-010 / security / TASK-018". It is not the only retrospective gate in the graph — every runtime assembly gate is one as well — but it has the longest exposure window, which is why this task must inventory every dependency the toolchain adds. The repository's baseline security CI workflow runs on the pull request in the meantime.
 
-Findings return to the Orchestrator under TASK-013, which reopens TASK-018 for the devops owner. The reviewer does not implement the fix.
+Findings return to the Orchestrator under TASK-013, which reopens TASK-018 for the devops owner. The reviewer does not implement the fix. Publishing this task's report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
 ## Operational steps
 
 1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-019 -Role reviewer -Llm gpt`.
 2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-019 -Role reviewer -Llm gpt` before editing.
 3. Before handoff, run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree`.
-4. Commit, push the agent branch, open a pull request, and run `scripts/orchestration/release-task.ps1 -TaskId TASK-019 -Role reviewer -Llm gpt`.
+4. Commit, push the agent branch, open a pull request, and run `scripts/orchestration/release-task.ps1 -TaskId TASK-019 -Role reviewer -Llm gpt`. Never push `main`.
 
 Do not move this record between lifecycle directories and do not edit its `status` field. `tasks/**` is outside the reviewer role's configured write scope. Record the handoff in the report and the pull request description; the Orchestrator performs the transition under TASK-013.
 
@@ -88,5 +95,5 @@ Maintained by the Orchestrator under TASK-013 from the reviewer's report and pul
 - Commit or pull request:
 - Verification:
 - Known risks:
-- Next owner: orchestrator via TASK-013, to merge the toolchain and unblock TASK-003, TASK-004, and TASK-017 on a passing verdict, or to route findings back to devops
+- Next owner: orchestrator via TASK-013, to integrate the toolchain into `integration/autonomous-runtime` and unblock TASK-003, TASK-004, and TASK-017 on a passing verdict, or to route findings back to devops
 </content>

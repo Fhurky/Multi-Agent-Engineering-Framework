@@ -19,8 +19,13 @@ gate_for:
     round: 1
     verdict: changes-required
     verdict_recorded_at: 8632469
+    remediated_by: TASK-016
+    revalidated_by: TASK-020
+    gate_class: point
+    retrospective: false
 parent_task: TASK-001
 rounds_completed: 1
+publication_class: bootstrap
 published_commit: 8632469
 published_branch: agent/gpt/reviewer/task-015
 publication: local-only
@@ -50,7 +55,9 @@ TASK-002 declares `required_gates: [review]` and every runtime implementation ta
 
 This record previously declared a `rounds` block making the task re-entrant: round 1 against TASK-002 and round 2 against the TASK-016 amendment. Finding F-102 in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md` recorded the defect. The task gated two targets across two rounds while its only dependency was TASK-002; nothing required TASK-016 to publish before round 2 could start, the `rounds` metadata was not machine-readable as a dependency, and the claimed topological order placed TASK-015 before TASK-016.
 
-TASK-013 activation `ACT-001` removed the `rounds` block, reduced `gate_for` to TASK-002 round 1, and created **TASK-020** to review the TASK-016 amendment with an explicit `review_ready(TASK-016)` dependency. TASK-020 also carries TASK-002's review gate at round 2, because TASK-016 is the remediation for this task's verdict and the verdict on that remediation is what closes TASK-002's gate.
+TASK-013 activation `ACT-001` removed the `rounds` block, reduced `gate_for` to TASK-002 round 1, and created **TASK-020** to review the TASK-016 amendment with an explicit `review_ready(TASK-016)` dependency. TASK-020 also carries TASK-002's review gate at round 2, because TASK-016 is the remediation for this task's verdict and the verdict on that remediation is what closes TASK-002's gate. TASK-020 records **exactly one verdict**, applied atomically to both relations it carries; activation `ACT-002` fixed the contradictory cardinality wording under finding F-205.
+
+This task's `gate_for` entry names `remediated_by: TASK-016` and `revalidated_by: TASK-020`, as the gate-round rule requires of every `changes-required` round. Activation `ACT-002` completed that metadata on this side of the pair; TASK-002's `gate_tasks` already carried it.
 
 The verdict recorded here is durable. A later round supersedes it; nothing rewrites it.
 

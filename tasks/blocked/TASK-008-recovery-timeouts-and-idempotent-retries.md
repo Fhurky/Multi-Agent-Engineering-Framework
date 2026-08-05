@@ -30,13 +30,31 @@ pre_merge_gates: []
 gate_tasks:
   - task: TASK-009
     gate: review
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-010
     gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-011
     gate: qa
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
   - task: TASK-012
     gate: performance
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
 parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
 blocked_reason: TASK-015 returned changes-required on the base architecture, so the recovery and retry contracts are not approved and findings A-001, A-002, and A-003 change the recovery batch, transition legality, and orphan termination behavior this task implements. The state store, error taxonomy, supervisor, and workspace lifecycle are not integrated.
 exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-003, TASK-004, TASK-006, and TASK-017 are integrated into integration/autonomous-runtime.
 ---
@@ -76,7 +94,7 @@ Implement the recovery layer that restores a run after an abrupt process termina
 
 ## Dependency notes
 
-- `gate_passed(TASK-016, review)` supplies the recovery phases, post-crash invariants, idempotency keys, effect ledger, and backoff policy from `docs/architecture/runtime/CRASH-RECOVERY.md` and `docs/architecture/runtime/RETRIES-TIMEOUTS-AND-IDEMPOTENCY.md`.
+- `gate_passed(TASK-016, review)` supplies the recovery phases, post-crash invariants, idempotency keys, effect ledger, and backoff policy from `docs/architecture/runtime/CRASH-RECOVERY.md` and `docs/architecture/runtime/RETRIES-TIMEOUTS-AND-IDEMPOTENCY.md` at commit `9576fc9` **as amended by the TASK-016 commit that TASK-020 approves**. The rejected baseline alone is not the normative source; A-001, A-002, and A-003 change the recovery batch, transition legality, and orphan termination behavior this task implements.
 - `integrated(TASK-003)` supplies the state store, journal, and effect ledger substrate; `integrated(TASK-006)` supplies the transition function this module reuses.
 - `integrated(TASK-004)` supplies the error taxonomy and `DISPOSITION_BY_CLASS` that drive retry classification. This edge was missing in the first decomposition; the retry policy is defined entirely in terms of TASK-004's taxonomy and cannot be built against an unpublished contract. This task imports from `src/agents/contracts/` only and never modifies `src/agents/`.
 - `integrated(TASK-017)` supplies workspace reconciliation for work abandoned by a crash.
