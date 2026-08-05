@@ -38,6 +38,11 @@ review_target_commit: 5febe3b
 review_target_head: 88dc554
 review_target_base: 049158d
 superseded_by: TASK-022
+branch_point_of: main
+scope_validation_base: c325275ea13918a9766b71a6350821af1c3c471d
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Resolved by activation ACT-006 from the repository rather than asserted. This branch's first authored commit a2aad47 has parent c325275. git diff --name-only c325275...adfb982 returns exactly one path, reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md, which is this task's whole declared write scope, across both of the branch's commits.
+review_target_applicability: applicable and resolved
 ---
 
 # TASK-021: Independent re-review of the corrected TASK-001 decomposition, round 3

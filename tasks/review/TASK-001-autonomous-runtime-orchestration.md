@@ -72,24 +72,37 @@ gate_tasks:
   - task: TASK-027
     gate: review
     round: 6
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 710351fd8f1afa2765ffac52078cfc7b8ddb3206
+    remediated_by: TASK-013 activation ACT-006
+    revalidated_by: TASK-030
     gate_class: point
     retrospective: true
     gate_lineage: LIN-DECOMP-REVIEW
     lineage_round: 6
-revision: 6
+  - task: TASK-030
+    gate: review
+    round: 7
+    verdict: pending
+    gate_class: point
+    retrospective: true
+    gate_lineage: LIN-DECOMP-REVIEW
+    lineage_round: 7
+revision: 7
 publication_class: bootstrap
 published_commit: 657b83a
 published_branch: agent/claude/orchestrator/task-013
 publication: published
-publication_reason: Revisions 3, 4, 5, and 6 are authored by TASK-013 activations on agent/claude/orchestrator/task-013. The ACT-001 revision was integrated at e8edbcd and merged to main at c325275 through pull request #1; the ACT-002, ACT-004, and ACT-005 revisions are published on the same branch with their own pull request.
+publication_reason: Revisions 3, 4, 5, 6, and 7 are authored by TASK-013 activations on agent/claude/orchestrator/task-013. The ACT-001 revision was integrated at e8edbcd and merged to main at c325275 through pull request #1; the ACT-002, ACT-004, ACT-005, and ACT-006 revisions are published on the same branch with their own pull requests.
 review_target_branch: agent/claude/orchestrator/task-013
-review_target_commit: 70162b0
-review_target_base: 890b8e0d0ed45f64ec913f952058e942668d784e
-review_target_note: Revision 6 was authored by TASK-013 activation ACT-005, because TASK-013 is the exclusive owner of every task-record mutation in this graph. The round 6 review target is the ACT-005 effects commit on agent/claude/orchestrator/task-013, recorded in tasks/TASK-013-ACTIVATION-LOG.md and in TASK-027's frontmatter by a single follow-up commit. The review-diff base is 890b8e0, the head round 5 reviewed, so round 6 covers exactly the ACT-005 delta. The superseded round 5 target was ac9c8f2 with follow-up head 890b8e0 against base c325275; round 4 reviewed f590749 with follow-up 4f8a1cc against c325275; round 3 reviewed 5febe3b against 049158d. A review-diff base is never a scope-validation base; see finding F-403 and the Task baselines section of tasks/TASK-001-DEPENDENCY-GRAPH.md.
-scope_validation_base: not applicable to this record
-branch_point_of: not applicable to this record
-scope_validation_note: This record has no scope-validation base of its own. Revisions 3 through 6 are authored by TASK-013 activations on agent/claude/orchestrator/task-013, so the authored delta is validated under TASK-013's declared baselines. The original TASK-001 execution on agent/claude/orchestrator/task-001 is closed and is not re-run.
+review_target_commit: recorded by the ACT-006 follow-up commit
+review_target_base: 62d6f2d553bae9f19b60a5405f173b517f8c9a62
+review_target_applicability: applicable, bound by the ACT-006 follow-up commit
+review_target_note: Revision 7 was authored by TASK-013 activation ACT-006, because TASK-013 is the exclusive owner of every task-record mutation in this graph. The round 7 review target is the ACT-006 effects commit on agent/claude/orchestrator/task-013, recorded in tasks/TASK-013-ACTIVATION-LOG.md and in TASK-030's frontmatter by a single follow-up commit. The review-diff base is 62d6f2d, the head round 6 reviewed, so round 7 covers exactly the ACT-006 delta. The superseded round 6 target was 70162b0 with follow-up head 62d6f2d against base 890b8e0; round 5 reviewed ac9c8f2 with follow-up head 890b8e0 against c325275; round 4 reviewed f590749 with follow-up 4f8a1cc against c325275; round 3 reviewed 5febe3b against 049158d. A review-diff base is never a scope-validation base; see findings F-403 and A-209 and the Task baselines section of tasks/TASK-001-DEPENDENCY-GRAPH.md.
+branch_point_of: governance/autonomous-runtime-bootstrap
+scope_validation_base: b52e2059bcbd307bfb46e79fccde279902fc4cf7
+scope_validation_applicability: applicable and resolved for the closed original execution only
+scope_validation_note: Resolved by activation ACT-006 from the repository rather than declared not applicable, which is what this record said before. The original TASK-001 execution ran on agent/claude/orchestrator/task-001, whose first authored commit a117f9b has parent b52e205, the head of governance/autonomous-runtime-bootstrap. That execution is closed and is not re-run, so this value is durable provenance rather than a live acceptance base. Revisions 3 through 7 are authored by TASK-013 activations on agent/claude/orchestrator/task-013 and are validated under TASK-013's own declared baseline, not this one. Passing this value to the validator today would attribute every later activation's delta to the closed execution and is not the acceptance command for any live task.
 ---
 
 # TASK-001: Decompose the autonomous multi-agent runtime
@@ -120,7 +133,7 @@ Create an executable dependency-ordered task graph for a single-command autonomo
 - [x] Every task-record lifecycle transition is owned by a role whose configured write scope includes `tasks/**`.
 - [x] The task graph includes an explicit path from implementation findings back to the responsible author.
 
-These boxes record the author's own assessment. They are **not confirmed.** TASK-014 round 1, TASK-014 round 2, TASK-021 round 3, TASK-022 round 4, and TASK-023 round 5 each recorded `changes-required`. They are confirmed only when a round of this decomposition's registered review lineage records a passing verdict. No Claude Orchestrator execution — including the TASK-013 activations that produced revisions 3, 4, 5, and 6 — may close this review gate.
+These boxes record the author's own assessment. They are **not confirmed.** TASK-014 round 1, TASK-014 round 2, TASK-021 round 3, TASK-022 round 4, TASK-023 round 5, and TASK-027 round 6 have each recorded `changes-required` — six recorded rounds, all failing. They are confirmed only when a round of this decomposition's registered review lineage records a passing verdict. No Claude Orchestrator execution — including the TASK-013 activations that produced revisions 3, 4, 5, 6, and 7 — may close this review gate.
 
 ## Expected artifacts
 
@@ -132,17 +145,19 @@ These boxes record the author's own assessment. They are **not confirmed.** TASK
 
 ## Produced task graph
 
-Current as of revision 6, produced by TASK-013 activation `ACT-005`. `tasks/TASK-001-DEPENDENCY-GRAPH.md` is authoritative for edge types, publication classes, gate assignment, gate scheduling classes, gate lineages, resource locks, the write-scope partition, the activation and event-ingress model, the architecture reconciliation, the required-behavior coverage matrix, and the findings return path. The **State** column is a lifecycle snapshot only.
+Current as of revision 7, produced by TASK-013 activation `ACT-006`. `tasks/TASK-001-DEPENDENCY-GRAPH.md` is authoritative for edge types, publication classes, gate assignment, gate scheduling classes, gate lineages, resource locks, the write-scope partition, the activation and event-ingress model, the architecture reconciliation, the required-behavior coverage matrix, and the findings return path. The **State** column is a lifecycle snapshot only.
+
+> **Correction — finding F-501, applied by activation `ACT-006`.** At revision 6 this table said TASK-024 was `ready` and TASK-025 was `blocked`, while their own records, the graph, and the activation log all said `review` and `ready`. The table is now regenerated from the records rather than edited in place, and every row's **State** column was compared with that record's `status` field and its lifecycle directory in both directions. The rows are in task-ID order so an omission is visible. This table remains a snapshot: where it and a record disagree, the record and the graph are authoritative, and the disagreement is a finding.
 
 | Task | Owner role | LLM | Depends on | State |
 |---|---|---|---|---|
-| TASK-002 Runtime architecture and ADRs | architect | claude | — | review, `changes-required` at round 2 |
-| TASK-003 Durable run state and checkpoints | runtime | claude | LIN-ARCH-REVIEW gate r3, TASK-018 integrated | blocked |
-| TASK-004 Provider adapters and agent workers | runtime | claude | LIN-ARCH-REVIEW gate r3, TASK-018 integrated | blocked |
-| TASK-005 Scheduling, leases, fencing, bounded concurrency | runtime | claude | LIN-ARCH-REVIEW gate r3, TASK-003, TASK-004, TASK-026 integrated | blocked |
-| TASK-006 Supervisor core and state machine | runtime | claude | LIN-ARCH-REVIEW gate r3, TASK-003, TASK-004, TASK-005, TASK-017 integrated | blocked |
-| TASK-007 Lifecycle control and one-input bootstrap | runtime | claude | LIN-ARCH-REVIEW gate r3, TASK-006 integrated | blocked |
-| TASK-008 Crash recovery, timeouts, idempotent retries | runtime | claude | LIN-ARCH-REVIEW gate r3, TASK-003, TASK-004, TASK-006, TASK-017 integrated | blocked |
+| TASK-002 Runtime architecture and ADRs | architect | claude | — | review, `changes-required` at round 3 |
+| TASK-003 Durable run state and checkpoints | runtime | claude | LIN-ARCH-REVIEW gate r4, TASK-018 integrated | blocked |
+| TASK-004 Provider adapters and agent workers | runtime | claude | LIN-ARCH-REVIEW gate r4, TASK-018 integrated | blocked |
+| TASK-005 Scheduling, leases, fencing, bounded concurrency | runtime | claude | LIN-ARCH-REVIEW gate r4, TASK-003, TASK-004, TASK-026 integrated | blocked |
+| TASK-006 Supervisor core and state machine | runtime | claude | LIN-ARCH-REVIEW gate r4, TASK-003, TASK-004, TASK-005, TASK-017 integrated | blocked |
+| TASK-007 Lifecycle control and one-input bootstrap | runtime | claude | LIN-ARCH-REVIEW gate r4, TASK-006 integrated | blocked |
+| TASK-008 Crash recovery, timeouts, idempotent retries | runtime | claude | LIN-ARCH-REVIEW gate r4, TASK-003, TASK-004, TASK-006, TASK-017 integrated | blocked |
 | TASK-009 Independent code review of the runtime | reviewer | gpt | TASK-003 … TASK-008, TASK-017, TASK-026 review_ready | blocked |
 | TASK-010 Security review of the runtime | security | gpt | TASK-003 … TASK-008, TASK-017, TASK-018, TASK-026 review_ready | blocked |
 | TASK-011 QA validation of the runtime | qa | gemini | TASK-003 … TASK-008, TASK-017, TASK-026 review_ready | blocked |
@@ -150,18 +165,64 @@ Current as of revision 6, produced by TASK-013 activation `ACT-005`. `tasks/TASK
 | TASK-013 Task-record lifecycle transitions and gate closure | orchestrator | claude | — event-triggered | blocked, quiescent |
 | TASK-014 Independent review of this decomposition, rounds 1–2 | reviewer | gpt | TASK-001 review_ready | done, `changes-required` |
 | TASK-015 Independent architecture review of TASK-002, round 1 | reviewer | gpt | TASK-002 review_ready | done, `changes-required` |
-| TASK-016 Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 gate_recorded | review, published at `8d0c570`, `changes-required` at round 1 |
-| TASK-017 Agent workspace lifecycle automation | runtime | claude | LIN-ARCH-REVIEW gate r3, TASK-003, TASK-018 integrated | blocked |
-| TASK-018 Runtime toolchain bootstrap | devops | claude | LIN-ARCH-REVIEW gate r3 | blocked |
+| TASK-016 Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 gate_recorded | review, published at `8d0c570`, `changes-required` at round 2 |
+| TASK-017 Agent workspace lifecycle automation | runtime | claude | LIN-ARCH-REVIEW gate r4, TASK-003, TASK-018 integrated | blocked |
+| TASK-018 Runtime toolchain bootstrap | devops | claude | LIN-ARCH-REVIEW gate r4 | blocked |
 | TASK-019 Independent review of the runtime toolchain | reviewer | gpt | TASK-018 review_ready | blocked |
 | TASK-020 Independent review of the architecture amendment | reviewer | gpt | TASK-016 review_ready | done, `changes-required` |
 | TASK-021 Independent re-review of this decomposition, round 3 | reviewer | gpt | TASK-001 review_ready | done, `changes-required` |
 | TASK-022 Independent re-review of this decomposition, round 4 | reviewer | gpt | TASK-001 review_ready | done, `changes-required` |
 | TASK-023 Independent re-review of this decomposition, round 5 | reviewer | gpt | TASK-001 review_ready | done, `changes-required` |
-| TASK-027 Independent re-review of this decomposition, round 6 | reviewer | gpt | TASK-001 review_ready | ready |
-| TASK-024 Second architecture amendment: ingress inbox and revision-5 vocabulary | architect | claude | TASK-020 gate_recorded | ready |
-| TASK-025 Independent review of the second architecture amendment | reviewer | gpt | TASK-024 review_ready | blocked |
-| TASK-026 Durable ingress inbox and activation cursor store | runtime | claude | LIN-ARCH-REVIEW gate r3, TASK-003, TASK-018 integrated | blocked |
+| TASK-024 Second architecture amendment: ingress inbox and revision-5 vocabulary | architect | claude | TASK-020 gate_recorded | review, published at `c2ee3eb`, `changes-required` at round 1 |
+| TASK-025 Independent review of the second architecture amendment | reviewer | gpt | TASK-024 review_ready | done, `changes-required` |
+| TASK-026 Durable ingress inbox and activation cursor store | runtime | claude | LIN-ARCH-REVIEW gate r4, TASK-003, TASK-018 integrated | blocked |
+| TASK-027 Independent re-review of this decomposition, round 6 | reviewer | gpt | TASK-001 review_ready | done, `changes-required` |
+| TASK-028 Third architecture amendment: round-3 blocking findings and the approved pre-dispatch observer | architect | claude | TASK-025 gate_recorded | ready |
+| TASK-029 Independent review of the third architecture amendment | reviewer | gpt | TASK-028 review_ready | blocked |
+| TASK-030 Independent re-review of this decomposition, round 7 | reviewer | gpt | TASK-001 review_ready | ready |
+
+## Revision 7 — remediation of the TASK-027 round 6 review and the TASK-025 round 3 architecture verdict
+
+Revision 7 was applied by **TASK-013 activation `ACT-006`**, which consumed two independent `changes-required` verdicts:
+
+- **TASK-027 round 6** at commit `710351fd` recorded `changes-required` on this decomposition, with fresh findings **F-501** (Medium) and **F-502** (Low). It recorded F-401's schema half `resolved`, its bootstrap-dispatch half `partially resolved`, F-402 `partially resolved`, F-403 **`not resolved`**, F-303 and F-203 `resolved`, and the F-301, F-302, F-201, F-204, and F-104 residuals `partially resolved`.
+- **TASK-025** at commit `aa38c7d2` recorded one `changes-required` verdict applied atomically to `(TASK-024, review, r1)`, `(TASK-016, review, r2)`, and `(TASK-002, review, r3)`, with findings **A-201 … A-207** (High), **A-208** (Medium), and **A-209** (Medium, Orchestrator-owned).
+
+The full per-finding disposition register, the lifecycle transition table, the gate closure register, and the verification record are in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-006`. What follows is the summary; that log is authoritative.
+
+**No gate is closed by this revision.** Both verdicts are durable and superseded, never rewritten. TASK-030 decides decomposition round 7; TASK-029 decides architecture lineage round 4.
+
+### F-501 — this record's lifecycle and gate summary contradicted the authoritative graph
+
+Four defects, each corrected against the records rather than reworded. The produced-task-graph table said TASK-024 was `ready` and TASK-025 was `blocked` when they were `review` and `ready`; the review-gate section said the gate had been recorded three times when five rounds had durable outcomes; the round table duplicated round 5, marked the duplicate pending, and omitted the open round; and the controlling statement named round 4 and activations 3 through 5 when round 5 and revision 6 were current. All four are corrected below and the table is regenerated in task-ID order so an omission is visible. The frontmatter and the activation log always kept the gate open, so no gate was closed accidentally by the inconsistency.
+
+### F-502 — TASK-027's record overstated its own target diff
+
+The record claimed the target diff contained all 27 task records; `git diff --name-only 890b8e0...70162b0` returns 21 logical paths and 19 task IDs. The target diff and the review scope are now stated as two separate sets in TASK-027's corrected record and in TASK-030's new one. Part B required a 27-record review independently of the diff, and the reviewer performed it and named the eight records outside the delta, so no artifact was omitted and the verdict is unaffected.
+
+### A-209 — TASK-025's declared scope-validation base was not reproducible from its actual provenance
+
+TASK-025's record prescribed creating its branch from `c2ee3eb` and resolving `git merge-base HEAD agent/claude/architect/task-024`. The branch was actually created from the head of `agent/claude/orchestrator/task-013` at `62d6f2d`, so the prescribed expression resolved to `890b8e0` and the acceptance command failed on 21 inherited `ACT-005` paths. The correction records the **actual** immutable branch point `62d6f2d`, verified with `git merge-base` and with `git diff --name-only 62d6f2d...aa38c7d2`, which returns exactly the reviewer's one file. The superseded prescription is retained in the record rather than silently replaced, and **the verdict is untouched**.
+
+### F-403 — the baseline fields were declared on a rule but not applied to the records
+
+Round 6 recorded this `not resolved`: 19 records lacked `review_target_base` and 21 lacked `scope_validation_base`. Revision 7 states an explicit **applicability rule** in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, section "Task baselines", and applies it to every record. Each record now declares one of three things for each field: a resolved 40-hex value read from the repository, a reproducible expression with its `branch_point_of` for a branch that does not exist yet, or **not applicable with a stated reason and a stated becomes-applicable condition**. The rule also corrects a defect the round-6 rule had: `git merge-base <branch> <branch_point_of>` stops returning the branch point once the branch is merged into that ref, so a recorded 40-hex value is the durable fact and the merge-base expression is only its derivation rule at branch-creation time. Every resolved value was verified with `git diff --name-only <base>...<head>` against the owner's declared scope, not asserted. The validator was not weakened and no role's write scope was widened.
+
+### F-402 — the last active body describing the withdrawn owner form
+
+Round 6 found the residue in TASK-016 at two locations: a prose passage calling the owner form live and an acceptance criterion requiring "both forms". Both are struck in place, dated, and marked as history under a quarantine banner at the head of that record. They are struck rather than deleted or reworded because TASK-016 is the authoring brief under which `8d0c570` was published and TASK-020 judged it; rewriting it would change what an independent reviewer was asked to check after they answered. TASK-020's verdict and its A-004 disposition are untouched.
+
+### F-401 — `HUMAN-002` is approved, and the durable observer is routed rather than implemented
+
+The **user approved `HUMAN-002` in the control session on 2026-08-05**, selecting a **Runtime-owned durable pre-dispatch ingress observer and collector**: it lives outside `tasks/**` in the runtime control plane, and before scheduler selection it validates and deduplicates an external source fact, appends the immutable inbox entry through the TASK-026 ingress store, and exposes or signals the new high-water mark to TASK-005 scheduling. TASK-013 consumes entries and records ledger rows and cursor effects and is prohibited from appending its own trigger.
+
+The decision is transcribed verbatim in scope as model correction `MC-006`. Its **contract** is routed to **TASK-028**; its **implementation** to **TASK-026** for the collector and its append path and to **TASK-005** for the observer, predicate, and signal consumption; its **validation** to **TASK-009**, **TASK-010**, and **TASK-011**. **F-401 is still not claimed resolved.** An approval is not an implementation: `activation.bootstrap_dispatch_contract` still reads `interim-operator-authorized`, `ACT-006` itself ran under it, and its exit condition is now the implementation and validation of the approved observer rather than the absence of a decision.
+
+### The TASK-025 architecture verdict
+
+One verdict, three durable gate-verdict facts, all three left **open**. A-201 … A-208 are routed to the new architect-owned amendment **TASK-028**, and **TASK-029** carries `LIN-ARCH-REVIEW` lineage round 4 across four relations. The architecture edge floor held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 rises from `lineage_round: 3` to `4`, because the amendment carrying A-201 … A-208 must be the approved one. **No implementation task is released**, and no A-finding is resolved by any publication.
+
+> **Quarantined history.** Every revision section below this line records what an earlier revision did and why. Statements in them describe the graph as it stood at that revision and are superseded by revision 7, by each pair's own frontmatter, and by the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`. Where a superseded section names a `gate_class`, `retrospective`, `gate_lineage`, `lineage_round`, a lifecycle state, a round count, or a `gate_passed` form — including the F-303 narrative, which quotes the incorrect value it corrected, and the revision-4 narrative, which describes the since-withdrawn owner form — it is history, not a normative restatement. This is the correction findings F-402 and F-501 each required.
 
 ## Revision 6 — remediation of the TASK-023 round 5 review
 
@@ -190,8 +251,6 @@ Every record now declares `review_target_base` and `scope_validation_base` as se
 ### TASK-024's publication
 
 TASK-024 published the second architecture amendment at `c2ee3eb` with pull request #9. Its record moved to `review`, TASK-025 moved to `ready` on the satisfied `review_ready(TASK-024)` edge with its target bound immutably to `c2ee3eb`, and TASK-025's record gained a Part D for F-401 and an obligation to assess every acceptance criterion TASK-024 declares. **No architecture finding is resolved by that publication.** TASK-002's and TASK-016's review gates stay open, and every implementation consumer stays `blocked`.
-
-> **Quarantined history.** Every revision section below this line records what an earlier revision did and why. Statements in them describe the graph as it stood at that revision and are superseded by revision 6, by each pair's own frontmatter, and by the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`. Where a superseded section names a `gate_class`, `retrospective`, `gate_lineage`, or `lineage_round` value — including the F-303 narrative, which quotes the incorrect value it corrected — it is history, not a normative restatement. This is the correction finding F-402 required.
 
 ## Revision 5 — remediation of the TASK-022 round 4 review
 
@@ -388,7 +447,9 @@ TASK-018 needs `package.json`, `package-lock.json`, `tsconfig.json`, and `script
 
 ## Review gate
 
-This task declares `required_gates: [review]`. The gate has been recorded three times and remains **open**.
+This task declares `required_gates: [review]`. The gate has recorded **six** verdicts across six rounds, every one of them `changes-required`, and round 7 is open. The gate therefore remains **open**.
+
+The table below has exactly one row per round of `LIN-DECOMP-REVIEW`, in round order, with no duplicate and no omission — the defect finding **F-501** recorded was a duplicated round 5 marked pending in place of the open round. It is regenerated from this record's `gate_tasks` frontmatter, which is normative.
 
 | Round | Owner | Artifact | Verdict | Commit |
 |---|---|---|---|---|
@@ -397,13 +458,14 @@ This task declares `required_gates: [review]`. The gate has been recorded three 
 | 3 | TASK-021, `reviewer` / `gpt` | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md` | `changes-required`, F-201 … F-205 | `adfb982` |
 | 4 | TASK-022, `reviewer` / `gpt` | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md` | `changes-required`, F-301 … F-303 | `e8eb23d` |
 | 5 | TASK-023, `reviewer` / `gpt` | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-5.md` | `changes-required`, F-401 … F-403 | `667d3b8` |
-| 5 | TASK-023, `reviewer` / `gpt` | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-5.md` | pending | — |
+| 6 | TASK-027, `reviewer` / `gpt` | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-6.md` | `changes-required`, F-501 … F-502 | `710351fd` |
+| 7 | TASK-030, `reviewer` / `gpt` | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-7.md` | **pending** — the open round | — |
 
-Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, the gate's status is the verdict at its highest round, and an earlier verdict is superseded rather than rewritten. TASK-014 recorded both of its rounds and its record is `done`; TASK-021 recorded round 3, TASK-022 round 4, and TASK-023 round 5, and all three records are `done`. Each superseding round is a separate task rather than a re-entry, which is the correction applied to TASK-015 under finding F-102. Every round belongs to the same registered gate lineage; the gate-lineage register in `tasks/TASK-001-DEPENDENCY-GRAPH.md` is the normative statement of its rounds.
+Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, the gate's status is the verdict at its highest round, and an earlier verdict is superseded rather than rewritten. TASK-014 recorded both of its rounds and its record is `done`; TASK-021 recorded round 3, TASK-022 round 4, TASK-023 round 5, and TASK-027 round 6, and all four records are `done`. Each superseding round is a separate task rather than a re-entry, which is the correction applied to TASK-015 under finding F-102. Every round belongs to the same registered gate lineage; the gate-lineage register in `tasks/TASK-001-DEPENDENCY-GRAPH.md` is the normative statement of its rounds.
 
-Round 4's verdict states plainly that **TASK-001 may not reach `done`**. It may not move to `tasks/done/` until a round of `LIN-DECOMP-REVIEW` records a passing authoritative verdict. No Claude Orchestrator execution may close that gate — including the TASK-013 activations that authored revisions 3, 4, and 5.
+**Round 6 is the currently authoritative round**, and its verdict states plainly that **TASK-001 may not reach `done`**. It may not move to `tasks/done/` until a round of `LIN-DECOMP-REVIEW` records a passing authoritative verdict. No Claude Orchestrator execution may close that gate — including the TASK-013 activations that authored revisions 3, 4, 5, 6, and 7.
 
-The gate relation is recorded as `gate_for` on TASK-014, TASK-021, TASK-022, TASK-023, and TASK-027 and as `gate_tasks` on this record, with matching rounds. Each pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in those frontmatter entries and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body does not restate them, which is the correction findings **F-303** and **F-402** required. It is not a scheduling edge, which is why each round's owner is dispatchable while TASK-001 is still in `review`. The round 6 review target is the `ACT-005` effects commit on `agent/claude/orchestrator/task-013`, compared against review-diff base `890b8e0`; the superseded round 5 target was `ac9c8f2` with follow-up head `890b8e0` against `c325275`, round 4 reviewed `f590749` with follow-up `4f8a1cc` against `c325275`, and round 3 reviewed `5febe3b` against `049158d`.
+The gate relation is recorded as `gate_for` on TASK-014, TASK-021, TASK-022, TASK-023, TASK-027, and TASK-030 and as `gate_tasks` on this record, with matching rounds. Each pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in those frontmatter entries and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body does not restate them, which is the correction findings **F-303** and **F-402** required. It is not a scheduling edge, which is why each round's owner is dispatchable while TASK-001 is still in `review`. The round 7 review target is the `ACT-006` effects commit on `agent/claude/orchestrator/task-013`, compared against review-diff base `62d6f2d`; the superseded round 6 target was `70162b0` with follow-up head `62d6f2d` against `890b8e0`, round 5 reviewed `ac9c8f2` with follow-up head `890b8e0` against `c325275`, round 4 reviewed `f590749` with follow-up `4f8a1cc` against `c325275`, and round 3 reviewed `5febe3b` against `049158d`.
 
 ## Handoff
 
@@ -424,8 +486,10 @@ The gate relation is recorded as `gate_for` on TASK-014, TASK-021, TASK-022, TAS
   - Runtime task write scopes name directories such as `src/orchestrator/workspace/` that do not exist yet; the owning task creates them.
   - TASK-014 recorded its round 2 dispositions on F-001 through F-007: five `resolved`, two `partially resolved`. TASK-021 recorded its round 3 dispositions on F-101 through F-105: three `resolved`, two `partially resolved`, both of which `ACT-002` closed out. The revision dispositions in this record are the author's claims and carry no gate authority. The same applies to revision 4's claims, which TASK-022 decides.
   - ~~Revisions 3 and 4 presume the shape of an amendment TASK-020 has not yet approved.~~ Realized. TASK-020 returned `changes-required` at `4874a9d` and judged A-004 `not resolved`, so the amendment does **not** yet represent the scheduling or ingress vocabulary. Revision 5 responds by retyping the architecture edge to the `LIN-ARCH-REVIEW` lineage, which no longer has to be retargeted per amendment, and by routing the contract representation to TASK-024. TASK-023 is asked to report whether any residual presumption remains.
-  - Two High architecture findings, A-102 and A-103, say that process registration and workspace intent cannot be made durable before their side effects. Until TASK-025 records a passing verdict, this graph's assumption that a crash leaves discoverable durable intent is unproven.
-  - The ingress inbox that makes TASK-013's cursor a position is specified and routed to TASK-026 and TASK-005 but is not executable yet. Until both are integrated the operator performs discovery. Identity, position, deduplication, and the cursor are durable and do not depend on that substitution, so the exposure is liveness rather than correctness.
+  - ~~Two High architecture findings, A-102 and A-103, say that process registration and workspace intent cannot be made durable before their side effects. Until TASK-025 records a passing verdict, this graph's assumption that a crash leaves discoverable durable intent is unproven.~~ **Realized and widened at revision 7.** TASK-025 recorded `changes-required` at `aa38c7d2`, judging A-102 `not resolved` and A-103 `partially resolved`, and adding **seven** further High findings, A-201 … A-207. Seven High architecture defects now stand between this graph and any implementation wave. The exposure is no longer "unproven"; it is recorded, and it is routed to TASK-028.
+  - **Nine of this graph's tasks depend on an architecture lineage that has never passed.** `LIN-ARCH-REVIEW` has recorded `changes-required` at every one of its three rounds. The edge floor rises to `lineage_round: 4` at revision 7, so TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 wait on TASK-029, which waits on TASK-028, which has not started. Each failing round adds a wave of latency to every downstream task.
+  - The ingress inbox that makes TASK-013's cursor a position is specified and routed to TASK-026 and TASK-005 but is not executable yet, and the pre-dispatch observer `HUMAN-002` approved is routed to TASK-028, TASK-026, and TASK-005 but is neither implemented nor validated. Until then the operator performs both discovery and the dispatch decision. Identity, position, deduplication, and the cursor are durable and do not depend on that substitution, but **the exposure is not confined to liveness**: under `interim-operator-authorized` the dispatch predicate itself is not what authorized the dispatch, and finding F-401 recorded that the earlier liveness-only claim was false. That correction is why this risk is stated this way.
   - Epoch 1 of the consumption ledger is retained as history and is not reproducible under its own rule. That is recorded in `MC-003` rather than repaired by editing rows the log promises never to edit.
-- Next owner: **reviewer / gpt for TASK-025**, the independent review of the second architecture amendment, `ready` and dispatchable now on the satisfied `review_ready(TASK-024)` edge at `c2ee3eb`. **Reviewer / gpt for TASK-027**, round 6 of this decomposition's review gate, is `ready` and may run in parallel: its report path is disjoint from every other active scope and it holds no resource lock.
+  - The baseline applicability rule added at revision 7 is checked only by the Orchestrator at each activation and by each review round. Nothing rejects a record that declares a field "not applicable" without a real reason until TASK-005's graph validator lands.
+- Next owner: **architect / claude for TASK-028**, the third architecture amendment, `ready` and dispatchable now on the satisfied `gate_recorded(TASK-025)` edge at `aa38c7d2` with the `architecture-docs` lock free. **Reviewer / gpt for TASK-030**, round 7 of this decomposition's review gate, is `ready` and may run in parallel: its report path is disjoint from every other active scope and it holds no resource lock. **Reviewer / gpt for TASK-029** waits on `review_ready(TASK-028)`.
 </content>

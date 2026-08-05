@@ -26,6 +26,12 @@ parent_task: TASK-001
 publication_class: bootstrap
 blocked_reason: The toolchain has not been published.
 exit_condition: TASK-018 is review_ready, with an immutable published commit on agent/claude/devops/task-018. This task does not wait for TASK-018 to be integrated or to reach done, because it is the pre-merge gate that lets it be integrated.
+review_target_base: TASK-018's declared scope_validation_base, resolved when TASK-018 publishes
+review_target_applicability: applicable, not yet resolvable. This task diffs the TASK-018 branch against the integration-branch commit TASK-018 branched from, which is TASK-018's own recorded branch point. TASK-018 has not published, so that value is a reproducible expression rather than a hash, and this record does not guess it.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+scope_validation_note: Branch from integration/autonomous-runtime at or after the commit where this task's dependencies merged, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-019: Independent review of the runtime toolchain bootstrap

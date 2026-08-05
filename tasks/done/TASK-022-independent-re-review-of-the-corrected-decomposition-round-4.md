@@ -43,6 +43,11 @@ findings_raised:
   - F-301
   - F-302
   - F-303
+branch_point_of: main
+scope_validation_base: c325275ea13918a9766b71a6350821af1c3c471d
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Resolved by activation ACT-006 from the repository rather than asserted. This branch has one authored commit, e8eb23d, whose parent is c325275. git diff --name-only c325275...e8eb23d returns exactly one path, reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md, which is this task's whole declared write scope. This is the one record whose review-diff base and scope-validation base coincide, and they coincide by an accident of topology rather than by rule.
+review_target_applicability: applicable and resolved
 ---
 
 # TASK-022: Independent re-review of the corrected TASK-001 decomposition, round 4

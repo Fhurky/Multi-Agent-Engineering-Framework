@@ -1,7 +1,7 @@
 ---
 task_id: TASK-027
 title: Independent re-review of the corrected TASK-001 decomposition, round 6
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-027
@@ -17,21 +17,34 @@ gate_for:
   - task: TASK-001
     gate: review
     round: 6
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 710351fd8f1afa2765ffac52078cfc7b8ddb3206
+    remediated_by: TASK-013 activation ACT-006
+    revalidated_by: TASK-030
     gate_class: point
     retrospective: true
     gate_lineage: LIN-DECOMP-REVIEW
     lineage_round: 6
 parent_task: TASK-001
 publication_class: bootstrap
+published_commit: 710351fd8f1afa2765ffac52078cfc7b8ddb3206
+published_branch: agent/gpt/reviewer/task-027
+published_remote_ref: refs/heads/agent/gpt/reviewer/task-027
+pull_request: 12
+publication: published
+publication_reason: The reviewer's own report records that no push or pull request was performed by the task, as directed. The branch is present at refs/heads/agent/gpt/reviewer/task-027 on origin and was opened as pull request #12 outside the reviewer's execution. Both facts are recorded; the reviewer's statement is not overwritten.
+publication_recorded_by: ACT-006
 review_target_branch: agent/claude/orchestrator/task-013
 review_target_commit: 70162b05959377a6d5a797ac627113809dcb3851
 review_target_base: 890b8e0d0ed45f64ec913f952058e942668d784e
+review_target_applicability: applicable and resolved
 review_target_note: The round 6 review target is the TASK-013 activation ACT-005 effects commit. Its hash cannot be written by the commit that carries it, so it is recorded here and in tasks/TASK-013-ACTIVATION-LOG.md by a single follow-up commit on the same branch, following the ACT-002 and ACT-004 pattern. Review the branch head, which includes both commits. The review-diff base is 890b8e0, the head round 5 reviewed, so this round covers exactly the ACT-005 delta and nothing round 5 already judged.
 branch_point_of: agent/claude/orchestrator/task-013
-scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
-scope_validation_note: Not yet resolvable, because this task's branch does not exist. Create agent/gpt/reviewer/task-027 from the head of agent/claude/orchestrator/task-013 at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/orchestrator/task-013 and pass that value to -BaseRef. Never pass c325275, a review-diff base, or origin/main. Finding F-403 recorded why, and this record is the first to declare the two baselines separately from the outset. Record the resolved value in the report so the Orchestrator can pin it.
+scope_validation_base: 62d6f2d553bae9f19b60a5405f173b517f8c9a62
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Resolved by activation ACT-006 from the published branch rather than asserted. The branch's first authored commit 710351fd has parent 62d6f2d, and git merge-base agent/gpt/reviewer/task-027 agent/claude/orchestrator/task-013 returns 62d6f2d. git diff --name-only 62d6f2d...710351fd returns exactly one path, reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-6.md, which is this task's whole declared write scope. The owner ran the prescribed command against this value and recorded valid True with changed_files 1. The reproducible expression this record declared before the branch existed, git merge-base HEAD agent/claude/orchestrator/task-013, evaluated to exactly this value, so the F-403 rule held end to end for the first record written under it.
 supersedes: TASK-023
+superseded_by: TASK-030
 ---
 
 # TASK-027: Independent re-review of the corrected TASK-001 decomposition, round 6
@@ -56,7 +69,9 @@ The base is deliberately `890b8e0` and **not** `c325275`. Round 5 reviewed every
 
 The target commit is immutable. A later TASK-013 activation does not change it. The correction was authored by TASK-013, not by TASK-001, because TASK-013 is the exclusive owner of every task-record mutation in this graph.
 
-Records in scope — every file the target diff touches under `tasks/`, which includes all 27 task records, `tasks/TASK-001-DEPENDENCY-GRAPH.md`, and `tasks/TASK-013-ACTIVATION-LOG.md`.
+Records in scope — **all 27 task records**, plus `tasks/TASK-001-DEPENDENCY-GRAPH.md` and `tasks/TASK-013-ACTIVATION-LOG.md`. That set is larger than the target diff and is required by Part B independently of it.
+
+> **Correction — finding F-502, applied by TASK-013 activation `ACT-006`.** This paragraph previously read "every file the target diff touches under `tasks/`, which includes all 27 task records". That was false and not reproducible: `git diff --name-only 890b8e0...70162b0` returns **21** logical paths — 19 task records plus the dependency graph and the activation log — so eight records were in Part B's scope while lying outside the target diff. The two sets are now stated separately. The **target diff** is the 21 paths above and bounds what round 6 was asked to judge *as a change*; the **review scope** is all 27 records and bounds what round 6 was asked to judge *as a graph*. The round-6 report covered all 27 and named the eight records outside the delta — TASK-002, TASK-003, TASK-004, TASK-006, TASK-007, TASK-008, TASK-016, and TASK-017 — so no artifact was omitted and the recorded verdict is unaffected. The verdict is not rewritten by this correction.
 
 Supporting context, not a review target and not writable by this task: `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-5.md` at `667d3b8`, the four earlier decomposition review reports, `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md`, `reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md`, commit `fb9f45c`, the TASK-002 architecture at `9576fc9`, the TASK-016 amendment at `8d0c570`, and the TASK-024 amendment at `c2ee3eb`.
 
@@ -142,9 +157,19 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
+Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request. Transcribed by activation `ACT-006` from `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-6.md` at commit `710351fd8f1afa2765ffac52078cfc7b8ddb3206`. The reviewer's own statements are quoted, not rewritten.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to close the TASK-001 review gate on a passing verdict, or to route round 6 findings back to the decomposition owner and create the round 7 reviewer task
+- Commit or pull request: `710351fd8f1afa2765ffac52078cfc7b8ddb3206` `review: record TASK-027 round 6 verdict` on `agent/gpt/reviewer/task-027`, parent `62d6f2d`, adding exactly one file. Present at `refs/heads/agent/gpt/reviewer/task-027` on `origin` and opened as pull request #12. The reviewer's report records that it performed no push and opened no pull request, as directed; the remote step succeeded outside that execution.
+- Verdict: **`changes-required`** on `(TASK-001, review, round 6)`. TASK-001 remains in `tasks/review/` and may not reach `done`.
+- Verification, as the reviewer recorded it:
+  - `scripts/ci/validate-framework.ps1` passed for 13 roles; `scripts/ci/test-orchestration.ps1` passed.
+  - Immutable target confirmed: `70162b0` has parent `890b8e0`; `70162b0..62d6f2d` changes only the three target-hash placeholders. The target delta is confined to `tasks/**`.
+  - All-record structural audit over 27 records: zero owner, LLM, dependency, gate, publication, artifact, branch, or worktree violations apart from 40 baseline-field omissions, which are finding F-403.
+  - 41/41 reciprocal `gate_for` / `gate_tasks` pairs; 28 aggregate and 13 point; 34 retrospective and 7 not; eight valid lineages; no executable cycle. Write scopes: zero role violations, four serialized overlap pairs. Tags: 29/29 present, TASK-009 10/10, TASK-010 7/7, TASK-011 12/12.
+  - Ledger rows 1 … 8 byte-identical to their state at `890b8e0`, joined canonical SHA-256 `65f0a01a89ab21109805ec3ba642cad4e33737db2bd16c13de6c3c1b121f0678`. Rows 9 and 10 recomputed independently and matched both `content_hash` and `fact_id`. Cursor and `ingress_seq` both 10; sequences 1 … 10 unique and contiguous.
+  - `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 62d6f2d553bae9f19b60a5405f173b517f8c9a62` returned `valid: True`, branch `agent/gpt/reviewer/task-027`, role `reviewer`, LLM `gpt`, `changed_files: 1`.
+- Findings recorded: **F-501** (Medium, TASK-001 lifecycle and gate summary contradicts the graph) and **F-502** (Low, this record overstated its own target-diff coverage). Both are Orchestrator-owned and are corrected by `ACT-006`; the corrections do not touch the recorded verdict.
+- Prior-finding dispositions recorded: F-401 `partially resolved` with its two halves judged separately — schema half `resolved`, bootstrap-dispatch half `partially resolved`; F-402 `partially resolved`; F-403 `not resolved`; F-303 and F-203 `resolved`; F-301, F-302, F-201, F-204, and F-104 residuals `partially resolved`.
+- Known risks, as the reviewer recorded them: TASK-001 cannot reach `done`; the durable bootstrap authority and its `HUMAN-002` exit remained open at the time of writing; TASK-025's active branch provenance did not match its own prescribed target branch point; and the architecture has no passing verdict, so TASK-002, TASK-016, TASK-024, TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 remain gated.
+- Task lock released: yes. The reviewer recorded release after the local report commit, and the shared lock directory carries no `task-027` entry at `ACT-006`.
+- Next owner: orchestrator via TASK-013. `ACT-006` recorded this verdict, corrected F-501 and F-502, routed F-401, F-402, and F-403 without changing the durable outcome, kept TASK-001 in `review`, and created **TASK-030** for decomposition lineage round 7.

@@ -2,14 +2,15 @@
 
 Durable handoff note for the autonomous multi-agent runtime task graph. It records the dependency order, ownership, write-scope partition, edge semantics, gate scheduling classes, gate lineages, and the activation and event-ingress model. Individual task records remain the authoritative source for scope and acceptance criteria; this document is kept in agreement with them by TASK-013.
 
-**Revision 6**, produced by TASK-013 activation `ACT-005`. One verdict and one publication drove it, and no gate is closed by it:
+**Revision 7**, produced by TASK-013 activation `ACT-006`. Two independent verdicts and one approved human governance decision drove it, and **no gate is closed by it**:
 
-- **TASK-023 round 5** returned `changes-required` on this decomposition at commit `667d3b8`, with findings F-401 (High), F-402 (Medium), and F-403 (Medium), in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-5.md`, published as pull request #8.
-- **TASK-024** published the second architecture amendment at commit `c2ee3eb`, preceded on the same branch by the merge commit `6e5a9df` that brought `8d0c570` into the amendment's lineage, published as pull request #9. **This is authoring evidence only.** It is not a verdict, it closes nothing, and it does not make any A-finding or F-401 resolved. `LIN-ARCH-REVIEW` lineage round 3, owned by TASK-025, decides that.
+- **TASK-027 round 6** returned `changes-required` on this decomposition at commit `710351fd`, with fresh findings F-501 (Medium) and F-502 (Low), in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-6.md`, published as pull request #12. It recorded F-403 **`not resolved`**, F-402 and the bootstrap half of F-401 `partially resolved`, and the schema half of F-401, F-303, and F-203 `resolved`.
+- **TASK-025** returned one `changes-required` verdict at commit `aa38c7d2`, applied atomically to `(TASK-024, review, r1)`, `(TASK-016, review, r2)`, and `(TASK-002, review, r3)`, with findings A-201 … A-207 (High), A-208 (Medium), and A-209 (Medium), in `reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md`, published as pull request #11. All three relations stay open, and **no architecture finding from any earlier round is resolved**.
+- **`HUMAN-002` is approved.** The user approved it in the control session on 2026-08-05, selecting a Runtime-owned durable pre-dispatch ingress observer and collector. It is transcribed as model correction `MC-006` in `tasks/TASK-013-ACTIVATION-LOG.md` and represented below. **An approval is not an implementation**: the collector does not exist, TASK-013's declared bootstrap dispatch contract is unchanged, and F-401 is not claimed resolved.
 
-The per-finding disposition register is in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-005`.
+The per-finding disposition register is in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-006`.
 
-Revision history: revision 2 was reviewed by TASK-014 rounds 1 and 2 (`changes-required`, F-001 … F-007 then F-101 … F-105); TASK-015 round 1 returned `changes-required` on the TASK-002 architecture (A-001 … A-004); human governance decision HUMAN-001 was recorded at `fb9f45c`; revision 3 was produced by `ACT-001` and reviewed by TASK-021 round 3 (`changes-required`, F-201 … F-205); revision 4 was produced by `ACT-002` and reviewed by TASK-022 round 4 (`changes-required`, F-301 … F-303); revision 5 was produced by `ACT-004` and reviewed by TASK-023 round 5. Activation `ACT-003` applied lifecycle updates only and was not a revision.
+Revision history: revision 2 was reviewed by TASK-014 rounds 1 and 2 (`changes-required`, F-001 … F-007 then F-101 … F-105); TASK-015 round 1 returned `changes-required` on the TASK-002 architecture (A-001 … A-004); human governance decision HUMAN-001 was recorded at `fb9f45c`; revision 3 was produced by `ACT-001` and reviewed by TASK-021 round 3 (`changes-required`, F-201 … F-205); revision 4 was produced by `ACT-002` and reviewed by TASK-022 round 4 (`changes-required`, F-301 … F-303); revision 5 was produced by `ACT-004` and reviewed by TASK-023 round 5 (`changes-required`, F-401 … F-403); revision 6 was produced by `ACT-005` and reviewed by TASK-027 round 6. Activation `ACT-003` applied lifecycle updates only and was not a revision.
 
 ## Dependency edge semantics
 
@@ -62,11 +63,15 @@ Three rules keep the two classes from contaminating each other:
 | TASK-021 | `bootstrap` | `adfb982` | `agent/gpt/reviewer/task-021` | `published` — pushed to `origin` and opened as pull request #2 after the reviewer's own session recorded `local-only` |
 | TASK-022 | `bootstrap` | `e8eb23d` | `agent/gpt/reviewer/task-022` | `published` — present at `refs/heads/agent/gpt/reviewer/task-022` on `origin` |
 | TASK-023 | `bootstrap` | `667d3b8` | `agent/gpt/reviewer/task-023` | `published` — present at `refs/heads/agent/gpt/reviewer/task-023` on `origin` and opened as pull request #8, after the reviewer's own report recorded `local-only` |
-| TASK-024 | `bootstrap` | `c2ee3eb`, preceded on the same branch by the merge `6e5a9df` that brought `8d0c570` into the amendment's lineage | `agent/claude/architect/task-024` | `published` — present at `refs/heads/agent/claude/architect/task-024` on `origin` and opened as pull request #9 |
+| TASK-024 | `bootstrap` | `c2ee3eb`, preceded on the same branch by the merge `6e5a9df` that brought `8d0c570` into the amendment's lineage, and followed by the publication-ancestry merge `ba2c742` | `agent/claude/architect/task-024` | `published` — present at `refs/heads/agent/claude/architect/task-024` on `origin` and opened as pull request #9 |
+| TASK-025 | `bootstrap` | `aa38c7d2` | `agent/gpt/reviewer/task-025` | `published` — present at `refs/heads/agent/gpt/reviewer/task-025` on `origin` and opened as pull request #11, after the reviewer's own report recorded its lock as not yet released |
+| TASK-027 | `bootstrap` | `710351fd` | `agent/gpt/reviewer/task-027` | `published` — present at `refs/heads/agent/gpt/reviewer/task-027` on `origin` and opened as pull request #12, after the reviewer's own report recorded that it performed no push, as directed |
 
 TASK-020's, TASK-022's, and TASK-023's own reports each record their publication as pending or `local-only` at the moment of writing, because the push succeeded outside the reviewer's execution. TASK-013 transcribes both facts and does not overwrite any reviewer's statement. This is the same divergence TASK-021 produced and it is recorded the same way.
 
-TASK-024's publication satisfies `review_ready(TASK-024)` and nothing else. It is authoring evidence: it makes the amendment reviewable, it does not make any finding resolved, and it does not close, weaken, or pre-judge `LIN-ARCH-REVIEW` lineage round 3.
+TASK-024's publication satisfied `review_ready(TASK-024)` and nothing else. That is now settled rather than pending: `LIN-ARCH-REVIEW` lineage round 3 recorded `changes-required` at `aa38c7d2`, so the amendment is not approved, is not integrable, and resolved no finding. The publication was authoring evidence and the verdict is the judgment; the graph never treated the first as the second, and the outcome confirms why that distinction matters.
+
+`ba2c742` on `agent/claude/architect/task-024` is a merge of `origin/main` into the amendment branch for pull request #9 integration. The reviewer recorded it as publication ancestry only and reviewed `c2ee3eb`. Under the ingress source set it matches no class — it is not a merge on `integration/autonomous-runtime`, not a merge of that branch into `main`, and not the owner's named published commit — so it is not an ingress fact, for the same stated reason `6e5a9df` is not.
 
 ### Gate rounds and gate closure
 
@@ -97,8 +102,8 @@ A **gate lineage** is the durable relation between one gate name and one cohort 
 
 | Lineage | Gate | Cohort, in the order artifacts joined | Lineage rounds |
 |---|---|---|---|
-| `LIN-DECOMP-REVIEW` | review | TASK-001 | 1 → TASK-014 (TASK-001 r1); 2 → TASK-014 (r2); 3 → TASK-021 (r3); 4 → TASK-022 (r4); 5 → TASK-023 (r5); 6 → TASK-027 (r6) |
-| `LIN-ARCH-REVIEW` | review | TASK-002 → TASK-016 → TASK-024 | 1 → TASK-015 (TASK-002 r1); 2 → TASK-020 (TASK-016 r1, TASK-002 r2); 3 → TASK-025 (TASK-024 r1, TASK-016 r2, TASK-002 r3) |
+| `LIN-DECOMP-REVIEW` | review | TASK-001 | 1 → TASK-014 (TASK-001 r1); 2 → TASK-014 (r2); 3 → TASK-021 (r3); 4 → TASK-022 (r4); 5 → TASK-023 (r5); 6 → TASK-027 (r6); 7 → TASK-030 (r7) |
+| `LIN-ARCH-REVIEW` | review | TASK-002 → TASK-016 → TASK-024 → TASK-028 | 1 → TASK-015 (TASK-002 r1); 2 → TASK-020 (TASK-016 r1, TASK-002 r2); 3 → TASK-025 (TASK-024 r1, TASK-016 r2, TASK-002 r3); 4 → TASK-029 (TASK-028 r1, TASK-024 r2, TASK-016 r3, TASK-002 r4) |
 | `LIN-TOOLCHAIN-REVIEW` | review | TASK-018 | 1 → TASK-019 (TASK-018 r1) |
 | `LIN-TOOLCHAIN-SECURITY` | security | TASK-018 | 1 → TASK-010 (TASK-018 r1) |
 | `LIN-RUNTIME-REVIEW` | review | TASK-003 … TASK-008, TASK-017, TASK-026 | 1 → TASK-009 (r1 for each cohort member) |
@@ -106,16 +111,16 @@ A **gate lineage** is the durable relation between one gate name and one cohort 
 | `LIN-RUNTIME-QA` | qa | TASK-003 … TASK-008, TASK-017, TASK-026 | 1 → TASK-011 (r1 for each cohort member) |
 | `LIN-RUNTIME-PERFORMANCE` | performance | TASK-005, TASK-006, TASK-008 | 1 → TASK-012 (r1 for each cohort member) |
 
-`LIN-DECOMP-REVIEW` rounds 1 and 2 are both recorded by TASK-014. That is the one historical instance of a re-entrant gate task in this graph; it predates the rule and is retained rather than rewritten. Every lineage round created since — 3, 4, 5, and 6 of `LIN-DECOMP-REVIEW`, and 2 and 3 of `LIN-ARCH-REVIEW` — is a distinct task.
+`LIN-DECOMP-REVIEW` rounds 1 and 2 are both recorded by TASK-014. That is the one historical instance of a re-entrant gate task in this graph; it predates the rule and is retained rather than rewritten. Every lineage round created since — 3, 4, 5, 6, and 7 of `LIN-DECOMP-REVIEW`, and 2, 3, and 4 of `LIN-ARCH-REVIEW` — is a distinct task.
 
-`LIN-ARCH-REVIEW`'s lineage rounds and its per-target rounds differ, because its cohort grew: TASK-016 joined at lineage round 2 as the remediation for lineage round 1, and TASK-024 joins at lineage round 3 as the remediation for lineage round 2. A pair therefore carries both numbers, and each answers a different question — `round` is "how many times has *this artifact's* gate been recorded", `lineage_round` is "how many times has *this relation* been validated".
+`LIN-ARCH-REVIEW`'s lineage rounds and its per-target rounds differ, because its cohort grows at every round: TASK-016 joined at lineage round 2 as the remediation for lineage round 1, TASK-024 at lineage round 3, and TASK-028 at lineage round 4. A pair therefore carries both numbers, and each answers a different question — `round` is "how many times has *this artifact's* gate been recorded", `lineage_round` is "how many times has *this relation* been validated". At lineage round 4 the cohort has four members, so TASK-029 carries four relations and applies one verdict to all of them. **No member is ever removed**, so each earlier round's coverage claim stays true of what it covered, and the growth is a recorded consequence of three consecutive failing rounds rather than a scope change.
 
 ### Edges that use the lineage form
 
 | Consumer | Edge | Why the lineage form and not the target form |
 |---|---|---|
 | TASK-012 | `{lineage: LIN-RUNTIME-QA, edge: gate_passed, gate: qa, lineage_round: 1}` | The prerequisite is a passing QA baseline for the runtime cohort, whoever records it. A successor QA task at lineage round 2 satisfies the edge without any edit. This is the F-302 correction |
-| TASK-003 … TASK-008, TASK-017, TASK-018, TASK-026 | `{lineage: LIN-ARCH-REVIEW, edge: gate_passed, gate: review, lineage_round: 3}` | The prerequisite is an approved runtime architecture, which is now a succession of amendments rather than one document commit. Revision 4 retargeted this edge from TASK-002 to TASK-016 by hand; the lineage form removes the need to retarget it again when TASK-024 supersedes TASK-016. `lineage_round: 3` is the floor: the amendment carrying A-101 … A-105 must be the approved one, so a passing verdict at lineage round 1 or 2 does not satisfy it |
+| TASK-003 … TASK-008, TASK-017, TASK-018, TASK-026 | `{lineage: LIN-ARCH-REVIEW, edge: gate_passed, gate: review, lineage_round: 4}` | The prerequisite is an approved runtime architecture, which is now a succession of amendments rather than one document commit. Revision 4 retargeted this edge from TASK-002 to TASK-016 by hand; the lineage form removes the need to retarget it again, and it has now survived two further supersessions with no edit to the edge's *target*. `lineage_round: 4` is the floor, raised from 3 by revision 7: round 3 recorded `changes-required` with seven High findings, so a passing verdict can no longer occur at round 3 and the amendment carrying A-201 … A-208 must be the approved one. Raising a floor is not retargeting — the edge still names the lineage, and only the minimum acceptable round moved, for the same reason it moved from 2 to 3 at revision 5 |
 
 ## Gate scheduling classes
 
@@ -130,12 +135,12 @@ Every `gate_for` / `gate_tasks` pair carries both:
 
 **Where these values are normative.** F-303 recorded that three active record bodies restated a pair's `retrospective` value in prose and stated the opposite of the frontmatter. Revision 5 removes the duplication rather than only correcting the copies: **a pair's `gate_class` and `retrospective` are normative in the pair's own frontmatter and in the register below, and nowhere else.** A record body may name the register; it may not restate the value. The same rule applies to `gate_lineage` and `lineage_round`.
 
-**Which artifact a round reviews.** At round 1 the reviewed artifact is the target itself, so the reference point is `review_ready(<target>)`. At round *n* > 1 the reviewed artifact is the **remediation** named by round *n* − 1's `remediated_by`, so the reference point is that remediation's publication. TASK-020 carried TASK-002's review gate at round 2 while depending on `review_ready(TASK-016)`, and TASK-016 *was* the remediation for round 1's verdict; TASK-025 carries TASK-002 round 3 and TASK-016 round 2 while depending on `review_ready(TASK-024)`, for the same reason. The same holds for TASK-014 round 2, TASK-021 round 3, TASK-022 round 4, TASK-023 round 5, and TASK-027 round 6, each of which reviews a TASK-001 remediation republished on the remediating branch.
+**Which artifact a round reviews.** At round 1 the reviewed artifact is the target itself, so the reference point is `review_ready(<target>)`. At round *n* > 1 the reviewed artifact is the **remediation** named by round *n* − 1's `remediated_by`, so the reference point is that remediation's publication. TASK-020 carried TASK-002's review gate at round 2 while depending on `review_ready(TASK-016)`, and TASK-016 *was* the remediation for round 1's verdict; TASK-025 carried TASK-002 round 3 and TASK-016 round 2 while depending on `review_ready(TASK-024)`; TASK-029 carries TASK-002 round 4, TASK-016 round 3, and TASK-024 round 2 while depending on `review_ready(TASK-028)`, for the same reason. The same holds for TASK-014 round 2, TASK-021 round 3, TASK-022 round 4, TASK-023 round 5, TASK-027 round 6, and TASK-030 round 7, each of which reviews a TASK-001 remediation republished on the remediating branch.
 
 The two properties are independent, and all three combinations that occur in this graph occur for different reasons:
 
-- `point` and `retrospective: false` — TASK-019 on TASK-018 review, TASK-015 on TASK-002 review, TASK-020 on TASK-016 review and TASK-002 review, TASK-025 on TASK-024, TASK-016, and TASK-002 review. The gate blocks integration and its owner is dispatchable the moment the reviewed artifact publishes. This is the ideal case.
-- `point` and `retrospective: true` — every round of TASK-001's own review gate, owned by TASK-014, TASK-021, TASK-022, TASK-023, and TASK-027.
+- `point` and `retrospective: false` — TASK-019 on TASK-018 review, TASK-015 on TASK-002 review, TASK-020 on TASK-016 review and TASK-002 review, TASK-025 on TASK-024, TASK-016, and TASK-002 review, TASK-029 on TASK-028, TASK-024, TASK-016, and TASK-002 review. The gate blocks integration and its owner is dispatchable the moment the reviewed artifact publishes. This is the ideal case.
+- `point` and `retrospective: true` — every round of TASK-001's own review gate, owned by TASK-014, TASK-021, TASK-022, TASK-023, TASK-027, and TASK-030.
 - `aggregate` and `retrospective: true` — every runtime assembly gate, and TASK-012 with an additional cross-cohort wait on a passing QA baseline.
 
 No gate in this graph is `aggregate` and `retrospective: false`, which would mean a pre-merge gate that batches — the combination that would actually stall integration.
@@ -153,11 +158,12 @@ Every delayed gate in this graph, its reason, and its accepted risk. No pair out
 | TASK-010 | security | TASK-018 | aggregate | true | No code exists to threat-model before a toolchain exists, so the toolchain integrates at Wave 2 and is assessed at Wave 8 | The toolchain and its devDependency surface sit on the integration branch unassessed for six waves. Mitigations: ADR-0001's zero-third-party-runtime-dependency rule, the dependency inventory TASK-019 must produce as a pre-merge gate, and the baseline security CI workflow |
 | TASK-011 | qa | TASK-003 … TASK-008, TASK-017, TASK-026 | aggregate | true | End-to-end lifecycle validation requires a startable runtime. Pause-resume equivalence, crash-recovery equivalence, and the activation ingress loop are not expressible against a single module | Same exposure window. A defect in an early module surfaces only after every later module was built on it |
 | TASK-012 | performance | TASK-005, TASK-006, TASK-008 | aggregate | true | Throughput, checkpoint cost, and recovery time are properties of the assembled system, and this gate additionally waits on a passing QA baseline so it does not measure a system QA has already rejected | Runs one wave after every other gate. An optimization finding arrives after the code is integrated and reviewed, so remediation reopens an already-gated task |
-| TASK-014, TASK-021, TASK-022, TASK-023, TASK-027 | review | TASK-001 rounds 1 … 6 | point | true | TASK-001 declares `pre_merge_gates: []`. The decomposition is a task-record artifact that every other owner and every subsequent reviewer must read from the integration branch, so each revision is integrated as soon as it is authored rather than held behind its own review gate. Holding it back would leave the graph that schedules every task readable only on one agent branch | The `ACT-001` revision reached `main` at `c325275` while round 3 was unrecorded, and rounds 3, 4, and 5 then all returned `changes-required`. A defective decomposition can therefore be the graph of record for a whole round, and has been for three. Mitigations: the gate owner is `point`, so the delay is one review and not one wave; each round's target commit is immutable, so a later revision cannot rewrite what was reviewed; and TASK-001 cannot reach `done` until a round records a passing verdict, which is enforced separately from integration |
+| TASK-014, TASK-021, TASK-022, TASK-023, TASK-027, TASK-030 | review | TASK-001 rounds 1 … 7 | point | true | TASK-001 declares `pre_merge_gates: []`. The decomposition is a task-record artifact that every other owner and every subsequent reviewer must read from the integration branch, so each revision is integrated as soon as it is authored rather than held behind its own review gate. Holding it back would leave the graph that schedules every task readable only on one agent branch | The `ACT-001` revision reached `main` at `c325275` while round 3 was unrecorded, and rounds 3, 4, and 5 then all returned `changes-required`. A defective decomposition can therefore be the graph of record for a whole round, and has been for three. Mitigations: the gate owner is `point`, so the delay is one review and not one wave; each round's target commit is immutable, so a later revision cannot rewrite what was reviewed; and TASK-001 cannot reach `done` until a round records a passing verdict, which is enforced separately from integration |
 | TASK-019 | review | TASK-018 | point | false | — | — |
 | TASK-015 | review | TASK-002 round 1 | point | false | — | — |
 | TASK-020 | review | TASK-016 round 1, TASK-002 round 2 | point | false | — | — |
 | TASK-025 | review | TASK-024 round 1, TASK-016 round 2, TASK-002 round 3 | point | false | — | — |
+| TASK-029 | review | TASK-028 round 1, TASK-024 round 2, TASK-016 round 3, TASK-002 round 4 | point | false | — | — |
 
 The alternative F-203 offered — splitting each aggregate gate into one gate task per target so every gate is `point` — is rejected here and the rejection is recorded rather than left implicit. Splitting TASK-009 into eight review tasks would produce eight reviewers that each cannot check the cross-module properties the gate exists for, would multiply the report write-scope partition by eight, and would still need a ninth aggregate reviewer for the properties that only exist at assembly. The batching is a real architectural property of the review, not a scheduling oversight; what was wrong in revision 3 was claiming it did not exist.
 
@@ -178,13 +184,13 @@ TASK-005 owns enforcement: it implements ready-task selection over these edge ty
 
 **Verification of this graph against the invariant.**
 
-- Invariants 1 and 5: the topological order `HUMAN-001, TASK-001, TASK-014, TASK-021, TASK-022, TASK-023, TASK-027, TASK-002, TASK-015, TASK-016, TASK-020, TASK-024, TASK-025, TASK-018, TASK-019, TASK-003, TASK-004, TASK-017, TASK-026, TASK-005, TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012, TASK-013` places every task after all of its dependencies and after the pre-merge gate owners of every task it integrates. TASK-012's `gate_passed(LIN-RUNTIME-QA)` edge expands to TASK-011 and points backwards along this order, from position 27 to position 26. The architecture edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 expands to TASK-025 at position 13, ahead of every one of them. No cycle exists.
-- Invariant 2: TASK-009, TASK-010, TASK-011, TASK-012, TASK-014, TASK-015, TASK-019, TASK-020, TASK-021, TASK-022, TASK-023, TASK-025, and TASK-027 are the only tasks with `gate_for` entries. Every edge each of them holds to a task it gates is `review_ready`. TASK-012's only non-`review_ready` edge names `LIN-RUNTIME-QA`, of which TASK-012 records no round. TASK-025 records rounds of `LIN-ARCH-REVIEW` and holds no `gate_passed` edge at all; TASK-027 records a round of `LIN-DECOMP-REVIEW` and holds no `gate_passed` edge at all.
-- Invariant 3: checked pairwise across all 41 pairs in the gate assignment table and both registers.
-- Invariant 4: the only non-empty `pre_merge_gates` are TASK-002 `review` (TASK-015 r1, TASK-020 r2, TASK-025 r3), TASK-016 `review` (TASK-020 r1, TASK-025 r2), TASK-024 `review` (TASK-025 r1), and TASK-018 `review` (TASK-019 r1). None of TASK-015, TASK-019, TASK-020, or TASK-025 holds an `integrated` edge to any of its targets.
-- Invariant 6: no owner-form edge exists. The only lineage-form edges are TASK-012's on `LIN-RUNTIME-QA` and the architecture edge on `LIN-ARCH-REVIEW` held by nine tasks; both lineages are registered. No target-form `gate_passed` edge remains in the graph, so no edge can be ambiguous. Round 5 confirmed this mechanically in frontmatter; F-402 recorded that record **bodies** still described the withdrawn form, and revision 6 removes those passages.
-- Invariant 7: all 41 `gate_for` / `gate_tasks` pairs carry both properties and agree on both across the pair. Each declared `retrospective` was recomputed as `gate ∉ target.pre_merge_gates`: `false` for the seven pairs whose gate is a pre-merge gate — TASK-015 r1, TASK-020 r2, and TASK-025 r3 on TASK-002; TASK-020 r1 and TASK-025 r2 on TASK-016; TASK-025 r1 on TASK-024; TASK-019 r1 on TASK-018 — and `true` for the other 34, which are the 28 runtime and toolchain assembly gates plus the six rounds of TASK-001's own review gate, since TASK-001 declares `pre_merge_gates: []`. Each declared `gate_class` was recomputed against the publication of the artifact that round reviews: `point` for the thirteen decomposition, architecture, and toolchain review rounds, `aggregate` for the 28 assembly gates.
-- Invariant 8: eight lineages are registered. `LIN-DECOMP-REVIEW` declares rounds 1 … 6 with no gap, one task per round except the historical TASK-014 pair at rounds 1 and 2, which is recorded as the single pre-rule exception. `LIN-ARCH-REVIEW` declares rounds 1 … 3, one task each. The remaining six declare round 1 only. Every target named by a pair is a member of its lineage's registered cohort, and every lineage round greater than 1 follows a recorded verdict: `LIN-DECOMP-REVIEW` rounds 2 … 6 follow `changes-required` at `8ac0dbd`, `abb85d9`, `adfb982`, `e8eb23d`, and `667d3b8`; `LIN-ARCH-REVIEW` rounds 2 and 3 follow `changes-required` at `8632469` and `4874a9d`.
+- Invariants 1 and 5: the topological order `HUMAN-001, TASK-001, TASK-014, TASK-021, TASK-022, TASK-023, TASK-027, TASK-030, TASK-002, TASK-015, TASK-016, TASK-020, TASK-024, TASK-025, TASK-028, TASK-029, TASK-018, TASK-019, TASK-003, TASK-004, TASK-017, TASK-026, TASK-005, TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012, TASK-013` places every task after all of its dependencies and after the pre-merge gate owners of every task it integrates. TASK-012's `gate_passed(LIN-RUNTIME-QA)` edge expands to TASK-011 and points backwards along this order, from position 30 to position 29. The architecture edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 expands, at `lineage_round: 4`, to TASK-029 at position 16, ahead of every one of them. No cycle exists.
+- Invariant 2: TASK-009, TASK-010, TASK-011, TASK-012, TASK-014, TASK-015, TASK-019, TASK-020, TASK-021, TASK-022, TASK-023, TASK-025, TASK-027, TASK-029, and TASK-030 are the only tasks with `gate_for` entries. Every edge each of them holds to a task it gates is `review_ready`. TASK-012's only non-`review_ready` edge names `LIN-RUNTIME-QA`, of which TASK-012 records no round. TASK-029 records a round of `LIN-ARCH-REVIEW` and holds no `gate_passed` edge at all; TASK-030 records a round of `LIN-DECOMP-REVIEW` and holds no `gate_passed` edge at all. Neither holds an edge naming a lineage it itself records a round of.
+- Invariant 3: checked pairwise across all 46 pairs in the gate assignment table and both registers.
+- Invariant 4: the only non-empty `pre_merge_gates` are TASK-002 `review` (TASK-015 r1, TASK-020 r2, TASK-025 r3, TASK-029 r4), TASK-016 `review` (TASK-020 r1, TASK-025 r2, TASK-029 r3), TASK-024 `review` (TASK-025 r1, TASK-029 r2), TASK-028 `review` (TASK-029 r1), and TASK-018 `review` (TASK-019 r1). None of TASK-015, TASK-019, TASK-020, TASK-025, or TASK-029 holds an `integrated` edge to any of its targets.
+- Invariant 6: no owner-form edge exists. The only lineage-form edges are TASK-012's on `LIN-RUNTIME-QA` and the architecture edge on `LIN-ARCH-REVIEW` held by nine tasks; both lineages are registered. No target-form `gate_passed` edge remains in the graph, so no edge can be ambiguous. Round 5 confirmed this mechanically in frontmatter; F-402 recorded that record **bodies** still described the withdrawn form, revision 6 removed most of those passages, and round 6 found the last two in TASK-016, which revision 7 strikes and quarantines.
+- Invariant 7: all 46 `gate_for` / `gate_tasks` pairs carry both properties and agree on both across the pair. Each declared `retrospective` was recomputed as `gate ∉ target.pre_merge_gates`: `false` for the **eleven** pairs whose gate is a pre-merge gate — TASK-015 r1, TASK-020 r2, TASK-025 r3, and TASK-029 r4 on TASK-002; TASK-020 r1, TASK-025 r2, and TASK-029 r3 on TASK-016; TASK-025 r1 and TASK-029 r2 on TASK-024; TASK-029 r1 on TASK-028; TASK-019 r1 on TASK-018 — and `true` for the other **35**, which are the 28 runtime and toolchain assembly gates plus the seven rounds of TASK-001's own review gate, since TASK-001 declares `pre_merge_gates: []`. Each declared `gate_class` was recomputed against the publication of the artifact that round reviews: `point` for the **eighteen** decomposition, architecture, and toolchain review rounds, `aggregate` for the 28 assembly gates. 11 + 35 = 46 and 18 + 28 = 46, so both partitions account for every pair.
+- Invariant 8: eight lineages are registered. `LIN-DECOMP-REVIEW` declares rounds 1 … 7 with no gap, one task per round except the historical TASK-014 pair at rounds 1 and 2, which is recorded as the single pre-rule exception. `LIN-ARCH-REVIEW` declares rounds 1 … 4, one task each. The remaining six declare round 1 only. Every target named by a pair is a member of its lineage's registered cohort — including TASK-028, which joins the `LIN-ARCH-REVIEW` cohort at round 4 — and every lineage round greater than 1 follows a recorded verdict: `LIN-DECOMP-REVIEW` rounds 2 … 7 follow `changes-required` at `8ac0dbd`, `abb85d9`, `adfb982`, `e8eb23d`, `667d3b8`, and `710351fd`; `LIN-ARCH-REVIEW` rounds 2 … 4 follow `changes-required` at `8632469`, `4874a9d`, and `aa38c7d2`.
 
 ## Ownership and dependency order
 
@@ -192,12 +198,12 @@ TASK-005 owns enforcement: it implements ready-task selection over these edge ty
 |---|---|---|---|---|---|
 | TASK-001 | Decompose the autonomous multi-agent runtime | orchestrator | claude | — | review |
 | TASK-002 | Runtime architecture and ADRs | architect | claude | — | review |
-| TASK-003 | Durable run state and checkpoints | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 3)`; TASK-018 `integrated` | blocked |
-| TASK-004 | Provider adapters and agent workers | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 3)`; TASK-018 `integrated` | blocked |
-| TASK-005 | Scheduling, leases, fencing, bounded concurrency | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 3)`; TASK-003, TASK-004, TASK-026 `integrated` | blocked |
-| TASK-006 | Supervisor core and state machine | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 3)`; TASK-003, TASK-004, TASK-005, TASK-017 `integrated` | blocked |
-| TASK-007 | Lifecycle control and one-input bootstrap | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 3)`; TASK-006 `integrated` | blocked |
-| TASK-008 | Crash recovery, timeouts, idempotent retries | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 3)`; TASK-003, TASK-004, TASK-006, TASK-017 `integrated` | blocked |
+| TASK-003 | Durable run state and checkpoints | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)`; TASK-018 `integrated` | blocked |
+| TASK-004 | Provider adapters and agent workers | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)`; TASK-018 `integrated` | blocked |
+| TASK-005 | Scheduling, leases, fencing, bounded concurrency | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)`; TASK-003, TASK-004, TASK-026 `integrated` | blocked |
+| TASK-006 | Supervisor core and state machine | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)`; TASK-003, TASK-004, TASK-005, TASK-017 `integrated` | blocked |
+| TASK-007 | Lifecycle control and one-input bootstrap | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)`; TASK-006 `integrated` | blocked |
+| TASK-008 | Crash recovery, timeouts, idempotent retries | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)`; TASK-003, TASK-004, TASK-006, TASK-017 `integrated` | blocked |
 | TASK-009 | Independent code review of the runtime | reviewer | gpt | TASK-003 … TASK-008, TASK-017, TASK-026 `review_ready` | blocked |
 | TASK-010 | Security review of the runtime | security | gpt | TASK-003 … TASK-008, TASK-017, TASK-018, TASK-026 `review_ready` | blocked |
 | TASK-011 | QA validation of the runtime | qa | gemini | TASK-003 … TASK-008, TASK-017, TASK-026 `review_ready` | blocked |
@@ -205,22 +211,43 @@ TASK-005 owns enforcement: it implements ready-task selection over these edge ty
 | TASK-013 | Task-record lifecycle transitions and gate closure | orchestrator | claude | — (event-triggered) | blocked, quiescent |
 | TASK-014 | Independent review of this decomposition, rounds 1–2 | reviewer | gpt | TASK-001 `review_ready` | done |
 | TASK-015 | Independent architecture review of TASK-002, round 1 | reviewer | gpt | TASK-002 `review_ready` | done |
-| TASK-016 | Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 `gate_recorded` | review, `changes-required` at round 1 |
-| TASK-017 | Agent workspace lifecycle automation | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 3)`; TASK-003, TASK-018 `integrated` | blocked |
-| TASK-018 | Runtime toolchain bootstrap | devops | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 3)` | blocked |
+| TASK-016 | Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 `gate_recorded` | review, `changes-required` at rounds 1 and 2 |
+| TASK-017 | Agent workspace lifecycle automation | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)`; TASK-003, TASK-018 `integrated` | blocked |
+| TASK-018 | Runtime toolchain bootstrap | devops | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)` | blocked |
 | TASK-019 | Independent review of the runtime toolchain | reviewer | gpt | TASK-018 `review_ready` | blocked |
 | TASK-020 | Independent review of the architecture amendment | reviewer | gpt | TASK-016 `review_ready` | done, `changes-required` |
 | TASK-021 | Independent re-review of the corrected decomposition, round 3 | reviewer | gpt | TASK-001 `review_ready` | done |
 | TASK-022 | Independent re-review of the corrected decomposition, round 4 | reviewer | gpt | TASK-001 `review_ready` | done, `changes-required` |
 | TASK-023 | Independent re-review of the corrected decomposition, round 5 | reviewer | gpt | TASK-001 `review_ready` | done, `changes-required` |
-| TASK-024 | Second architecture amendment: ingress inbox and revision-5 scheduling vocabulary | architect | claude | TASK-020 `gate_recorded` | review |
-| TASK-025 | Independent review of the second architecture amendment | reviewer | gpt | TASK-024 `review_ready` | ready |
-| TASK-026 | Durable ingress inbox and activation cursor store | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 3)`; TASK-003, TASK-018 `integrated` | blocked |
-| TASK-027 | Independent re-review of the corrected decomposition, round 6 | reviewer | gpt | TASK-001 `review_ready` | ready |
+| TASK-024 | Second architecture amendment: ingress inbox and revision-5 scheduling vocabulary | architect | claude | TASK-020 `gate_recorded` | review, `changes-required` at round 1 |
+| TASK-025 | Independent review of the second architecture amendment | reviewer | gpt | TASK-024 `review_ready` | done, `changes-required` |
+| TASK-026 | Durable ingress inbox and activation cursor store | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)`; TASK-003, TASK-018 `integrated` | blocked |
+| TASK-027 | Independent re-review of the corrected decomposition, round 6 | reviewer | gpt | TASK-001 `review_ready` | done, `changes-required` |
+| TASK-028 | Third architecture amendment: round-3 blocking findings and the approved pre-dispatch observer | architect | claude | TASK-025 `gate_recorded` | ready |
+| TASK-029 | Independent review of the third architecture amendment | reviewer | gpt | TASK-028 `review_ready` | blocked |
+| TASK-030 | Independent re-review of the corrected decomposition, round 7 | reviewer | gpt | TASK-001 `review_ready` | ready |
 
 `HUMAN-001` is resolved. Commit `fb9f45c`, `chore: assign runtime toolchain ownership to devops`, adopted option A and added `package.json`, `package-lock.json`, `tsconfig.json`, and `scripts/quality/**` to `assignments.devops.write_scope`.
 
-`HUMAN-002` is **open**: authorize a durable append-only bootstrap ingress inbox at a governance-controlled path outside `tasks/**` on a non-agent branch, and name who may append to it. It is required by the `durable-bootstrap-append` dispatch contract above. **No task carries a `human_decision` edge**, including on `HUMAN-002`: adding one to TASK-013 would give an event-triggered task a scheduling dependency, and adding one to any other task would block work that does not depend on it. The obligation is tracked in the ownership-gaps table and in TASK-013's `activation.bootstrap_dispatch_contract` field, and its absence is recorded as an open High finding rather than as a satisfied precondition.
+### `HUMAN-002` — approved, and what the approval does and does not do
+
+**`HUMAN-002` is approved.** The user approved it in the control session on **2026-08-05**. The selected option is a **Runtime-owned durable pre-dispatch ingress observer and collector**:
+
+- It is **outside `tasks/**`** and runs in the **runtime control plane**.
+- **Before scheduler selection**, it validates and deduplicates an external source fact, then **appends the immutable inbox entry through the TASK-026 ingress store**.
+- It then **exposes or signals the new high-water mark to TASK-005 scheduling**.
+- **TASK-013 / Orchestrator consumes entries and records ledger rows and cursor effects, and is prohibited from appending its own trigger.**
+- **Interim operator authorization may remain only until the durable observer is implemented and validated. It is not the final autonomous contract.**
+
+The decision is transcribed verbatim in `tasks/TASK-013-ACTIVATION-LOG.md` as model correction `MC-006`. This graph represents it; it did not author it and does not extend it.
+
+**What the approval settles.** It answers the question F-401's second half asked — *who may append, and where* — and it answers it without granting the Orchestrator an append path, so the F-201 self-trigger stays structurally excluded. The prohibition on the recurring task appending its own trigger is now an explicit clause of the approved decision rather than an inference from a write scope.
+
+**What the approval does not settle.** It creates no capability. The collector is not implemented, so nothing is appended before dispatch, `ingress_seq` does not rise from it, and the durable predicate is still not what authorizes a dispatch. TASK-013's `activation.bootstrap_dispatch_contract` therefore still reads `interim-operator-authorized`, and **F-401 is not claimed resolved by this approval**. What changed is the exit condition: it was "a human must decide", and it is now "the approved collector must be built and independently validated".
+
+**The decision has no durable governance commit.** `HUMAN-001` was recorded as a tracked commit on a non-agent branch, `fb9f45c`, which is what made it an ingress fact of class `human_decision_recorded`. `HUMAN-002` was given in the control session, so its only durable form is this Orchestrator's transcription inside `tasks/**`. It is therefore **not an ingress fact**, it raised no `ingress_seq`, and it has no inbox entry. That is recorded here rather than glossed, and a governance commit giving it the same provenance `HUMAN-001` has remains available to the user; no agent role can author one.
+
+**No task carries a `human_decision` edge**, including on `HUMAN-002`: adding one to TASK-013 would give an event-triggered task a scheduling dependency, and adding one to any other task would block work that does not depend on it. The routing is in the requirements table below and in the ownership-gaps table.
 
 ## Gate assignment
 
@@ -233,13 +260,18 @@ Every `required_gates` entry has a named owner, every round is recorded, and eve
 | TASK-001 | review | TASK-021 r3 | `changes-required` | `LIN-DECOMP-REVIEW` | 3 |
 | TASK-001 | review | TASK-022 r4 | `changes-required` | `LIN-DECOMP-REVIEW` | 4 |
 | TASK-001 | review | TASK-023 r5 | `changes-required` | `LIN-DECOMP-REVIEW` | 5 |
-| TASK-001 | review | TASK-027 r6 | pending | `LIN-DECOMP-REVIEW` | 6 |
+| TASK-001 | review | TASK-027 r6 | `changes-required` | `LIN-DECOMP-REVIEW` | 6 |
+| TASK-001 | review | TASK-030 r7 | pending | `LIN-DECOMP-REVIEW` | 7 |
 | TASK-002 | review | TASK-015 r1 | `changes-required` | `LIN-ARCH-REVIEW` | 1 |
 | TASK-002 | review | TASK-020 r2 | `changes-required` | `LIN-ARCH-REVIEW` | 2 |
-| TASK-002 | review | TASK-025 r3 | pending | `LIN-ARCH-REVIEW` | 3 |
+| TASK-002 | review | TASK-025 r3 | `changes-required` | `LIN-ARCH-REVIEW` | 3 |
+| TASK-002 | review | TASK-029 r4 | pending | `LIN-ARCH-REVIEW` | 4 |
 | TASK-016 | review | TASK-020 r1 | `changes-required` | `LIN-ARCH-REVIEW` | 2 |
-| TASK-016 | review | TASK-025 r2 | pending | `LIN-ARCH-REVIEW` | 3 |
-| TASK-024 | review | TASK-025 r1 | pending | `LIN-ARCH-REVIEW` | 3 |
+| TASK-016 | review | TASK-025 r2 | `changes-required` | `LIN-ARCH-REVIEW` | 3 |
+| TASK-016 | review | TASK-029 r3 | pending | `LIN-ARCH-REVIEW` | 4 |
+| TASK-024 | review | TASK-025 r1 | `changes-required` | `LIN-ARCH-REVIEW` | 3 |
+| TASK-024 | review | TASK-029 r2 | pending | `LIN-ARCH-REVIEW` | 4 |
+| TASK-028 | review | TASK-029 r1 | pending | `LIN-ARCH-REVIEW` | 4 |
 | TASK-003 | review / security / qa | TASK-009 / TASK-010 / TASK-011, r1 | pending | runtime lineages | 1 |
 | TASK-004 | review / security / qa | TASK-009 / TASK-010 / TASK-011, r1 | pending | runtime lineages | 1 |
 | TASK-005 | review / security / qa / performance | TASK-009 / TASK-010 / TASK-011 / TASK-012, r1 | pending | runtime lineages | 1 |
@@ -251,21 +283,22 @@ Every `required_gates` entry has a named owner, every round is recorded, and eve
 | TASK-018 | review | TASK-019 r1 | pending | `LIN-TOOLCHAIN-REVIEW` | 1 |
 | TASK-018 | security | TASK-010 r1 | pending | `LIN-TOOLCHAIN-SECURITY` | 1 |
 
-Forty-one `gate_for` / `gate_tasks` pairs are declared: 6 on TASK-001, 3 on TASK-002, 2 on TASK-016, 1 on TASK-024, 3 each on TASK-003, TASK-004, TASK-007, TASK-017, and TASK-026, 4 each on TASK-005, TASK-006, and TASK-008, and 2 on TASK-018. Each pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in the pair's own frontmatter and summarized in the registers above; they are not restated here or in any record body.
+**Forty-six** `gate_for` / `gate_tasks` pairs are declared, stated by enumeration so the total can be recomputed rather than trusted: 7 on TASK-001, 4 on TASK-002, 3 on TASK-016, 2 on TASK-024, 1 on TASK-028, 3 each on TASK-003, TASK-004, TASK-007, TASK-017, and TASK-026, 4 each on TASK-005, TASK-006, and TASK-008, and 2 on TASK-018. Revision 7 added five: one decomposition round and the four relations TASK-029 carries. Each pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in the pair's own frontmatter and summarized in the registers above; they are not restated here or in any record body.
 
 Author and gate owner are always different roles, different execution contexts, and different LLM families. No task gates itself, and no remediation returns to the execution context that reviewed it.
 
 Two properties of this table are deliberate and are stated without overclaiming:
 
-1. **A pre-merge gate owner is always `point`, and no pre-merge gate is `aggregate`.** TASK-015, TASK-019, TASK-020, and TASK-025 are each dispatchable when the artifact they review publishes, so no gate that blocks integration ever waits several waves.
-2. **A superseding round is a new task, not a re-entrant one, and the relation that survives supersession is the lineage.** TASK-014, TASK-015, TASK-020, TASK-021, TASK-022, and TASK-023 recorded durable verdicts and are `done`. TASK-025 and TASK-027 perform the next rounds.
+1. **A pre-merge gate owner is always `point`, and no pre-merge gate is `aggregate`.** TASK-015, TASK-019, TASK-020, TASK-025, and TASK-029 are each dispatchable when the artifact they review publishes, so no gate that blocks integration ever waits several waves.
+2. **A superseding round is a new task, not a re-entrant one, and the relation that survives supersession is the lineage.** TASK-014, TASK-015, TASK-020, TASK-021, TASK-022, TASK-023, TASK-025, and TASK-027 recorded durable verdicts and are `done`. TASK-029 and TASK-030 perform the next rounds.
 
 ## Execution waves
 
 ```text
-Wave 0   TASK-027                            decomposition re-review round 6
+Wave 0   TASK-030                            decomposition re-review round 7
          TASK-013                            event-triggered, quiescent, not a wave member
-Wave 1   TASK-025                            gate the second amendment before it merges
+Wave 1   TASK-028                            third architecture amendment, ready now
+         TASK-029                            gate the third amendment before it merges
 Wave 2   TASK-018                            toolchain, needs the amended architecture approved
          TASK-019                            gate the toolchain before it merges
 Wave 3   TASK-003 | TASK-004                 parallel, disjoint scopes, both need the toolchain integrated
@@ -277,7 +310,7 @@ Wave 8   TASK-009 | TASK-010 | TASK-011      parallel, separate execution contex
 Wave 9   TASK-012                            needs a passing QA baseline, not merely a recorded one
 ```
 
-Revision 5 inserted TASK-026 at Wave 4 and moved the scheduler and everything after it one wave later, because the scheduler's ingress observer now reads a durable inbox that TASK-026 owns. Revision 6 changes only Wave 0 and Wave 1 membership: TASK-024 published and left Wave 0, TASK-025 is `ready` at Wave 1, and TASK-027 replaces TASK-023 at Wave 0. TASK-013 is not a wave and is not claimed at wave boundaries on a timer. It is dispatched only when an unconsumed ingress fact exists; see the activation model below.
+Revision 5 inserted TASK-026 at Wave 4 and moved the scheduler and everything after it one wave later, because the scheduler's ingress observer now reads a durable inbox that TASK-026 owns. Revision 7 changes only Wave 0 and Wave 1 membership: TASK-025 and TASK-027 recorded their verdicts and left, TASK-030 replaces TASK-027 at Wave 0, and TASK-028 and TASK-029 replace TASK-025 at Wave 1. **Wave 1 has now repeated three times** — amend, gate, fail, amend again — and every later wave has moved with it. That is the cost the aggregate register records for the architecture lineage, and it is stated rather than absorbed silently into the wave numbering. TASK-013 is not a wave and is not claimed at wave boundaries on a timer. It is dispatched only when an unconsumed ingress fact exists; see the activation model below.
 
 ## TASK-013 activation and event-ingress model
 
@@ -384,7 +417,7 @@ Revision 5 said the consumption ledger was "the durable record of the inbox unti
 | Phase | Who appends, before dispatch | Who evaluates the predicate and dispatches | Status |
 |---|---|---|---|
 | **Runtime phase** | The ingress adapters over the durable inbox, owned by **TASK-026** | The ingress observer in `src/orchestrator/scheduling/`, owned by **TASK-005**, evaluating `ingress_seq > last_consumed_event_seq` | The durable design |
-| **Bootstrap phase, corrected** — `durable-bootstrap-append` | An **authorized bootstrap appender** commits the entry to the durable bootstrap inbox at a governance-controlled path **outside `tasks/**`** on a non-agent branch, before TASK-013 is selected. The appender is the human operator or an operator-run tool acting under human authority — never a TASK-013 activation and never any agent writing its own trigger | The same predicate, evaluated by the operator against the durable bootstrap inbox | **Specified, not yet operative.** The path, the file format, and the append operation are a governance and architecture obligation, routed below |
+| **Bootstrap phase, corrected** — `durable-bootstrap-append` | The **Runtime-owned durable pre-dispatch ingress observer and collector** that `HUMAN-002` approved on 2026-08-05. It lives **outside `tasks/**`** in the **runtime control plane**, and before TASK-013 is selected it validates and deduplicates an external source fact and appends the immutable inbox entry **through the TASK-026 ingress store** — never a TASK-013 activation, and never any agent writing its own trigger | The same predicate, evaluated against the new high-water mark the collector **exposes or signals to TASK-005 scheduling** | **Approved and specified; not yet operative.** The contract is routed to TASK-028, the collector to TASK-026, the signal consumption to TASK-005, and the validation to TASK-009, TASK-010, and TASK-011 — see below. Revision 6 named the appender as the human operator or an operator-run tool; `HUMAN-002` chose a runtime-owned component instead, and this row records the approved option rather than the superseded proposal |
 | **Bootstrap phase, interim** — `interim-operator-authorized` | Nothing is appended before dispatch. The operator selects TASK-013 directly on the strength of a published producer commit | The human operator, on their own authority | **In force today.** Named, bounded, and declared a limitation rather than presented as the durable predicate |
 
 **TASK-013 declares which contract it is running under**, in `activation.bootstrap_dispatch_contract`. While that field is `interim-operator-authorized`, the graph makes no claim that the durable inbox predicate authorized the dispatch. This is the honest statement F-401 asked for, and it replaces the claim that the substitution was confined to liveness.
@@ -393,11 +426,12 @@ What the corrected `durable-bootstrap-append` contract requires, and where each 
 
 | Requirement | Owner | Status |
 |---|---|---|
-| A durable append-only bootstrap inbox artifact at a governance-controlled path outside `tasks/**`, on a non-agent branch, writable only under human authority | human governance decision **HUMAN-002**, then **TASK-018** for any tooling that reads or writes it in CI | Open. No agent role may create it: the Orchestrator's configured scope is `tasks/**`, `.agents/ROUTING.md`, and `.agents/HANDOFF.md`, and an Orchestrator-authored append would reintroduce the F-201 self-trigger exactly |
-| The contract representation of the split entry / ledger-row schemas, the removal of `consumed_by` from the inbox entry, and the two named bootstrap dispatch contracts | **TASK-024**'s successor amendment in `LIN-ARCH-REVIEW` | Open. The published TASK-024 amendment at `c2ee3eb` predates this correction and still declares `consumedBy` on the inbox entry at `docs/architecture/runtime/INTERFACE-CONTRACTS.md:551`. **TASK-025** decides that; this graph does not decide it for them |
-| The store and adapters with no `consumed_by` on an entry, and the authorized-appender check | **TASK-026** | Routed |
-| The observer, the predicate, cursor validation, the one-commit rule, and rejection of a dispatch whose declared contract is not satisfied | **TASK-005** | Routed |
-| End-to-end proof that a durable entry exists **before** dispatch, and that no entry is mutated by consumption | **TASK-011** `V11-F401-PREDISPATCH`, with the static half **TASK-009** `V9-F401-SCHEMA` and appender authenticity **TASK-010** `V10-F401-AUTH` | Routed |
+| **The decision itself**: who may append, where, and under what authority | human governance decision **HUMAN-002** | **Approved** on 2026-08-05, in the control session. A Runtime-owned durable pre-dispatch ingress observer and collector, outside `tasks/**`, in the runtime control plane. Transcribed as `MC-006`. It has no durable governance commit; unlike `HUMAN-001` at `fb9f45c` it is not an ingress fact and raised no `ingress_seq` |
+| The **contract representation** of the approved collector, the split entry / ledger-row schemas, the removal of `consumed_by` from the inbox entry, and the two named bootstrap dispatch contracts | **TASK-028**, as scope item 9 and part of A-201 | Routed. `TASK-025` judged the published TASK-024 amendment at `c2ee3eb` and found four of six Part D checks **not satisfied**: `consumedBy` remains at `docs/architecture/runtime/INTERFACE-CONTRACTS.md:551`, neither contract is named, `appendedBy` permits "adapter or activation", and ADR-0017 still claims discovery affects only liveness. **TASK-029** decides TASK-028 |
+| The **collector**: validation, deduplication, the append through the store, and the high-water-mark signal, with the store and adapters carrying no `consumed_by` on an entry and enforcing the authorized-appender check | **TASK-026** | Routed. Implemented inside `src/orchestrator/ingress/**` unless the approved TASK-028 contract places it elsewhere, in which case the placement returns to the Orchestrator for a write-scope correction before dispatch |
+| Consumption of the collector's signal, the observer, the predicate, cursor validation, the one-commit rule, and rejection of a dispatch whose declared contract is not satisfied. **This module does not append** | **TASK-005** | Routed |
+| Any CI tooling that reads or writes the durable inbox | **TASK-018** | Routed, and unchanged by the decision |
+| End-to-end proof that a durable entry exists **before** dispatch, that no entry is mutated by consumption, and that the collector's append precedes scheduler selection | **TASK-011** `V11-F401-PREDISPATCH`, with the static half and the module-boundary check **TASK-009** `V9-F401-SCHEMA` and appender authority **TASK-010** `V10-F401-AUTH` | Routed |
 
 What is unchanged and remains true under both contracts:
 
@@ -406,6 +440,8 @@ What is unchanged and remains true under both contracts:
 - **Exactly-once consumption is preserved by the one-commit rule**, independently of which contract authorized the dispatch.
 
 What is no longer claimed: that during bootstrap the durable predicate is operative, and that discovery affects only liveness. Under `interim-operator-authorized` it affects dispatch validity, and that is recorded as an open High finding rather than as a resolved one.
+
+**And what an approved `HUMAN-002` still does not claim.** The decision names the appender and fixes its ownership, its location, and its ordering. It builds nothing. Until the collector exists and TASK-009, TASK-010, and TASK-011 have validated it, no entry is appended before dispatch, `bootstrap_dispatch_contract` stays `interim-operator-authorized`, and **F-401 is not resolved**. `ACT-006` itself ran under the interim contract, with the approval already recorded. A reader who treats the approval as the capability reproduces the exact overclaim F-401 identified, one level up.
 
 ### Starvation bound
 
@@ -425,8 +461,9 @@ The scheduler must dispatch TASK-013 within a stated bounded number of schedulin
 | Starvation bound under a saturated ready set | TASK-005 | TASK-009 `V9-A004-ACT`, TASK-011 `V11-A004-ACT` |
 | Lineage-form edge resolution, withdrawal of the owner form, invariant 8 | TASK-005 | TASK-009 `V9-F302-LINEAGE`, TASK-011 `V11-F302-LINEAGE` |
 | End-to-end loop: gate report publication → **durable pre-dispatch append** → observation → dispatch → effects commit → cursor advance → quiescence | — | TASK-011 `V11-A004-ACT` and `V11-F401-PREDISPATCH`, as executable end-to-end tests |
-| Contract representation of the inbox, the epochs, and the revision-5 scheduling vocabulary | TASK-024, published at `c2ee3eb` | TASK-025 |
-| Contract representation of the split entry / ledger-row schemas, the absence of `consumed_by` on an inbox entry, and the two named bootstrap dispatch contracts | the next `LIN-ARCH-REVIEW` amendment, created after TASK-025 records its verdict | the `LIN-ARCH-REVIEW` round that follows it |
+| Contract representation of the inbox, the epochs, and the revision-5 scheduling vocabulary | TASK-024, published at `c2ee3eb` and judged `changes-required` at `aa38c7d2` | TASK-025, recorded |
+| Contract representation of the split entry / ledger-row schemas, the absence of `consumed_by` on an inbox entry, the two named bootstrap dispatch contracts, and the approved `HUMAN-002` collector | **TASK-028** | **TASK-029** |
+| The `HUMAN-002` collector: pre-dispatch validation, deduplication, append through the store, and the high-water-mark signal | TASK-026, with the signal consumed by TASK-005 | TASK-009 `V9-F401-SCHEMA`, TASK-010 `V10-F401-AUTH`, TASK-011 `V11-F401-PREDISPATCH` |
 
 The six failure modes F-301 named are each a required test: backdated publication, one commit matching several classes, deletion of the producing ref, discovery of an unseen historical fact, publication of the activation's own effects, and crash replay between dispatch and cursor advance. They are assigned to `V11-F301-STORE` and `V11-F301-CLASS`, with the static half assigned to `V9-F301-STORE` and `V9-F301-CLASS`. The two failure modes F-401 named — dispatch with no durable pre-dispatch entry, and an entry whose own consumption mutates it — are assigned to `V11-F401-PREDISPATCH`, with the static schema half assigned to `V9-F401-SCHEMA` and appender authenticity to `V10-F401-AUTH`.
 
@@ -455,7 +492,7 @@ The architecture at commit `9576fc9` on `agent/claude/architect/task-002` was th
 | No task owns the root toolchain manifests or `scripts/quality/**` | TASK-018 | Ownership resolved by HUMAN-001 at `fb9f45c`; now blocked only on the architecture gate |
 | No module owns the agent workspace lifecycle that `AgentInvocation.worktreePath` presupposes | TASK-016 then TASK-017 | TASK-016 published `WORKSPACE-LIFECYCLE.md` and ADR-0011 at `8d0c570`. TASK-020 judged the module ownership documented but not implementation-ready: A-102 and A-103 record that registration and workspace intent cannot be made durable before their side effects. TASK-024 published its remediation at `c2ee3eb`; TASK-025 decides whether it is resolved |
 | No module owns the durable ingress inbox the activation model requires | TASK-024 then TASK-026 | Opened by F-301. TASK-024 published a module and contract at `c2ee3eb`; TASK-025 decides whether it satisfies the eleven Part B checks and the Part D correction F-401 requires. TASK-026 implements it |
-| **No authorized producer can append a durable ingress entry before TASK-013 is selected during bootstrap** | **HUMAN-002**, then TASK-018 for any tooling | **Open.** Opened by F-401. Every agent role's configured write scope excludes a path suitable for it, and an Orchestrator-authored append would reintroduce F-201's self-trigger. Until a human authorizes the durable bootstrap inbox, TASK-013 runs under the declared `interim-operator-authorized` dispatch contract, which the graph names as a limitation rather than presenting as the durable predicate |
+| **No authorized producer can append a durable ingress entry before TASK-013 is selected during bootstrap** | **HUMAN-002** decided it; **TASK-028** for the contract, **TASK-026** for the collector, **TASK-005** for the signal, TASK-018 for any CI tooling | **Decided, still open as a capability.** Opened by F-401. `HUMAN-002` was approved on 2026-08-05 and assigns the append to a Runtime-owned durable pre-dispatch collector outside `tasks/**`, so the ownership gap now has an owner and a shape — and an Orchestrator-authored append is still excluded, which is what keeps F-201's self-trigger closed. The gap itself remains until the collector is implemented and independently validated; TASK-013 runs under the declared `interim-operator-authorized` dispatch contract until then, which the graph names as a limitation rather than presenting as the durable predicate |
 
 ## Write-scope partition
 
@@ -490,19 +527,24 @@ Two tasks may run concurrently only when their write scopes are disjoint **and**
 | TASK-025 | `reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md` | — |
 | TASK-026 | `src/orchestrator/ingress/**`, `tests/unit/orchestrator/ingress/**` | — |
 | TASK-027 | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-6.md` | — |
+| TASK-028 | `docs/architecture/ARCHITECTURE.md`, `docs/architecture/runtime/**`, `docs/adr/**`, `diagrams/architecture/**` | `architecture-docs` |
+| TASK-029 | `reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md` | — |
+| TASK-030 | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-7.md` | — |
 
 Every scope is a subset of its role's configured scope in `config/agents/settings.yaml` at commit `fb9f45c`. TASK-026's paths are inside the runtime role's configured `src/orchestrator/**` and `tests/unit/orchestrator/**`, and are disjoint from TASK-003's `state/`, TASK-005's `scheduling/`, TASK-006's `supervisor/`, TASK-007's `lifecycle/`, TASK-008's `recovery/`, and TASK-017's `workspace/`.
 
-The ten reviewer-owned report files — TASK-009's two paths, TASK-014, TASK-015, TASK-019, TASK-020, TASK-021, TASK-022, TASK-023, TASK-025, and TASK-027 — are mutually path-disjoint by construction, so any of them may run concurrently.
+The twelve reviewer-owned report files — TASK-009's two paths, TASK-014, TASK-015, TASK-019, TASK-020, TASK-021, TASK-022, TASK-023, TASK-025, TASK-027, TASK-029, and TASK-030 — are mutually path-disjoint by construction, so any of them may run concurrently.
+
+**TASK-028 introduces no new overlap.** Its scope is disjoint from every non-architecture task's scope: no path it may write is inside any reviewer, security, QA, performance, runtime, devops, or orchestrator task's scope. It is identical to TASK-002's, TASK-016's, and TASK-024's, because an amendment necessarily edits the documents the previous amendment authored, and that is the overlap the `architecture-docs` lock already exists to serialize. The lock's holder set grows from three to four; the number of distinct overlapping *scopes* stays one.
 
 ### Overlaps that remain, and how they are serialized
 
-Three tasks share the `architecture-docs` scope and two share `task-records`, because in each case a later task exists to revise what an earlier one produced. They declare a shared `resource_lock`.
+Four tasks share the `architecture-docs` scope and two share `task-records`, because in each case a later task exists to revise what an earlier one produced. They declare a shared `resource_lock`.
 
 | Lock | Held by | Why the overlap is real |
 |---|---|---|
 | `task-records` | TASK-001, TASK-013 | Both own `tasks/**`. TASK-013 exists to keep every task record current, which is by definition the surface TASK-001 created |
-| `architecture-docs` | TASK-002, TASK-016, TASK-024 | TASK-016 amends documents TASK-002 authored, and TASK-024 amends the same documents again |
+| `architecture-docs` | TASK-002, TASK-016, TASK-024, TASK-028 | TASK-016 amends documents TASK-002 authored, and TASK-024 and TASK-028 amend the same documents again. Each new failing architecture round adds one holder; nothing in the model removes one |
 
 Resource-lock semantics, which TASK-005 must enforce at admission alongside write-scope exclusion:
 
@@ -511,7 +553,7 @@ Resource-lock semantics, which TASK-005 must enforce at admission alongside writ
 3. The scheduler refuses admission of a task whose lock is held and returns it to the ready set rather than queueing behind it.
 4. A resource lock is declared in the task record's `resource_lock` field and is machine-readable.
 
-At revision 6, `architecture-docs` is **held**: the TASK-024 execution published `c2ee3eb` but its lock file is still present in the shared Git common directory, so no other holder may be claimed. `task-records` is held by the TASK-013 activation that is running; TASK-001 is not claimed. TASK-025 holds no lock and is unaffected. Releasing a stale lock is a human decision under the concurrent-execution protocol; this activation records the state and does not force-release it.
+At revision 7, `architecture-docs` is **free**: the stale TASK-024 lock file that revision 6 recorded is gone from the shared Git common directory, so TASK-028 may be claimed. That is what makes TASK-028 `ready` rather than blocked on the lock. `task-records` is held by the TASK-013 activation that is running; TASK-001 is not claimed. TASK-029 and TASK-030 hold no lock and are unaffected. The `ACT-006` activation read the lock directory directly rather than inferring the state from the earlier record: it contains exactly one entry, `task-013.json`, naming this worktree and session.
 
 ## Task-record lifecycle ownership
 
@@ -520,8 +562,8 @@ At revision 6, `architecture-docs` is **held**: the TASK-024 execution published
 | Actor | May write | Must not write |
 |---|---|---|
 | Implementation owner (TASK-003 … TASK-008, TASK-017, TASK-018, TASK-026) | Its own source and test scope; the commit message; the pull request description | Any file under `tasks/` |
-| Validating owner (TASK-009 … TASK-012, TASK-014, TASK-015, TASK-019 … TASK-023, TASK-025, TASK-027) | Its own report scope; the pull request description | Any file under `tasks/` |
-| Architect (TASK-002, TASK-016, TASK-024) | Its architecture scope; the commit message; the pull request description | Any file under `tasks/` |
+| Validating owner (TASK-009 … TASK-012, TASK-014, TASK-015, TASK-019 … TASK-023, TASK-025, TASK-027, TASK-029, TASK-030) | Its own report scope; the pull request description | Any file under `tasks/` |
+| Architect (TASK-002, TASK-016, TASK-024, TASK-028) | Its architecture scope; the commit message; the pull request description | Any file under `tasks/` |
 | Orchestrator (TASK-013) | Every task record, including `status`, lifecycle directory, Handoff sections, the activation log, and this graph | Any source, test, report, or architecture file |
 
 Each owner records its handoff where its own scope allows, and TASK-013 transcribes it into the task record, naming the source. Every task record carries a "Task-record lifecycle" section stating this, and no record instructs its owner to move itself.
@@ -572,9 +614,11 @@ Every row names an implementing task and at least one independent validating tas
 | Task-branch publication, idempotent pull-request creation, explicit blocked remote outcome (F-105) | TASK-017 | TASK-009, TASK-010, TASK-011 | **TASK-009 `V9-F105`**; **TASK-010 `V10-F105`**; **TASK-011 `V11-F105`** |
 | Crash-safe workspace cleanup and reconciliation | TASK-017, TASK-008 | TASK-011, TASK-012 | TASK-011 workspace lifecycle validation; TASK-012 workspace cost measurement |
 | Compiling, testable toolchain | TASK-018 | TASK-019, TASK-010 | TASK-019 ADR-0001 parameter judgments and dependency inventory; **TASK-010 `V10-TOOLCHAIN`** |
-| Workspace lifecycle architecture | TASK-016, TASK-024 | TASK-025 | TASK-025 Part C module-map and contract criteria |
-| Amended runtime contracts for A-001 … A-004 and A-101 … A-105 | TASK-016, TASK-024 | TASK-025 | TASK-025 Part A dispositions |
-| Contract representation of the split ingress schemas and the named bootstrap dispatch contracts (F-401) | the next `LIN-ARCH-REVIEW` amendment | TASK-025, then the round after it | TASK-025 Part D criteria |
+| Workspace lifecycle architecture | TASK-016, TASK-024, TASK-028 | TASK-029 | TASK-029 Part C module-map and contract criteria |
+| Amended runtime contracts for A-001 … A-004, A-101 … A-105, and A-201 … A-208 | TASK-016, TASK-024, TASK-028 | TASK-029 | TASK-029 Part A dispositions |
+| Contract representation of the split ingress schemas and the named bootstrap dispatch contracts (F-401) | TASK-028 | TASK-029 | TASK-029 Part B criteria. TASK-025 assessed the TASK-024 attempt under its own Part D and recorded four of six checks `not satisfied` |
+| Contract representation of the approved `HUMAN-002` runtime-owned pre-dispatch ingress observer and collector | TASK-028 | TASK-029 | **TASK-029 Part B**, six checks assessed individually |
+| The collector itself: pre-dispatch validation, deduplication, append through the ingress store, and the high-water-mark signal to scheduling (`HUMAN-002`, F-401) | TASK-026, with the signal consumed by TASK-005 | TASK-009, TASK-010, TASK-011 | **TASK-009 `V9-F401-SCHEMA`** for the module boundary and the no-append assertion; **TASK-010 `V10-F401-AUTH`** for the collector as an authorization principal; **TASK-011 `V11-F401-PREDISPATCH`** for the end-to-end pre-dispatch ordering |
 
 An implementing task's own unit tests never satisfy a row in the right-hand column.
 
@@ -602,17 +646,38 @@ The cause is that one value was being used for two different questions. Revision
 
 Three rules make `scope_validation_base` reproducible rather than a hand-chosen hash:
 
-1. **When the branch exists**, `scope_validation_base` is recorded as a full 40-hex commit and is verifiable as `git merge-base <task branch> <branch_point_of>`, where `branch_point_of` names the branch the task branch was created from and is declared alongside it.
-2. **When the branch does not exist yet** — the case for every task this graph creates before it is dispatched — the record declares `branch_point_of` and the reproducible expression `git merge-base HEAD <branch_point_of>`, to be evaluated inside the task's own worktree. The Orchestrator records the resolved 40-hex value at the next activation, from the branch as published. A task is never asked to guess a hash that does not exist yet.
+1. **When the branch exists**, `scope_validation_base` is recorded as a full 40-hex commit. It is **derived**, at branch-creation time, as `git merge-base <task branch> <branch_point_of>`, where `branch_point_of` names the branch the task branch was created from and is declared alongside it. Once recorded, the 40-hex value — not the expression — is the durable fact, and it is **verified by running the acceptance command**, which must attribute only the owner's own paths. Revision 7 makes that distinction explicit because the derivation expires: once a task branch is merged into `<branch_point_of>`, `git merge-base` returns the branch head rather than the branch point, so re-deriving TASK-016's or TASK-021's base from `main` today would silently return the wrong answer.
+2. **When the branch does not exist yet** — the case for every task this graph creates before it is dispatched — the record declares `branch_point_of` and the reproducible expression `git merge-base HEAD <branch_point_of>`, to be evaluated inside the task's own worktree. The Orchestrator records the resolved 40-hex value at the next activation, **from the branch as published rather than from what the record prescribed**. Finding **A-209** recorded what happens otherwise: TASK-025's record prescribed a provenance its execution did not follow, so the prescribed expression resolved to a commit that was not its branch point and the acceptance command failed on 21 inherited paths. A task is never asked to guess a hash that does not exist yet, and a record that prescribed one provenance while the branch has another is corrected to the branch's actual provenance, with the superseded prescription retained.
 3. **`c325275` is never a scope-validation base for a branch that inherits TASK-013 activation commits**, and no branch point is inferred from `origin/main`, from the integration branch, or from a review-diff base. Weakening the validator, widening a role's write scope, or passing `-BaseRef` a commit that is not the branch point are each a finding rather than a workaround.
 
 A merge commit on the task's own branch that imports another owner's published artifact — as `6e5a9df` imported `8d0c570` into the TASK-024 lineage — does not change the branch point. It appears inside the authored delta, and the imported paths must therefore already be inside the task's own write scope, or the merge is itself a scope violation.
+
+**When the branch point is not the acceptance base.** A branch may inherit a commit its owner did not author, from a role that is not its own. TASK-014 is the one instance: the human governance commit `fb9f45c` landed on `agent/gpt/reviewer/task-014` between its two rounds and changed `config/agents/settings.yaml`, a path no agent role may write. Validating from that branch's true branch point `321c0c3` attributes a human-authored governance change to the reviewer. Such a record declares **both** values — `scope_validation_base` for the branch point and `scope_validation_acceptance_base` for the commit from which the acceptance command reproduces — with the reason they differ. Neither is a review-diff base, and the exception is recorded rather than resolved by choosing whichever value looks better.
+
+### Applicability — when a baseline field is required, and when it genuinely is not
+
+Finding **F-403** was recorded `not resolved` at round 6 because revision 6 stated the rule and applied it to four records: 19 of 27 records had no `review_target_base` and 21 had no `scope_validation_base`. Revision 7 applies it to every record, and states the applicability rule that decides what each record must declare. **Every record declares both fields**, and each carries exactly one of three value forms:
+
+| Form | When it applies | What is recorded |
+|---|---|---|
+| **Resolved** | The value is knowable today from the repository | A full 40-hex commit, read with `git merge-base`, `git rev-parse`, or the parent of the branch's first authored commit, and cross-checked with `git diff --name-only <base>...<head>` against the owner's declared scope. Never asserted from prose |
+| **Reproducible expression** | The value is well-defined but not yet knowable, because the branch or the artifact does not exist | `branch_point_of` plus the exact command that resolves it inside the task's own worktree. The Orchestrator pins the resolved value at the activation that consumes the publication |
+| **Not applicable** | The *question the field asks* has no answer for this record | The literal reason, plus the condition under which the field becomes applicable. A field is never marked not applicable merely because the value is unknown — that is the second form |
+
+The two fields ask different questions, so they have different applicability:
+
+- **`scope_validation_base`** asks *what did this branch's owner author?* It is applicable to **every record**, because every record declares a `branch`. No record in this graph declares it not applicable. A record whose execution is closed — TASK-001's original run, TASK-002, TASK-014, TASK-015, TASK-020 … TASK-023, TASK-025, TASK-027 — records the resolved value as **durable provenance**, and states explicitly where that value is no longer the live acceptance base for anything.
+- **`review_target_base`** asks *what delta is under review?* It is applicable to a record that performs a gate round, and to a record that has a review target pinned on it. It is **not applicable** to a record that has neither — a gated task whose artifact does not exist yet has no delta to diff, and recording a base for it would be an invention. TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 are in that class today and each states the condition under which it leaves it. TASK-013 is the one permanent case: it declares no gate and carries no `gate_for` entry, so the question has no answer for it at all.
+
+Two further honest cases are recorded rather than papered over. A gate task whose cohort has not published — TASK-009 … TASK-012, TASK-019 — declares `review_target_base` **per gated relation**, because an aggregate gate over eight targets has eight bases and not one. And TASK-014 declares `review_target_base: not recorded by the original execution`: its rounds are closed, its verdicts are durable, and reconstructing a base after the fact would misrepresent what the reviewer diffed. An omission that cannot be honestly filled is recorded as an omission.
+
+**Every prescribed acceptance command is reproducible.** Each resolved `scope_validation_base` in this graph was checked with `git diff --name-only <base>...<head>` and returns only paths inside the owner's declared write scope — one report file for each reviewer branch, 25 architecture files for TASK-002, 29 for TASK-016, 35 for TASK-024. The single exception is TASK-014, handled above by the second declared base. The validator itself is unchanged and no role's write scope was widened, which finding F-403 explicitly required.
 
 ## Findings return path
 
 ```text
 TASK-009 / TASK-010 / TASK-011 / TASK-012                                   runtime findings
-TASK-014 / TASK-015 / TASK-019 … TASK-023, TASK-025, TASK-027                 decomposition, architecture, and toolchain findings
+TASK-014 / TASK-015 / TASK-019 … TASK-023, TASK-025, TASK-027, TASK-029, TASK-030   decomposition, architecture, and toolchain findings
         |  the owner publishes its report inside its own write scope
         |  -> an authorized appender appends one entry keyed by its fact_id, before
         |     dispatch, outside tasks/**; no task record is written

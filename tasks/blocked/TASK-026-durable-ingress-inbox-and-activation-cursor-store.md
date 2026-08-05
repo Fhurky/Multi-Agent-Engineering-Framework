@@ -13,7 +13,7 @@ dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
-    lineage_round: 3
+    lineage_round: 4
   - task: TASK-003
     edge: integrated
   - task: TASK-018
@@ -56,7 +56,13 @@ remediates:
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md
     part: implementation of the durable store and its adapters
 blocked_reason: No approved ingress inbox contract exists. TASK-024 published a candidate at c2ee3eb, but LIN-ARCH-REVIEW has recorded no verdict on it, and that candidate still declares consumedBy on the inbox entry, which finding F-401 rejects. Neither the durable state store nor the toolchain is integrated.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 3 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 4 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
+review_target_base: not applicable until this task publishes
+review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+scope_validation_note: Branch from integration/autonomous-runtime at or after the commit where this task's dependencies merged, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-026: Implement the durable ingress inbox and activation cursor store
@@ -97,6 +103,19 @@ Every field name, type, signature, and string-literal union in this module comes
 - Order the entries of one append batch by ascending source commit identifier. **Never order by committer timestamp**, and do not record a timestamp as an ordering input.
 - Exclude, explicitly and by rule, every commit authored by an activation of the recurring task on its own branch. This exclusion is unconditional across all fact classes.
 - Accept an append only from an **authorized appender** as the contract defines it — the adapters in the runtime phase, and the authorized bootstrap appender named by the governance decision in the bootstrap phase. Reject an append offered by the recurring task, and reject an append whose declared appender is not authorized. This is the second half of finding **F-401** and is independently assessed as **TASK-010 `V10-F401-AUTH`**.
+
+**Item 2a — the durable pre-dispatch ingress observer and collector, as `HUMAN-002` approved it.**
+
+The human governance decision `HUMAN-002` was **approved by the user in the control session on 2026-08-05**, and it assigns this component to the **runtime** role. It is transcribed verbatim in `tasks/TASK-013-ACTIVATION-LOG.md` as model correction `MC-006`; read that transcription rather than this summary where the two could differ, and implement only what the approved contract that TASK-028 publishes declares. The decision's shape:
+
+- The collector is **durable**, lives **outside `tasks/**`**, and runs in the **runtime control plane**.
+- **Before scheduler selection**, it **validates and deduplicates** an external source fact, then **appends the immutable inbox entry through this module's ingress store** — the same append path, the same identity-keyed deduplication, and the same authorized-appender check as Item 1 and Item 2, not a second parallel path.
+- It then **exposes or signals the new high-water mark to TASK-005 scheduling**.
+- **TASK-013 consumes entries and records ledger rows and cursor effects, and is prohibited from appending its own trigger.** That prohibition must be enforced by this module's authorized-appender check, not by convention, and it is the self-exclusion rule of Item 2 stated as an authorization property.
+
+Implement the collector inside this task's declared write scope, `src/orchestrator/ingress/**`, **unless the approved TASK-028 contract places it elsewhere** — in which case stop at the boundary under the contract change control rule and hand the placement to the Orchestrator, which routes a write-scope correction before this task is dispatched. Do not widen this task's write scope unilaterally, and write nothing under `tasks/`.
+
+**Interim authorization is bounded, not permanent.** Until this collector is implemented and independently validated, TASK-013 runs under the declared `interim-operator-authorized` bootstrap dispatch contract. `HUMAN-002` being approved does not make the durable contract operative; only this implementation plus its validation does. Do not treat the approval as a satisfied precondition.
 - Handle the epoch boundary: read the active epoch's `seq_base`, assign the first entry of a new epoch `seq_base + 1`, and never re-derive, renumber, or reclassify an entry from a sealed epoch.
 - Treat every field read out of a commit message, a report, or a handoff as untrusted input: validate it against the contract's types before it becomes an entry field, and never derive a filesystem path, a ref name, or a command argument from it.
 
@@ -120,6 +139,9 @@ Additional required tests: `fact_id` and `content_hash` reproduce the values a r
 - [ ] Entries persist with the full contract **inbox entry** schema, and every field name and type matches `INTERFACE-CONTRACTS.md` exactly.
 - [ ] **No inbox entry carries a consumption field.** A test asserts that the persisted entry is byte-identical before and after a consuming activation records its ledger row, and that no exposed operation can set consumption state on an entry. If the approved contract still declares `consumed_by` on the inbox entry, this task stops at the boundary and hands the divergence to the Orchestrator under the contract change control rule rather than implementing either side unilaterally. Independently assessed as **TASK-009 `V9-F401-SCHEMA`** and **TASK-011 `V11-F401-PREDISPATCH`**.
 - [ ] An append offered by the recurring task, or by an appender the contract does not authorize, is rejected, proven by a test.
+- [ ] The `HUMAN-002` collector validates and deduplicates an external source fact and appends the resulting immutable entry **through this module's own store**, with no second append path that bypasses the identity-keyed deduplication or the authorized-appender check, proven by a test.
+- [ ] The collector's append completes and is durable **before** the scheduler can select the recurring task, and the new high-water mark is exposed or signalled to the scheduling module through the interface the approved contract declares. A test asserts that a run in which the recurring task's own activation creates the only durable evidence is rejected rather than dispatched. Independently assessed as **TASK-010 `V10-F401-AUTH`** for the authorization half and **TASK-011 `V11-F401-PREDISPATCH`** for the ordering half.
+- [ ] The collector lives outside `tasks/**` and writes nothing under `tasks/`, proven by a path assertion rather than by convention.
 - [ ] `seq` is assigned once at append and is never recomputed, reordered, or renumbered, and no code path derives it from a count of commits, refs, branches, or files.
 - [ ] `fact_id` is SHA-256 over the contract's canonical identity tuple and reproduces byte for byte against a hand-computed value in a test fixture.
 - [ ] `content_hash` is SHA-256 over the source artifact bytes and detects a rewrite of the artifact under the same path.
@@ -140,7 +162,8 @@ Additional required tests: `fact_id` and `content_hash` reproduce the values a r
 
 - The ingress inbox implementation under `src/orchestrator/ingress/`.
 - The ingress adapters for the closed event-type set, with the precedence and exclusion rules.
-- Unit tests under `tests/unit/orchestrator/ingress/`, including the six named failure-mode tests and the hash-reproduction fixtures.
+- The durable pre-dispatch ingress observer and collector that `HUMAN-002` approved, at the path the approved TASK-028 contract declares, with its validation, deduplication, append-through-the-store, and high-water-mark signal to the scheduling module.
+- Unit tests under `tests/unit/orchestrator/ingress/`, including the six named failure-mode tests, the collector's pre-dispatch ordering and authorization tests, and the hash-reproduction fixtures.
 
 ## Write-scope isolation
 

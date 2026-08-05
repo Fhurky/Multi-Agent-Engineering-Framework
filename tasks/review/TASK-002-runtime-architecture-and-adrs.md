@@ -43,17 +43,35 @@ gate_tasks:
   - task: TASK-025
     gate: review
     round: 3
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: aa38c7d2e095f6ffd108bbd737a9862e1bff3ec2
+    remediated_by: TASK-028
+    revalidated_by: TASK-029
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 3
+  - task: TASK-029
+    gate: review
+    round: 4
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 4
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 9576fc9
 published_branch: agent/claude/architect/task-002
 publication: local-only
 publication_reason: The executing session recorded that no push and no merge were performed.
+review_target_base: a117f9b18e77167f03c027a9ab23543f6848e53a
+review_target_applicability: applicable and resolved
+review_target_note: TASK-015 round 1 reviewed the immutable commit 9576fc9 against the branch ref agent/claude/orchestrator/task-001, whose head is 657b83a; the authored delta is a117f9b...9576fc9, 25 files, all under docs/ and diagrams/. a117f9b is recorded here because it is the base that delta actually resolves against and is reproducible with git diff --name-only a117f9b...9576fc9. Rounds 2 and 3 reviewed the TASK-016 and TASK-024 remediations against their own bases, recorded on those records; this field names the base of the artifact this record owns.
+branch_point_of: agent/claude/orchestrator/task-001
+scope_validation_base: a117f9b18e77167f03c027a9ab23543f6848e53a
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Resolved by activation ACT-006 from the repository rather than asserted. This branch has one authored commit, 9576fc9, whose parent is a117f9b, and git merge-base agent/claude/architect/task-002 agent/claude/orchestrator/task-001 returns a117f9b. git diff --name-only a117f9b...9576fc9 returns 25 paths, every one under docs/ or diagrams/architecture/, which is inside this task's declared write scope. The execution is closed, so this value is durable provenance; it is also the acceptance base and it reproduces today.
 ---
 
 # TASK-002: Define the autonomous runtime architecture and decision records
@@ -93,11 +111,12 @@ These boxes record the author's own assessment. They are not an approval, and th
 |---|---|---|---|---|
 | 1 | TASK-015, `reviewer` / `gpt` | `changes-required` | `8632469`, merged at `049158d` | A-001 … A-004, all High |
 | 2 | TASK-020, `reviewer` / `gpt` | `changes-required` | `4874a9d` | A-101 … A-105. Dispositions: A-001 `resolved`; A-002 and A-003 `partially resolved`; A-004 `not resolved` |
-| 3 | TASK-025, `reviewer` / `gpt` | pending | — | Verifies that TASK-024 resolves A-101 … A-105 and the still-open A-002, A-003, and A-004 |
+| 3 | TASK-025, `reviewer` / `gpt` | `changes-required` | `aa38c7d2` | A-201 … A-207 High, A-208 Medium, A-209 Medium. Dispositions: A-101 `not resolved`; A-102 `not resolved`; A-103 `partially resolved`; A-104 `not resolved`; A-105 `partially resolved`; A-002 and A-003 `partially resolved`; A-004 `not resolved` |
+| 4 | TASK-029, `reviewer` / `gpt` | pending | — | Verifies that TASK-028 resolves A-201 … A-208 and the still-open A-002, A-003, A-004, and A-101 … A-105, and judges the approved `HUMAN-002` observer contract |
 
-The gate remains **open**. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, each round's verdict is durable and is superseded rather than rewritten. This record reaches `done` only when a round records a passing verdict.
+The gate remains **open**, and has now recorded `changes-required` at every one of its three completed rounds. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, each round's verdict is durable and is superseded rather than rewritten. This record reaches `done` only when a round records a passing verdict.
 
-All three rounds are rounds of the gate lineage `LIN-ARCH-REVIEW`, whose cohort is this record, then TASK-016, then TASK-024. The lineage is what the architecture-approval edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 now names, so that edge does not have to be retargeted each time a round is superseded. That retyping is the remediation for finding F-302.
+All four rounds are rounds of the gate lineage `LIN-ARCH-REVIEW`, whose cohort is this record, then TASK-016, then TASK-024, then TASK-028. The lineage is what the architecture-approval edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 names, so that edge does not have to be retargeted each time a round is superseded. That retyping is the remediation for finding F-302. Activation `ACT-006` raised that edge's floor from `lineage_round: 3` to `4`, because the amendment carrying A-201 … A-208 must be the approved one and a passing verdict at round 3 will never exist.
 
 TASK-020 recorded **exactly one verdict**, applied atomically to the two relations it carried — this record's round 2 relation and TASK-016's round 1 relation — producing two durable gate-verdict facts. Both stayed open together. TASK-025 carries three relations and records one verdict on the same terms. Finding F-205 recorded that TASK-020's record previously stated three inconsistent cardinalities; activation `ACT-002` chose this one model and stated it in every place that describes it.
 
