@@ -25,7 +25,7 @@ gate_for:
 parent_task: TASK-001
 publication_class: bootstrap
 review_target_branch: agent/claude/orchestrator/task-013
-review_target_commit: PENDING-ACT-005-EFFECTS-COMMIT
+review_target_commit: 70162b05959377a6d5a797ac627113809dcb3851
 review_target_base: 890b8e0d0ed45f64ec913f952058e942668d784e
 review_target_note: The round 6 review target is the TASK-013 activation ACT-005 effects commit. Its hash cannot be written by the commit that carries it, so it is recorded here and in tasks/TASK-013-ACTIVATION-LOG.md by a single follow-up commit on the same branch, following the ACT-002 and ACT-004 pattern. Review the branch head, which includes both commits. The review-diff base is 890b8e0, the head round 5 reviewed, so this round covers exactly the ACT-005 delta and nothing round 5 already judged.
 branch_point_of: agent/claude/orchestrator/task-013
