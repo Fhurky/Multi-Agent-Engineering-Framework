@@ -1,6 +1,17 @@
 # Agent Workspace Lifecycle
 
-Normative workspace contract for the autonomous runtime. Produced under TASK-016. Related decision: [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md). Implemented by TASK-017.
+Normative workspace contract for the autonomous runtime. Produced under TASK-016, amended under TASK-024. Related decisions: [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md), as amended by [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md) and [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md). Implemented by TASK-017.
+
+## Amendment register — TASK-024
+
+| Superseded claim (TASK-016) | Superseded by | Finding | Decision |
+|---|---|---|---|
+| `prepare`, `finalize`, and `abandon` as single calls that returned their intent events only after the operation, with no way for the supervisor to append an intent first | [Split-phase operations](#split-phase-operations): a `plan` phase producing the intent event and a matching `execute` phase that refuses without a receipt proving it durable | A-103 | [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md) |
+| `abandon` with `WorkspaceAbandoned` and no event entering `abandoning` | `WorkspaceAbandonIntended` enters `abandoning`; `WorkspaceAbandoned` leaves it | A-103 | [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md) |
+| `allowLocalOnlyPublication` as a run limit deciding whether a `local-only` publication satisfies `review_ready` | The owning task's declared `publicationClass`, read from the finalize request | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| A component-diagram claim that the workspace reaches the repository only through human-controlled scripts | [Repository access paths](#repository-access-paths), stated once here and mirrored in the diagram | A-105 | [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md) |
+
+Nothing in this amendment weakens a structural prohibition. Pushing `main`, setting `ALLOW_MAIN_PUSH`, bypassing the pre-push hook, writing a governance path, and force-releasing a lock remain unavailable by the same mechanisms, and the split-phase change adds a refusal rather than removing one.
 
 ## Why this module exists
 
@@ -8,7 +19,7 @@ Normative workspace contract for the autonomous runtime. Produced under TASK-016
 
 The TASK-002 architecture assumed the result of that protocol without assigning it. `AgentInvocation` carries a `worktreePath` and a `branch`, and [LIFECYCLE-AND-BOOTSTRAP.md](LIFECYCLE-AND-BOOTSTRAP.md) recorded that "the runtime resolves it at dispatch" — but none of the six modules created the worktree, created the branch, installed the hooks, claimed the lock, validated the scope, published the branch, persisted the handoff, or released the lock. A supervisor built on that architecture has exactly two options at every dispatch, and both defeat the objective: stop and wait for a human, or run every agent in one shared checkout, which is the failure the protocol exists to prevent.
 
-This module owns the protocol. It is the seventh module in the map, its source path is `src/orchestrator/workspace/`, and TASK-017 is its sole owner.
+This module owns the protocol. It is the seventh of the eight modules in the map, its source path is `src/orchestrator/workspace/`, and TASK-017 is its sole owner.
 
 ## Boundaries
 
@@ -16,9 +27,9 @@ This module owns the protocol. It is the seventh module in the map, its source p
 
 **It does not own:** provider invocation, scheduling policy, state-store internals, retry policy, lifecycle command handling, or any change to the scripts it drives. It proposes events; it never appends them itself, because only the supervisor's append path mutates durable state.
 
-**Consumers:** the supervisor (TASK-006) calls `prepare` and `finalize` around a dispatch; the recovery layer (TASK-008) calls `reconcile` on attach. Both receive the module by constructor injection through the `WorkspaceLifecycle` interface declared in `state/contracts`.
+**Consumers:** the supervisor (TASK-006) drives `planPrepare`/`executePrepare` and `planFinalize`/`executeFinalize` around a dispatch, appending each intent between the two phases; the recovery layer (TASK-008) calls `reconcile` on attach. Both receive the module by constructor injection through the `WorkspaceLifecycle` interface declared in `state/contracts`.
 
-**Imports:** `state/contracts` and nothing else. The module needs the provider failure taxonomy in order to classify, and takes it through `WorkspaceFailureClass`, a structurally identical re-declaration of `FailureClass` in `state/contracts`, exactly as `agents/contracts` re-declares six primitives from `state/contracts` under the same rationale. See [COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md) and [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md).
+**Imports:** `state/contracts` and nothing else. The module needs the provider failure taxonomy in order to classify, and takes it through `WorkspaceFailureClass`, a structurally identical re-declaration of `FailureClass` in `state/contracts`, exactly as `agents/contracts` re-declares primitives and receipt types from `state/contracts` under the same rationale. See [COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md) and [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md).
 
 ## The workspace handle
 
@@ -45,18 +56,51 @@ worktreePath = worktreeRoot + "/" + llm + "-" + role + "-" + lowercase(taskId)
 | `abandoned` | Lock released, worktree removed, branch retained if it holds commits | Terminal for this attempt |
 | `unresolved` | Reconciliation could not reach a known state without breaking a safety rule | **No.** Requires human attention; the owning task is `blocked` |
 
-Every state transition follows an intent-then-commit pair, mirroring the effect ledger: an intent event is durable before the operation is attempted, and a completion event is durable after it succeeds. That is what makes every workspace operation replayable and no operation applied twice.
+| State | Entered by | Left by |
+|---|---|---|
+| `preparing` | `WorkspacePrepareIntended` | `WorkspacePrepared`, `WorkspaceAbandoned`, or `WorkspaceReconciled` |
+| `prepared` | `WorkspacePrepared` | `WorkspaceFinalizeIntended` or `WorkspaceAbandonIntended` |
+| `finalizing` | `WorkspaceFinalizeIntended` | `WorkspaceFinalized`, `WorkspaceAbandoned`, or `WorkspaceReconciled` |
+| `abandoning` | **`WorkspaceAbandonIntended`** — added under TASK-024 | `WorkspaceAbandoned` or `WorkspaceReconciled` |
+
+TASK-016 declared `abandoning` and gave it no entering event, which finding A-103 recorded: the union held `WorkspaceAbandoned` and nothing that reached the state it was supposed to leave. Every one of the four intent-bearing states now has exactly one entering event, and each of those events is durable before the operation it authorizes.
+
+Every state transition follows an intent-then-commit pair, mirroring the effect ledger: an intent event is durable before the operation is attempted, and a completion event is durable after it succeeds. TASK-024 makes that a property of the interface rather than of the prose, through the split-phase protocol below.
+
+## Split-phase operations
+
+Added under TASK-024 (ADR-0019) to resolve A-103. TASK-016 required prepare, finalize, and abandon intent to be durable before any script or Git command ran, and then exposed each operation as **one call** that returned its intent event only after the operation. The module is forbidden to append, and no callback or split existed, so the requirement was unsatisfiable: a crash during a script could leave a branch, worktree, lock, commit, or publication side effect with no durable intent for `reconcile` to find.
+
+Each mutating operation is now two calls with the supervisor's append between them:
+
+```text
+1. supervisor:  plan = ws.planPrepare(request)             pure; no script, no git, no filesystem write
+2. supervisor:  append(plan.intentEvent)                   WorkspacePrepareIntended, durable
+3. supervisor:  receipt = appendResult.receipts[i]         issued only after the batch commit record
+4. supervisor:  result = await ws.executePrepare(plan, receipt)
+```
+
+`finalize` and `abandon` follow the identical shape with `WorkspaceFinalizeIntended` and `WorkspaceAbandonIntended`.
+
+Four properties follow, and each is checkable rather than promised:
+
+1. **The intent precedes the side effect by construction.** `executePrepare` is the only method that invokes a script, and it takes a receipt parameter. There is no overload without one, so a side effect before a durable intent is not expressible.
+2. **The module still holds no write authority.** A `WorkspaceIntentReceipt` is evidence that an event is durable. It carries no capability to append and only `StateStore.append` issues one. The rule that only the supervisor's append path mutates durable state is unchanged.
+3. **A refusal costs nothing.** The `plan` phase can refuse — a branch or worktree that fails derivation validation is a dispatch refusal — and it refuses *before* an intent exists, so a refused dispatch leaves no workspace record to reconcile.
+4. **A crash anywhere in `execute` is recoverable.** Whatever the script did or did not do, the intent is durable, so `reconcile` has a record to act on. That is the guarantee A-103 said the interface could not deliver.
+
+The same shape is used for process registration in [PROVIDER-ADAPTERS.md](PROVIDER-ADAPTERS.md); one mechanism, two boundaries.
 
 ## Operations
 
 ### `prepare`
 
-Called by the supervisor after the lease is granted and before the worker is invoked.
+`planPrepare` is called by the supervisor after the lease is granted; `executePrepare` is called after the intent is durable and before the worker is invoked.
 
 | | Condition |
 |---|---|
-| Pre | The task holds a valid lease; the derived branch and worktree pass validation; no workspace for this task is in `preparing`, `finalizing`, or `unresolved` |
-| Pre | `WorkspacePrepareIntended` is durable before any script is invoked |
+| Pre, `planPrepare` | The task holds a valid lease; the derived branch and worktree pass validation; no workspace for this task is in `preparing`, `finalizing`, or `unresolved`. It performs no side effect, so a refusal here leaves nothing behind |
+| Pre, `executePrepare` | A `WorkspaceIntentReceipt` for `WorkspacePrepareIntended` on this `workspaceId` is presented. Without it the call returns `failed` with code `INTENT_NOT_DURABLE` and invokes no script |
 | Post, `ok` | Repository hooks are verified installed; the worktree exists at the derived path; the branch exists and matches the derived name; the task lock is held and its `session_id` is recorded durably; `WorkspacePrepared` is durable; the returned handle is `prepared` |
 | Post, `blocked` | No worktree, branch, or lock was left in an indeterminate state that `reconcile` cannot resolve; the typed failure class and reason are recorded |
 | Post, always | No provider process has been spawned. A dispatch cannot reach provider invocation without a `prepared` handle, and `DispatchStarted` is an illegal transition without one |
@@ -71,11 +115,12 @@ A failed claim is a **dispatch refusal, not a retry condition**. The task return
 
 ### `finalize`
 
-Called by the supervisor after the worker returns and before the lease is released.
+`planFinalize` is called by the supervisor after the worker returns; `executeFinalize` is called after the intent is durable and before the lease is released.
 
 | | Condition |
 |---|---|
-| Pre | The handle is `prepared`; the worker has returned; `WorkspaceFinalizeIntended` is durable before any script or git command is invoked |
+| Pre, `planFinalize` | The handle is `prepared` and the worker has returned. It performs no side effect |
+| Pre, `executeFinalize` | A `WorkspaceIntentReceipt` for `WorkspaceFinalizeIntended` on this `workspaceId` is presented, so `WorkspaceFinalizeIntended` is durable before any script or git command is invoked. Without it the call returns `failed` with code `INTENT_NOT_DURABLE` |
 | Post, `ok` | Write-scope validation passed; a commit exists on the task branch; the branch is published to the configured remote; a pull request exists for it, created or updated but never duplicated; branch, commit, and pull-request identity are one durable record written **before** the lock is released; the lock is released; `WorkspaceFinalized` is durable |
 | Post, `failed` | Validation failed. No commit was created, no branch was published, no pull request was touched, and the task fails with a recorded reason |
 | Post, `blocked` | The remote is unreachable, credentials are absent, or pull-request creation is unauthorized. The typed class and reason are recorded, and **no `ok` outcome is produced for a local-only commit** |
@@ -89,21 +134,43 @@ Steps, in order:
 5. **Persist identity.** Write branch, commit SHA, and pull-request identity as one `ArtifactPublished` record through the state store, **before** step 6. A crash between them leaves the handoff readable and the lock held, which `reconcile` can resolve; the reverse order would leave a released lock and no record of what was published.
 6. **Release the lock.** Invoke `scripts/orchestration/release-task.ps1 -TaskId -Role -Llm`, never with `-Force`.
 
-**Publication failure is an outcome, not a fallback.** When the remote is unreachable, credentials are absent, or pull-request creation is unauthorized, `finalize` returns `blocked` with the typed class and the reason. It never reports success on a local-only commit, never retries into a different target, never falls back to pushing another branch, and never pushes `main`. A `blocked` publication leaves the commit durable locally and the workspace in `finalizing`, so a later attempt with working credentials publishes the same commit rather than producing a new one.
+**Publication failure is an outcome, not a fallback.** When the remote is unreachable, credentials are absent, or pull-request creation is unauthorized, `executeFinalize` returns `blocked` with the typed class and the reason. It never reports success on a local-only commit, never retries into a different target, never falls back to pushing another branch, and never pushes `main`. A `blocked` publication leaves the commit durable locally and the workspace in `finalizing`, so a later attempt with working credentials publishes the same commit rather than producing a new one.
 
-`allowLocalOnlyPublication` is the one recorded exception. It is a run limit defaulting to `false`; when an operator sets it true, a `blocked` publication is recorded as `publication: 'local-only'` with its reason and satisfies `review_ready`. That is an operator-recorded acceptance of a bootstrap-phase limitation, matching how the human-launched sessions that built this runtime were obliged to record theirs. It is never a default and never inferred.
+**The publication class decides what a blocked publication means**, and it is read from the owning task's record. Amended under TASK-024, superseding the run-global `allowLocalOnlyPublication` limit.
+
+| `request.publicationClass` | A blocked remote produces |
+|---|---|
+| `runtime` | `blocked` with the typed class and reason. There is no `ok` outcome for a local-only commit, and `review_ready` stays unsatisfied |
+| `bootstrap` | `publication: 'local-only'` with a required `reason`, which satisfies `review_ready` for that task only |
+
+The superseded flag was run-global, so accepting the limitation for one bootstrap task silently accepted it for every runtime task in the same run. The class is per-task, declared in the record, and validated at admission, so the acceptance is scoped to the task that recorded it and to no other.
 
 ### `abandon`
 
-Called when a dispatch is cancelled, a lease is lost, or the run drains before the worker returned.
+`planAbandon` is called when a dispatch is cancelled, a lease is lost, or the run drains before the worker returned; `executeAbandon` is called after the intent is durable.
 
 | | Condition |
 |---|---|
-| Pre | A handle exists in any state; `WorkspaceAbandoned` intent is durable first |
+| Pre, `planAbandon` | A handle exists in any state. It performs no side effect and produces `WorkspaceAbandonIntended` |
+| Pre, `executeAbandon` | A `WorkspaceIntentReceipt` for `WorkspaceAbandonIntended` on this `workspaceId` is presented, so the abandonment intent is durable — and the workspace is in `abandoning` — before any lock release, worktree removal, or Git command. Without it the call returns `failed` with code `INTENT_NOT_DURABLE` |
 | Post | The lock is released when and only when this session holds it; the worktree is removed when it holds no uncommitted change; the branch is retained whenever it holds any commit; `WorkspaceAbandoned` is durable |
 | Post | Nothing is deleted that could hold unpublished work. A worktree with uncommitted changes is left in place and recorded, not removed |
 
 Abandonment is deliberately conservative. Losing an agent's uncommitted work to an automatic cleanup is worse than leaving a directory behind for a human to inspect.
+
+TASK-016 stated the pre-condition as "`WorkspaceAbandoned` intent is durable first", naming a **completion** event as if it were an intent, and declared no event that entered `abandoning`. Both halves are corrected: `WorkspaceAbandonIntended` is the intent and enters the state, `WorkspaceAbandoned` is the completion and leaves it.
+
+## Repository access paths
+
+Stated here once, normatively, because finding A-105 recorded that the component diagram claimed the workspace module reaches the repository **only** through the human-controlled scripts while this contract and the finalize sequence require direct Git operations. The contract is the following, and the diagram states the same thing.
+
+| Path | Used for | Reimplemented? |
+|---|---|---|
+| The tracked PowerShell orchestration and setup scripts | Hook verification and installation, branch and worktree creation, task-lock claim, write-scope validation, task-lock release | **Never.** The module contains no lock file format, no worktree creation, no scope glob evaluation, and no hook installation |
+| Direct Git commands, spawned as argument vectors | `git add --` with the declared write-scope patterns, `git commit`, and `git push` of exactly one derived refspec | Not applicable; these are ordinary Git operations that no tracked script performs on the runtime's behalf |
+| The pull-request provider API | Look up an open pull request by head branch, then create or update it | Not applicable |
+
+The distinction is the one that matters for the enforcement argument: **every operation that the human-controlled scripts define is delegated to them, and only those.** Committing and pushing a task's own branch are not among them, so the module performs them directly, under the structural prohibitions below — one push-constructing function, no ref parameter, an allow-listed environment, and no `--no-verify`. Claiming that the module never touches Git would be false, and a diagram that says so contradicts the code a reviewer will read.
 
 ### `reconcile`
 
@@ -124,6 +191,7 @@ Detection rules:
 | `preparing`, and any of them is missing | Abandon idempotently: release the lock if this session holds it, remove the worktree if it holds no change, retain the branch if it holds a commit |
 | `finalizing`, and a commit exists on the branch | Read what happened: query the remote for the branch, query for an open pull request with that head. Record whatever exists. Complete the missing steps only; never republish an already-published commit and never open a second pull request |
 | `finalizing`, and no commit exists | Abandon idempotently |
+| `abandoning` — TASK-024 | Complete the abandonment idempotently under the same rules `executeAbandon` applies: release the lock only when this session holds it, remove the worktree only when it holds no uncommitted change, retain the branch whenever it holds a commit |
 | A worktree under the worktree root with no `WorkspacePrepared` in this run's journal | **Do not delete.** Record `orphan_unowned` for human attention. It may belong to a human session or to another run |
 | A task lock whose `session_id` differs from this run's recorded value, or for which no session token is held | **Never force-release.** Record `lock_not_releasable` for human attention and leave the lock held |
 | A workspace whose owning session is demonstrably alive | Leave untouched |
@@ -212,8 +280,16 @@ TASK-017 owns these; TASK-009, TASK-010, and TASK-011 validate them.
 6. `finalize` publishes the branch and records commit, branch, and pull-request identity as one durable record written before lock release.
 7. `finalize` run twice, and after a simulated crash between publication and lock release, yields exactly one pull request per task and branch.
 8. A later `finalize` publishes a new commit SHA, updates the same pull request, records both SHAs in order, and never opens a second one.
-9. With the remote unreachable, credentials absent, or pull-request creation unauthorized, `finalize` returns `blocked` with a typed class; no `ok` outcome is produced for a local-only commit and no alternative push target is attempted.
+9. With the remote unreachable, credentials absent, or pull-request creation unauthorized, `executeFinalize` returns `blocked` with a typed class for a `runtime` task and records `publication: 'local-only'` with a reason for a `bootstrap` task; no `ok` outcome is produced for a local-only commit on a `runtime` task and no alternative push target is attempted.
 10. A crash after publication and before lock release leaves branch, commit, and pull-request identity readable by `reconcile`, which neither republishes nor reopens.
+
+**Durable intent before every side effect — added under TASK-024**
+
+21. Each of `executePrepare`, `executeFinalize`, and `executeAbandon` called without a matching receipt returns `failed` with code `INTENT_NOT_DURABLE`, spawns no process, and performs no Git or filesystem mutation, asserted on the injected process runner's call count being zero.
+22. For each of the three operations, a crash injected at every step of the execute phase leaves a durable intent event, and `reconcile` reaches exactly one of `prepared`, `finalized`, `abandoned`, or `unresolved` from it. No injected crash point leaves a branch, worktree, lock, commit, or publication side effect with no durable intent.
+23. `planPrepare`, `planFinalize`, and `planAbandon` spawn no process and perform no filesystem or Git mutation, for both accepting and refusing inputs.
+24. `WorkspaceAbandonIntended` moves the workspace to `abandoning`, and a record in `abandoning` with no `WorkspaceAbandoned` is resolved by `reconcile` idempotently.
+25. A `runtime` task with an unreachable remote produces `blocked` and an unsatisfied `review_ready`; a `bootstrap` task with the same remote produces `local-only` with a reason and a satisfied `review_ready`; and no run-level setting changes either answer.
 
 **Crash safety**
 

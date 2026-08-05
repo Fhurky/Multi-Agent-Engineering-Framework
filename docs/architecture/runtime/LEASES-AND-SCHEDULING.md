@@ -1,6 +1,16 @@
 # Leases, Fencing, and Bounded-Concurrency Scheduling
 
-Normative scheduling contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016. Related decisions: [ADR-0005](../../adr/0005-time-bounded-leases-with-monotonic-fencing-tokens.md) and [ADR-0015](../../adr/0015-typed-scheduling-gate-and-activation-contracts.md). Implemented by TASK-005.
+Normative scheduling contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016, amended again under TASK-024. Related decisions: [ADR-0005](../../adr/0005-time-bounded-leases-with-monotonic-fencing-tokens.md) and [ADR-0015](../../adr/0015-typed-scheduling-gate-and-activation-contracts.md), as amended by [ADR-0017](../../adr/0017-durable-ingress-inbox-and-ingress-epochs.md) and [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md). Implemented by TASK-005, over an inbox implemented by TASK-026.
+
+## Amendment register — TASK-024
+
+| Superseded claim (TASK-016) | Superseded by | Finding | Decision |
+|---|---|---|---|
+| Gate 1's third clause, "an unconsumed subscribed activation event exists" over `run.activationEvents` | [Gate 1](#gate-1--readiness): `run.ingressSeq > activation.lastConsumedEventSeq`, over the durable inbox | A-101, F-301 | [ADR-0017](../../adr/0017-durable-ingress-inbox-and-ingress-epochs.md) |
+| "Five no-deadlock invariants" | [Load-time graph validation](#load-time-graph-validation): **eight**, adding form resolution, gate-pair scheduling properties, and lineage well-formedness | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| `gate_passed(X, g)` expanding to one owner, with no lineage form | The expansion table below carries both forms; the lineage form expands to every gate task recording a lineage round `>=` the edge's | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| The expanded graph proved acyclic for the revision-3 graph | [Acyclicity of the revision-5 graph](#acyclicity-of-the-revision-5-graph), proved over the committed revision-5 task set | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| The activation candidate carrying `activateThroughSeq`, a reserved range | `observedIngressSeq`, an observation that reserves nothing | A-101 | [ADR-0017](../../adr/0017-durable-ingress-inbox-and-ingress-epochs.md) |
 
 ## Amendment register — TASK-016
 
@@ -84,7 +94,9 @@ A task is a candidate when:
 
 - `state === 'ready'`, or
 - `state === 'awaiting_retry'` and `now >= notBefore` (the scheduler emits `BackoffElapsed` before granting), or
-- `state === 'quiescent'` and an unconsumed subscribed activation event exists (the scheduler emits `TaskActivated` before granting).
+- `state === 'quiescent'` and `run.ingressSeq > task.activation.lastConsumedEventSeq` (the scheduler emits `TaskActivated` before granting).
+
+The third clause is amended under TASK-024. It was stated over `run.activationEvents`, an internal queue; it is now stated over the durable ingress inbox through `run.ingressSeq`, which the ingress observer maintains. The observer is part of the scheduling module: once per `limits.ingressObserveIntervalMs`, and before any pass in which a quiescent task exists, it calls `IngressInbox.highWaterMark()` and appends `IngressHighWaterMarkObserved` when the value advanced. `selectDispatchable` itself stays pure, because it reads `run.ingressSeq` from the record rather than performing the read.
 
 A `pending` task is never a candidate. It becomes `ready` only through `TaskDependenciesSatisfied`, whose guard is that **every edge** in `dependencies` is satisfied under the typed conditions in [STATE-MACHINE.md](STATE-MACHINE.md#typed-dependency-edges).
 
@@ -147,7 +159,9 @@ Ordering alone does not bound starvation, because a saturated ready set can hold
 1. **Reserved capacity.** While at least one activatable task exists, the effective global capacity available to non-activatable candidates in Gate 2 is `maxConcurrentTasks - limits.reservedControlPlaneSlots` (default 1). The reservation applies to admission only; it never preempts a running task and never exceeds `maxConcurrentTasks`.
 2. **Bounded rounds.** An activatable task must appear in the returned candidate list within `limits.activationStarvationBoundRounds` (default 1) scheduling rounds after a slot is free, and must never appear while it is quiescent.
 
-Together these give the property the control plane needs: after an activation event is appended, the reservation guarantees a slot frees no later than the completion of the tasks already in flight, and the ordering guarantees the activatable task takes it. Without the reservation, a run that always has more ready work than capacity would starve its own lifecycle transitions forever, which is the livelock finding F-104 recorded against the earlier decomposition.
+Together these give the property the control plane needs: after `run.ingressSeq` increases, the reservation guarantees a slot frees no later than the completion of the tasks already in flight, and the ordering guarantees the activatable task takes it. Without the reservation, a run that always has more ready work than capacity would starve its own lifecycle transitions forever, which is the livelock finding F-104 recorded against the earlier decomposition.
+
+The bound is stated over `run.ingressSeq` rather than over an internal queue length, which is what makes it observable: the inbox's high-water mark is durable and reproducible from the inbox alone, so "within N rounds of the mark increasing" is a checkable claim rather than one that depends on when a scan happened to run.
 
 ## Load-time graph validation
 
@@ -161,35 +175,76 @@ Acyclicity over scheduling edges alone is not sufficient, and proving it over th
 |---|---|
 | `review_ready(X)` | `T ← X` |
 | `gate_recorded(X)` | `T ← X` |
-| `gate_passed(X, g)` | `T ← X`, and `T ← Gt` for the owner `Gt` of gate `g` on X at its highest declared round |
+| `gate_passed(X, g, round n)` — target form | `T ← X`, and `T ← Gt` for the owner `Gt` of gate `g` on X at every declared round `>= n` |
+| `gate_passed(L, g, lineageRound n)` — lineage form, **TASK-024** | `T ← Gt` for **every** gate task recording a round of lineage `L` at `lineageRound >= n`, and `T ← X` for every cohort member X those rounds gate |
 | `integrated(X)` | `T ← X`, and `T ← Gt` for the owner of **every** gate in X's `preMergeGates` |
 | `terminal(X)` | `T ← X`, the `integrated(X)` expansion, and `T ← Gt` for the owner of every gate in X's `gateTasks` |
 | `human_decision(D)` | none; D is external and is satisfied or not, never by a task |
-| `gateFor: X` on T | `T ← X` of kind `review_ready`, added implicitly if not already declared, because no gate can run before its target publishes |
+| a `gateFor` entry naming X on T | `T ← X` of kind `review_ready`, added implicitly if not already declared, because no gate can run before its target publishes. **TASK-024:** contributed once per entry, since `gateFor` is plural |
 
-`G*` is acyclic if and only if the graph is schedulable. The five no-deadlock invariants, stated in the same terms as `tasks/TASK-001-DEPENDENCY-GRAPH.md`:
+`G*` is acyclic if and only if the graph is schedulable. The **eight** no-deadlock invariants, stated in the same terms as `tasks/TASK-001-DEPENDENCY-GRAPH.md` revision 5. Invariants 1 through 5 are unchanged from TASK-016 except where the edge forms changed; 6, 7, and 8 are added under TASK-024.
 
-1. The directed graph over `review_ready`, `integrated`, `gate_passed`, `gate_recorded`, `terminal`, and `human_decision` edges is acyclic.
-2. No task holding `gateFor: X` also holds a `gate_passed(X)`, `integrated(X)`, or `terminal(X)` edge. It may hold `review_ready(X)`.
-3. Every `gateFor` entry has a matching `gateTasks` entry on the target and the reverse, agreeing on gate name and round.
+1. The directed graph over `review_ready`, `integrated`, `gate_passed`, `gate_recorded`, `terminal`, and `human_decision` edges is acyclic. A lineage-form `gate_passed` edge expands, for this purpose, to the gate tasks recording lineage rounds `>=` its `lineageRound`.
+2. No task holding a `gateFor` entry naming X also holds a `gate_passed` edge naming X, an `integrated(X)`, or a `terminal(X)` edge, nor a lineage-form `gate_passed` edge naming a lineage of which it itself records a round. It may hold `review_ready(X)`, which is satisfiable while X is still in `review` and unmerged.
+3. Every `gateFor` entry has a matching `gateTasks` entry on the target and the reverse, agreeing on gate name, round, `gateClass`, `retrospective`, `gateLineage`, and `lineageRound`.
 4. For every task X, no gate task owning a gate in X's `preMergeGates` holds an `integrated(X)` edge.
 5. `G*` — the expansion above — is itself acyclic.
+6. **Form resolution.** Every `gate_passed` edge declares exactly one of `task` and `lineage`. With `task`, the named task declares the gate in its `requiredGates` — the target form. With `lineage`, the named lineage is present in the register — the lineage form. The **owner form is withdrawn**: an edge naming a task that declares the gate only in a `gateFor` entry is rejected at load, with a message directing it to the lineage form.
+7. **Gate scheduling properties.** Every `gateFor` / `gateTasks` pair declares `gateClass` and `retrospective`; the declared `gateClass` equals the class computed from the owner's dependency set against the publication of the artifact that round reviews; the declared `retrospective` equals `gate ∉ target.preMergeGates`; and every pair declaring `gateClass: 'aggregate'` or `retrospective: true` has an entry in the aggregate and retrospective gate register.
+8. **Lineage well-formedness.** Every `gateFor` / `gateTasks` pair declares a `gateLineage` present in the register and a `lineageRound`. Within one lineage the gate name is constant, every declared `lineageRound` maps to exactly one gate task, the set of declared rounds is `1 … k` with no gap, and every target named by a pair in the lineage is a member of that lineage's registered cohort. A lineage round greater than 1 exists only if the preceding round recorded a verdict.
 
-Invariant 5 is the one that catches the failure the projection missed. Invariants 2 and 4 are the structural reasons it holds in practice: a gate task may depend on its target's publication and on nothing stronger, so no gate ever waits on a merge that waits on that gate.
+Invariant 5 is the one that catches the failure the scheduling-edge projection missed. Invariants 2 and 4 are the structural reasons it holds in practice: a gate task may depend on its target's publication and on nothing stronger, so no gate ever waits on a merge that waits on that gate. Invariant 6 is what makes the F-302 deadlock unrepresentable rather than merely discouraged, and invariant 8 is what makes the relation that survives supersession checkable at load rather than by inspection.
 
 ### Diagnostics
 
-| Code | Condition |
-|---|---|
-| `GRAPH_CYCLE_SCHEDULING` | Invariant 1 violated; the diagnostic names the cycle's tasks in order |
-| `GRAPH_GATE_HOLDS_STRONG_EDGE` | Invariant 2 violated; names the gate task, its target, and the offending edge kind |
-| `GRAPH_GATE_PAIR_MISMATCH` | Invariant 3 violated; names both sides and the disagreeing field |
-| `GRAPH_PREMERGE_GATE_AWAITS_MERGE` | Invariant 4 violated; names the gate task and the target it would wait on |
-| `GRAPH_CYCLE_EXPANDED` | Invariant 5 violated; names the cycle in `G*` and the edge expansion that produced each hop |
-| `GRAPH_UNKNOWN_TARGET` | An edge names a task or human decision that does not exist |
-| `GRAPH_TERMINAL_EDGE_CYCLE` | A `terminal` edge whose expansion produces a cycle. The edge kind is reserved and this is the diagnostic that makes its misuse a rejection rather than a hang |
+| Code | Invariant | Condition |
+|---|---|---|
+| `GRAPH_CYCLE_SCHEDULING` | 1 | The diagnostic names the cycle's tasks in order |
+| `GRAPH_GATE_HOLDS_STRONG_EDGE` | 2 | Names the gate task, its target, and the offending edge kind |
+| `GRAPH_GATE_PAIR_MISMATCH` | 3 | Names both sides and the disagreeing field, which may now be any of the seven |
+| `GRAPH_PREMERGE_GATE_AWAITS_MERGE` | 4 | Names the gate task and the target it would wait on |
+| `GRAPH_CYCLE_EXPANDED` | 5 | Names the cycle in `G*` and the edge expansion that produced each hop |
+| `GRAPH_UNKNOWN_TARGET` | 1, 6 | An edge names a task, lineage, or human decision that does not exist |
+| `GRAPH_TERMINAL_EDGE_CYCLE` | 5 | A `terminal` edge whose expansion produces a cycle. The edge kind is reserved and this is the diagnostic that makes its misuse a rejection rather than a hang |
+| `GRAPH_GATE_PASSED_FORM_AMBIGUOUS` | 6 | An edge declaring neither or both of `task` and `lineage` |
+| `GRAPH_GATE_PASSED_OWNER_FORM` | 6 | The withdrawn owner form. The message names the lineage that carries the relation and the `lineageRound` the edge should name instead |
+| `GRAPH_GATE_PASSED_UNKNOWN_LINEAGE` | 6 | A lineage-form edge naming a lineage absent from the register |
+| `GRAPH_GATE_PASSED_GATE_NOT_REQUIRED` | 6 | A target-form edge naming a gate absent from the target's `requiredGates` |
+| `GRAPH_GATE_CLASS_MISMATCH` | 7 | The declared `gateClass` differs from the computed class; names both and the reference publication |
+| `GRAPH_RETROSPECTIVE_MISMATCH` | 7 | The declared `retrospective` differs from `gate ∉ target.preMergeGates` |
+| `GRAPH_DELAYED_GATE_UNREGISTERED` | 7 | An `aggregate` or `retrospective: true` pair with no register entry |
+| `GRAPH_LINEAGE_UNDECLARED` | 8 | A pair naming a lineage the register does not hold |
+| `GRAPH_LINEAGE_GATE_INCONSISTENT` | 8 | The gate name is not constant within the lineage |
+| `GRAPH_LINEAGE_ROUND_COLLISION` | 8 | Two gate tasks declaring the same `lineageRound` of one lineage |
+| `GRAPH_LINEAGE_ROUND_GAP` | 8 | The declared rounds are not `1 … k` |
+| `GRAPH_LINEAGE_COHORT_VIOLATION` | 8 | A pair whose target is not a member of the lineage's cohort |
+| `GRAPH_LINEAGE_ROUND_PREMATURE` | 8 | A round *n* > 1 opened while round *n* − 1 has no recorded verdict |
+| `GRAPH_PUBLICATION_CLASS_MISSING` | — | A task record omitting `publicationClass`. Declared-field completeness, not an invariant over edges |
 
 Rejection is a returned value on the load path, not a thrown error, and it names every violated invariant rather than the first one.
+
+### Acyclicity of the revision-5 graph
+
+TASK-020's A-101 recorded that the TASK-016 target proved acyclicity for the revision-3 five-invariant graph rather than for the graph the runtime is actually scheduled by. The proof is restated here for the **revision-5** task set, in the vocabulary above, so the claim and the graph are the same graph.
+
+Take the topological order
+
+```text
+HUMAN-001, TASK-001, TASK-014, TASK-021, TASK-022, TASK-023, TASK-002, TASK-015,
+TASK-016, TASK-020, TASK-024, TASK-025, TASK-018, TASK-019, TASK-003, TASK-004,
+TASK-017, TASK-026, TASK-005, TASK-006, TASK-007, TASK-008, TASK-009, TASK-010,
+TASK-011, TASK-012, TASK-013
+```
+
+- **Invariants 1 and 5.** Every task appears after all of its dependencies and after the pre-merge gate owner of every task it integrates. The architecture edge held by TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 is the lineage form `{ lineage: LIN-ARCH-REVIEW, gate: review, lineageRound: 3 }`; it expands to TASK-025 at position 12, which precedes every one of the nine holders. TASK-012's `{ lineage: LIN-RUNTIME-QA, gate: qa, lineageRound: 1 }` expands to TASK-011 at position 25, which precedes TASK-012 at 26. No back edge exists, so `G*` is acyclic.
+- **Invariant 2.** The tasks holding `gateFor` entries are TASK-009 … TASK-012, TASK-014, TASK-015, TASK-019 … TASK-023, and TASK-025. Every edge each holds to a task it gates is `review_ready`. TASK-012's only non-`review_ready` edge names `LIN-RUNTIME-QA`, of which TASK-012 records no round. TASK-025 records rounds of `LIN-ARCH-REVIEW` and holds no `gate_passed` edge at all.
+- **Invariant 3.** Forty pairs, each agreeing across both sides on all seven fields.
+- **Invariant 4.** The only non-empty `preMergeGates` are TASK-002 `review`, TASK-016 `review`, TASK-024 `review`, and TASK-018 `review`. None of TASK-015, TASK-019, TASK-020, or TASK-025 holds an `integrated` edge to any of its targets.
+- **Invariant 6.** No owner-form edge exists. The only lineage-form edges are TASK-012's on `LIN-RUNTIME-QA` and the architecture edge on `LIN-ARCH-REVIEW` held by nine tasks; both lineages are registered.
+- **Invariant 7.** Every pair carries both properties and both sides agree. `retrospective` is `false` for the seven pairs whose gate is a pre-merge gate and `true` for the other 33. `gateClass` is `point` for the twelve decomposition, architecture, and toolchain review rounds and `aggregate` for the 28 assembly gates, each recomputed against the publication of the artifact that round reviews.
+- **Invariant 8.** Eight lineages are registered. `LIN-DECOMP-REVIEW` declares rounds 1 … 5; `LIN-ARCH-REVIEW` declares rounds 1 … 3 over the growing cohort TASK-002 → TASK-016 → TASK-024; the remaining six declare round 1 only. Every target named by a pair is a cohort member, and every round greater than 1 follows a recorded verdict.
+
+This proof is a property of the committed graph at revision 5, not of this document. TASK-005's `validateGraph` recomputes all eight invariants at load and on every admission; the enumeration above is what a reviewer checks the implementation against, and it is restated here because A-101 recorded that its absence was the defect.
 
 ### Test obligations for A-004
 
@@ -198,11 +253,19 @@ Rejection is a returned value on the load path, not a thrown error, and it names
 3. **Gate durability.** Assert there is no code path — including recovery — that removes or mutates an existing `GateVerdictRecord`.
 4. **Acyclicity.** Assert `GRAPH_CYCLE_EXPANDED` for a graph whose scheduling-edge projection is acyclic but whose expansion is not, which is the F-101 shape: a gate task on X holding `integrated(X)`.
 5. **Resource locks.** Assert two tasks holding the same lock are never leased concurrently, that the second is returned to the ready set rather than queued, and that a lock is never treated as an ordering constraint.
-6. **Idle quiescence.** With a quiescent activation task and a cursor equal to the highest subscribed `seq`, assert `selectDispatchable` never returns it, across an unbounded number of rounds.
-7. **Exactly-once activation.** Append an event, dispatch the activation, crash between `TaskActivated` and `WorkerSucceeded`, and assert the next activation consumes the identical range, that the cursor advances exactly once, and that the effects are identical.
+6. **Idle quiescence.** With a quiescent activation task and a cursor equal to `run.ingressSeq`, assert `selectDispatchable` never returns it, across an unbounded number of rounds.
+7. **Exactly-once activation.** Append an entry, dispatch the activation, crash between `TaskActivated` and the consumption batch, and assert the next activation consumes the identical range, that the cursor advances exactly once, that exactly one ledger row exists per entry, and that the effects are identical.
 8. **Monotonic cursor.** Assert the cursor never decreases across a crash, a replay, or a recovery, and that an event proposing a decrease is rejected.
-9. **No starvation.** With a saturated ready set and `maxConcurrentTasks` long-running tasks, append an activation event and assert the activation task is dispatched within `activationStarvationBoundRounds` rounds of a slot becoming free, and that reserved capacity never causes `maxConcurrentTasks` to be exceeded.
+9. **No starvation.** With a saturated ready set and `maxConcurrentTasks` long-running tasks, append an ingress entry and assert the activation task is dispatched within `activationStarvationBoundRounds` rounds of a slot becoming free, and that reserved capacity never causes `maxConcurrentTasks` to be exceeded.
 10. **Vocabulary agreement.** Load every task record in `tasks/` as a fixture and assert each parses into the contract types with no field renaming, which is what makes the committed graph executable without restatement.
+
+### Test obligations added for A-101 under TASK-024
+
+11. **Eight invariants, each with its own diagnostic.** For every code in the diagnostics table, construct a graph violating exactly that invariant and assert the code is returned, that the graph is refused rather than stalled, and that a graph violating several returns several.
+12. **Owner form is refused with a direction.** Assert `GRAPH_GATE_PASSED_OWNER_FORM` names the lineage and the `lineageRound` the edge should carry, so the diagnostic is actionable rather than merely correct.
+13. **Lineage form survives supersession.** With `LIN-RUNTIME-QA` at lineage round 1 recording `changes-required` and a successor gate task recording `approved` at lineage round 2, assert TASK-012's unedited edge becomes satisfied, and assert that the equivalent owner-form edge would not have — the F-302 deadlock, exhibited as a test rather than as prose.
+14. **Cohort growth.** Extend a lineage's cohort with a new artifact at a later lineage round. Assert the earlier round's coverage claim is unchanged, that no cohort member can be removed, and that the new pair's `round` and `lineageRound` may legitimately differ.
+15. **Revision-5 graph loads.** Load the committed revision-5 task set as a fixture and assert `validateGraph` returns `ok`, with the eight invariants each exercised by at least one pair of the real graph.
 
 ## Observable pre- and post-conditions
 
@@ -213,9 +276,11 @@ Rejection is a returned value on the load path, not a thrown error, and it names
 | No overlapping scopes in flight | For every pair of leased or running tasks, their `writeScope` sets do not intersect |
 | No shared resource lock in flight | For every pair of leased or running tasks, their `resourceLock` values are not equal |
 | Dependencies gate dispatch | No task reaches `leased` unless every dependency **edge** is satisfied under its typed condition |
-| A quiescent task is never dispatched | With the cursor equal to the highest subscribed activation `seq`, the task never appears in a candidate list |
-| An activated task is dispatched promptly | After an activation event is appended, the task appears in a candidate list within the starvation bound of a slot becoming free |
-| An invalid graph is refused, not stalled | A graph violating any of the five no-deadlock invariants is rejected at load with a named diagnostic |
+| A quiescent task is never dispatched | With the cursor equal to `run.ingressSeq`, the task never appears in a candidate list |
+| An activated task is dispatched promptly | After `run.ingressSeq` increases, the task appears in a candidate list within the starvation bound of a slot becoming free |
+| An invalid graph is refused, not stalled | A graph violating any of the **eight** no-deadlock invariants is rejected at load with a named diagnostic |
+| Consumption state has one home | For every activation task, no field other than `activation.lastConsumedEventSeq` changes when a range is consumed, and no field other than the ledger records which entries it covered |
+| The inbox high-water mark never falls | Across branch deletion, force-push, rebase, and a clock moved backwards, `run.ingressSeq` is non-decreasing |
 | Tokens strictly increase per task | For each task, the sequence of `fencingToken` values across its `LeaseGranted` events is strictly increasing |
 | Stale writes are rejected | An append with a superseded token returns `StaleFencingToken` and changes nothing |
 | Reclaim happens once | Between two `LeaseGranted` events for the same task there is at most one `LeaseExpired` or `LeaseReleased` event |

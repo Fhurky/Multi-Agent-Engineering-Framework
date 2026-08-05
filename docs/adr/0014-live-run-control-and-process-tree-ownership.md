@@ -1,6 +1,6 @@
 # ADR-0014: Live-run control protocol and OS process-tree ownership
 
-- Status: Accepted
+- Status: Accepted; superseded in part by [ADR-0019](0019-durable-intent-receipts-for-side-effects.md), which replaces the single opaque `AgentWorker.execute` call and the undischargeable `spawnOwned` pre-condition with a three-phase handshake behind a registration receipt, and by [ADR-0022](0022-unqualified-drain-closure.md), which removes the exception permitting a completed drain alongside a surviving `orphan_unresolved` descendant. Every other decision below stands as written.
 - Date: 2026-08-05
 - Deciders: Solution Architect under TASK-016
 - Affects: TASK-007 owns live-run control; TASK-004 owns process-tree lifecycle; TASK-006 and TASK-008 consume both

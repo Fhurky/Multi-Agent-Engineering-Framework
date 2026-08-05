@@ -1,12 +1,32 @@
 # Runtime Interface Contracts
 
-Normative cross-module contracts for the autonomous runtime. Produced under TASK-002, amended under TASK-016. This document exists so that TASK-003 through TASK-008 and TASK-017 never negotiate an interface during execution.
+Normative cross-module contracts for the autonomous runtime. Produced under TASK-002, amended under TASK-016, amended again under TASK-024. This document exists so that TASK-003 through TASK-008, TASK-017, and TASK-026 never negotiate an interface during execution.
 
 **Precedence.** This document is the source of truth for every type and signature listed here. Where an implementation and this document disagree, the implementation is wrong. A task that needs a change must stop and route it through the Orchestrator as an ADR amendment, per [INTEGRATION-STRATEGY.md](INTEGRATION-STRATEGY.md).
 
 **Transcription rule.** TASK-003 transcribes the `state/contracts` section into `src/orchestrator/state/contracts/`. TASK-004 transcribes the `agents/contracts` section into `src/agents/contracts/`. Names, field names, and string literal unions must match exactly; formatting and file splitting are the implementer's choice. Every other module imports these types and declares none of its own copies.
 
 Language and platform are fixed by [ADR-0001](../../adr/0001-runtime-platform-and-language.md): TypeScript in strict mode on Node.js, ES modules.
+
+## Amendment register — TASK-024
+
+Every type carrying a `// TASK-024` marker is new or changed by this amendment. TASK-020 recorded findings A-101 through A-105 against the TASK-016 shapes in `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md`; this register names each superseded shape so there is exactly one normative reading of every contract. Nothing below is a silent rewrite: each row names what it supersedes.
+
+| Superseded shape (TASK-016) | Replaced by | Finding | Decision |
+|---|---|---|---|
+| `RunLimits.allowLocalOnlyPublication`, a run-global boolean | `PublicationClass` as a declared per-task field with two disjoint satisfying conditions, section 2a | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) supersedes part of ADR-0015 |
+| `TaskDependency` with one `gate_passed` member carrying `task` and `gate` and no round | Two disambiguated members — the **target form** with `task`, `gate`, `round`, and the **lineage form** with `lineage`, `gate`, `lineageRound`. The owner form is withdrawn and rejected at load | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| `TaskRecord.gateFor: GateTarget \| null`, singular | `gateFor: GateTarget[]`, plural. One gate task carries one or more relations and records exactly one verdict, applied atomically to every relation | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| `GateAssignment` and `GateTarget` with `gate`, `gateTaskId`/`task`, and `round` only | Both carry `gateClass`, `retrospective`, `gateLineage`, and `lineageRound`, and must agree pairwise on all seven fields | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| No representation of a gate lineage | `GateLineageRecord`, `GateLineageRoundRecord`, `run.gateLineages`, and three declaring events, section 2a | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| `GraphViolation` over five no-deadlock invariants | Eight invariants, including form resolution and lineage well-formedness, section 5 | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| `run.activationEvents`, `run.nextActivationSeq`, `ActivationEventRecord`, `ActivationSpec.pendingThroughSeq`, `ActivationEventAppended`, and `TaskActivated.throughSeq` | The three ingress surfaces — a durable append-only `IngressInbox`, a cursor-only `ActivationSpec`, and an append-only consumption ledger — in new section 2b | A-101, F-301 | [ADR-0017](../../adr/0017-durable-ingress-inbox-and-ingress-epochs.md) supersedes part of ADR-0015 |
+| `AgentWorker.execute`, one opaque call whose contract required the caller to have appended `ProcessGroupRegistered` with no way to prove it | A three-phase handshake — `planInvocation`, `beginInvocation` behind a `ProcessGroupRegistrationReceipt`, `completeInvocation` — in section 6 | A-102 | [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md) supersedes part of ADR-0014 |
+| `WorkspaceLifecycle.prepare`, `finalize`, and `abandon` as single calls that returned their intent events only after the operation | Split `plan*`/`execute*` phases behind a `WorkspaceIntentReceipt`, plus the new `WorkspaceAbandonIntended` event that enters `abandoning`, in section 10 | A-103 | [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md) supersedes part of ADR-0011 |
+| A committed effect retaining only `resultDigest`, from which recovery was required to build `WorkerSucceeded` | `AdoptableResult`, `run.pendingResults`, and the `WorkerResultRecorded` event appended **before** `EffectCommitted` | A-104 | [ADR-0020](../../adr/0020-durable-adoptable-results-for-recovery.md) supersedes part of ADR-0013 |
+| `RunDrainCompleted` emitted while an `orphan_unresolved` descendant survived | `RunDrainBlocked`, a non-success drain outcome; `RunDrainCompleted` requires verified closure of every invocation of the epoch | A-102 | [ADR-0022](../../adr/0022-unqualified-drain-closure.md) supersedes part of ADR-0014 |
+| `RunLimits`, twenty-two fields | Twenty-five; `allowLocalOnlyPublication` is removed and four ingress and drain limits are added | A-101, A-102 | ADR-0017, ADR-0022 |
+| `RuntimeEvent`, 44 members | 52 members; the additions and the three withdrawals are marked in section 3 | A-101 … A-104 | ADR-0017 … ADR-0022 |
 
 ## Amendment register — TASK-016
 
@@ -46,7 +66,17 @@ export type WorkspaceId = string;    // "ws-" + 16 lowercase hex chars
 export type ControlRequestId = string; // matches /^ctl-[0-9a-f]{16}$/
 export type GateName = string;       // 'review' | 'security' | 'qa' | 'performance' and any gate a task declares
 export type HumanDecisionId = string; // e.g. "HUMAN-001"
-export type ActivationSeq = number;  // strictly monotonic per run, starts at 1
+
+// TASK-024 additions
+export type GateLineageId = string;  // matches /^LIN-[A-Z0-9-]+$/, e.g. "LIN-ARCH-REVIEW"
+export type ActivationId = string;   // run-scoped identity of one activation, matches /^act-[0-9a-f]{16}$/
+export type FactId = Sha256Hex;      // an ingress entry's identity; see section 2b
+export type IngressSeq = number;     // stable monotonic inbox position, assigned once at append; 0 means "empty"
+export type IngressEpoch = number;   // >= 1; declared by a numbered model correction
+
+/** TASK-024 — withdrawn. `ActivationSeq` was a per-run counter over `run.activationEvents`,
+ *  which section 2b replaces with the durable inbox. Use `IngressSeq`. */
+// export type ActivationSeq = number;
 
 /** Strictly monotonic per run. Starts at 0 for a run with no applied events. */
 export type StateVersion = number;
@@ -136,10 +166,15 @@ export interface RunLimits {
   reservedControlPlaneSlots: number;      // default 1
   activationStarvationBoundRounds: number; // default 1
 
-  // TASK-016 — publication policy (ADR-0011)
-  /** false by default. True is an operator-recorded acceptance of a bootstrap-phase limitation,
-   *  under which a `local-only` publication satisfies a review_ready edge. Never inferred. */
-  allowLocalOnlyPublication: boolean;  // default false
+  // TASK-024 — ingress inbox (ADR-0017)
+  ingressAppendBatchMaxEntries: number;   // default 256
+  ingressObserveIntervalMs: number;       // default 5_000
+  ingressConsumeMaxEntries: number;       // default 256
+
+  // TASK-024 — drain closure (ADR-0022)
+  /** Total budget for verified closure of every invocation of the epoch, across escalation
+   *  rounds. Exceeding it produces RunDrainBlocked, never RunDrainCompleted. */
+  processTreeCloseTotalBudgetMs: number;  // default 60_000
 }
 
 export interface RunRecord {
@@ -159,13 +194,29 @@ export interface RunRecord {
   effects: Record<EffectId, EffectLedgerEntry>;
 
   // TASK-016 additions
-  nextActivationSeq: ActivationSeq;                        // starts at 1
-  activationEvents: ActivationEventRecord[];               // append-only, strictly increasing seq
   invocations: Record<InvocationId, InvocationRecord>;     // process-tree register (ADR-0014)
   workspaces: Record<WorkspaceId, WorkspaceRecord>;        // workspace register (ADR-0011)
   acceptedControlRequests: AcceptedControlRequest[];       // append-only (ADR-0014)
   humanDecisions: HumanDecisionRecord[];                   // append-only (ADR-0015)
+
+  // TASK-024 additions
+  gateLineages: Record<GateLineageId, GateLineageRecord>;  // append-only register (ADR-0018)
+  /** The producer-side high-water mark of the ingress inbox, `max(seq)` over every entry of
+   *  every epoch, or 0 when the inbox is empty. Non-decreasing for the life of the run.
+   *  It is NOT consumption state; consumption state is the per-task cursor and nothing else. */
+  ingressSeq: IngressSeq;                                  // starts at 0 (ADR-0017)
+  ingressEpochs: IngressEpochRecord[];                     // append-only, ordered by epoch (ADR-0017)
+  /** Append-only consumption ledger. One row per consumed entry, created already consumed and
+   *  already stamped with its consuming activation. No row is ever edited. (ADR-0017) */
+  ingressConsumptionLedger: IngressConsumptionRow[];
+  /** Durable adoptable results, keyed by task. Written before the result effect is committed,
+   *  so recovery can reconstruct a complete `WorkerSucceeded`. (ADR-0020) */
+  pendingResults: Record<TaskId, AdoptableResult>;
 }
+
+/** TASK-024 — withdrawn from `RunRecord`. `nextActivationSeq` and `activationEvents` modelled
+ *  activation as an internal queue; section 2b replaces both with the durable ingress inbox,
+ *  whose positions are assigned by the inbox and never by `applyEvent`. */
 
 export interface TaskRecord {
   taskId: TaskId;
@@ -193,13 +244,21 @@ export interface TaskRecord {
   // TASK-016 additions — the vocabulary of tasks/TASK-001-DEPENDENCY-GRAPH.md, name for name
   preMergeGates: GateName[];           // subset of requiredGates that blocks integration
   gateTasks: GateAssignment[];         // who gates this task, and at which round
-  gateFor: GateTarget | null;          // set when this task IS a gate for another task
   gateVerdicts: GateVerdictRecord[];   // append-only; a later round supersedes, never rewrites
   resourceLock: string | null;         // named lock serializing non-disjoint scopes
   publication: PublicationRecord | null;   // durable review_ready evidence
   integration: IntegrationRecord | null;   // durable integrated evidence
   activation: ActivationSpec | null;   // event-triggered recurring work
   workspaceId: WorkspaceId | null;     // workspace of the current attempt
+
+  // TASK-024 additions
+  /** TASK-024 — was `gateFor: GateTarget | null`. A gate task carries one or more relations;
+   *  `[]` means the task is not a gate task. It records exactly one verdict and applies it
+   *  atomically to every relation here. TASK-025 carries three. */
+  gateFor: GateTarget[];
+  /** TASK-024 — replaces the run-global `limits.allowLocalOnlyPublication`. Declared, never
+   *  inferred; a record that omits it is rejected by the graph validator. */
+  publicationClass: PublicationClass;
 }
 
 export interface LeaseRecord {
@@ -246,46 +305,98 @@ export interface EffectLedgerEntry {
   resultDigest: Sha256Hex | null;      // set when status is 'committed'
   intendedAt: IsoTimestamp;
   committedAt: IsoTimestamp | null;
+  /** TASK-024. True for the one entry per attempt that registers the task's own result effect.
+   *  Recovery reads `run.pendingResults[taskId]` only for an entry carrying this flag. */
+  isTaskResultEffect: boolean;         // TASK-024 (ADR-0020)
+}
+
+/**
+ * TASK-024 (ADR-0020). The complete, durable, adoptable result of one attempt. Recorded by
+ * `WorkerResultRecorded` **before** the attempt's result effect is committed, so a crash in the
+ * window A-104 named leaves recovery everything `WorkerSucceeded` requires. It changes no task
+ * state; it is evidence, not a transition.
+ */
+export interface AdoptableResult {
+  taskId: TaskId;
+  attempt: number;
+  idempotencyKey: Sha256Hex;
+  fencingToken: FencingToken;
+  result: TaskResultSummary;           // artifact paths, digest, summary, completedAt
+  proposedTasks: TaskProposal[];       // never summarized to a digest; see ADR-0020
+  recordedAt: IsoTimestamp;
 }
 ```
 
-## 2a. Typed dependencies, gates, and activation — `state/contracts` (TASK-003)
+`TaskResultSummary` already carries `artifactPaths`, `resultDigest`, `summary`, and `completedAt`, so `AdoptableResult` adds exactly the two things a `resultDigest` cannot reconstruct: the summary itself and `proposedTasks`. Losing `proposedTasks` can change the terminal task graph, which is why they are stored verbatim rather than as a digest.
 
-Added under TASK-016 to resolve A-004. Every name here matches `tasks/TASK-001-DEPENDENCY-GRAPH.md` exactly, so a committed task record compiles against these types without restatement. The satisfying condition of each edge is normative in [STATE-MACHINE.md](STATE-MACHINE.md#typed-dependency-edges).
+## 2a. Typed dependencies, gates, and gate lineages — `state/contracts` (TASK-003)
+
+Added under TASK-016 to resolve A-004; amended under TASK-024 to resolve A-101. Every name here matches `tasks/TASK-001-DEPENDENCY-GRAPH.md` **revision 5** exactly, so a committed task record compiles against these types without restatement. The satisfying condition of each edge is normative in [STATE-MACHINE.md](STATE-MACHINE.md#typed-dependency-edges).
 
 ```ts
 export type DependencyEdgeKind =
   | 'review_ready' | 'integrated' | 'gate_passed'
   | 'gate_recorded' | 'human_decision' | 'terminal';
 
+/**
+ * TASK-024. `gate_passed` has exactly two surviving forms, disambiguated by which of `task`
+ * and `lineage` is present. Invariant 6 in section 5 rejects an edge declaring neither or both.
+ * The **owner form** — a `gate_passed` edge naming a task that declares the gate only in a
+ * `gateFor` entry — is withdrawn and is rejected at load with a message directing it to the
+ * lineage form. See ADR-0018 and finding F-302.
+ */
 export type TaskDependency =
   | { edge: 'review_ready'; task: TaskId }
   | { edge: 'integrated'; task: TaskId }
-  | { edge: 'gate_passed'; task: TaskId; gate: GateName }
+  | { edge: 'gate_passed'; task: TaskId; gate: GateName; round?: number }              // target form
+  | { edge: 'gate_passed'; lineage: GateLineageId; gate: GateName; lineageRound?: number } // lineage form
   | { edge: 'gate_recorded'; task: TaskId }
   | { edge: 'human_decision'; decision: HumanDecisionId }
   | { edge: 'terminal'; task: TaskId };
+
+/** `round` and `lineageRound` default to 1 when a record omits them. The loader normalizes
+ *  the omission once, at admission, so every stored edge carries an explicit value. */
+export const DEFAULT_GATE_ROUND = 1;
 
 export type GateVerdict =
   | 'approved' | 'approved-with-findings'
   | 'changes-required' | 'formally-accepted';
 
-/** The target's view: who gates this task, at which round. */
-export interface GateAssignment {
+/** TASK-024. Scheduling timeliness of one gate pair. Computed and declared; a mismatch is
+ *  rejected at load by invariant 7. */
+export type GateClass = 'point' | 'aggregate';
+
+/**
+ * TASK-024. The four scheduling and lineage properties every `gateFor` / `gateTasks` pair
+ * declares on both sides. They are normative in the pair's own declaration and in the
+ * registers referenced by `tasks/TASK-001-DEPENDENCY-GRAPH.md`, and nowhere else; no record
+ * body restates them.
+ */
+export interface GatePairProperties {
+  gateClass: GateClass;
+  /** True exactly when the gate is not in the target's `preMergeGates`. */
+  retrospective: boolean;
+  gateLineage: GateLineageId;
+  lineageRound: number;                // >= 1
+}
+
+/** The target's view: who gates this task, at which round, under which lineage. */
+export interface GateAssignment extends GatePairProperties {
   gate: GateName;
   gateTaskId: TaskId;
   round: number;                       // >= 1; defaults to 1 when a record omits it
 }
 
-/** The gate task's view. Must agree pairwise with the target's GateAssignment. */
-export interface GateTarget {
+/** The gate task's view. One entry per relation the gate task carries.
+ *  Must agree with the target's `GateAssignment` on all seven fields. */
+export interface GateTarget extends GatePairProperties {
   task: TaskId;
   gate: GateName;
   round: number;
 }
 
 /** Append-only. A later round supersedes an earlier one; both stay recorded. */
-export interface GateVerdictRecord {
+export interface GateVerdictRecord extends GatePairProperties {
   gate: GateName;
   round: number;
   verdict: GateVerdict;
@@ -298,6 +409,35 @@ export interface GateVerdictRecord {
   recordedAt: IsoTimestamp;
   supersedes: number | null;           // the round this one supersedes, null at round 1
 }
+
+/**
+ * TASK-024 (ADR-0018). A gate lineage is the durable relation between one gate name and one
+ * cohort of gated artifacts, held across every round and across every successive gate task
+ * that records a round of it. It is what survives supersession, so no consumer edge has to be
+ * retargeted when a `changes-required` verdict is superseded by a new gate task.
+ */
+export interface GateLineageRecord {
+  lineage: GateLineageId;
+  gate: GateName;                      // constant within a lineage
+  cohort: TaskId[];                    // append-only, in the order artifacts joined; never shrinks
+  rounds: GateLineageRoundRecord[];    // append-only; declared rounds are 1 … k with no gap
+  declaredAt: IsoTimestamp;
+}
+
+export interface GateLineageRoundRecord {
+  lineageRound: number;                // >= 1
+  gateTaskId: TaskId;                  // exactly one gate task records a given lineage round
+  verdict: GateVerdict | null;         // null until the round's verdict is recorded
+  recordedAt: IsoTimestamp | null;
+}
+
+/**
+ * TASK-024 (ADR-0018). Replaces the run-global `allowLocalOnlyPublication` flag with a declared
+ * per-task class. The two classes have disjoint satisfying conditions, normative in
+ * STATE-MACHINE.md; a `local-only` publication never satisfies `review_ready` for a `runtime`
+ * task, and an unavailable remote is a `blocked` outcome for one rather than a success.
+ */
+export type PublicationClass = 'runtime' | 'bootstrap';
 
 export interface PullRequestIdentity {
   provider: 'github' | 'none';
@@ -332,30 +472,231 @@ export interface HumanDecisionRecord {
   recordedAt: IsoTimestamp;
 }
 
-export type ActivationEventType =
-  | 'gate_verdict_recorded' | 'artifact_published' | 'branch_integrated'
-  | 'human_decision_recorded' | 'dependency_unsatisfiable' | 'remediation_completed';
-
-export interface ActivationEventRecord {
-  seq: ActivationSeq;                  // strictly increasing per run, assigned by applyEvent
-  eventType: ActivationEventType;
-  sourceRef: string;                   // the commit, report, or record it was read from
-  subjectTaskId: TaskId | null;
-  appendedAt: IsoTimestamp;
-}
-
+/**
+ * TASK-024 (ADR-0017). The activation spec of an event-triggered recurring task. Consumption
+ * state is represented by **the cursor and nothing else**: `pendingThroughSeq` is withdrawn,
+ * because a second field holding half the consumption state is what finding A-101 recorded.
+ * The range an activation consumes is `(lastConsumedEventSeq, run.ingressSeq]`, recomputed at
+ * consumption time rather than reserved in advance.
+ */
 export interface ActivationSpec {
   mode: 'event-triggered';
-  subscribedEventTypes: ActivationEventType[];   // non-empty
-  lastConsumedEventSeq: ActivationSeq;           // monotonically non-decreasing; never rewound
-  pendingThroughSeq: ActivationSeq | null;       // set by TaskActivated, cleared by the cursor advance
+  subscribedEventTypes: IngressEventType[];      // non-empty; see section 2b
+  /** THE cursor. Monotonically non-decreasing; `applyEvent` rejects any event that would
+   *  lower it, and rejects a restored record in which it exceeds `run.ingressSeq`. */
+  lastConsumedEventSeq: IngressSeq;
   state: 'quiescent' | 'pending_activation' | 'consuming';
 }
 ```
 
-`gateVerdicts`, `activationEvents`, `acceptedControlRequests`, and `humanDecisions` are append-only by contract. No event in the union expresses removing or mutating an existing member of any of them, which is what makes a recorded verdict durable structurally rather than by convention.
+`gateVerdicts`, `gateLineages`, `ingressEpochs`, `ingressConsumptionLedger`, `acceptedControlRequests`, and `humanDecisions` are append-only by contract. No event in the union expresses removing or mutating an existing member of any of them, which is what makes a recorded verdict, a lineage round, and a consumption row durable structurally rather than by convention.
 
-## 2b. Process-tree and workspace registers — `state/contracts` (TASK-003)
+## 2b. The three ingress surfaces — `state/contracts` (TASK-003), implemented by TASK-026
+
+Added under TASK-024 to resolve A-101 and the contract representation of F-301. It supersedes the TASK-016 model in which `ActivationEventAppended` created rows in `run.activationEvents` and the recurring task consumed them through `pendingThroughSeq`.
+
+There are exactly three surfaces, with disjoint writers, and they are the same three the decomposition names:
+
+| Surface | What it is | Who may write it | Who reads it |
+|---|---|---|---|
+| **Ingress inbox** | A durable, append-only store of ingress **entries**, owned by the module at `src/orchestrator/ingress/` | The ingress adapters, on behalf of the producing owners. No write under `tasks/` is required or permitted to append one | The ingress observer in `src/orchestrator/scheduling/` |
+| **Ingress cursor** | `TaskRecord.activation.lastConsumedEventSeq` | The consuming activation, in the same batch as its effects | The ingress observer |
+| **Consumption ledger** | `run.ingressConsumptionLedger` | The consuming activation, append-only, one row per consumed entry, written already consumed | Reviewers and operators, as durable provenance |
+
+The inbox is not a Git ref scan, not a commit count, and not a file under `tasks/`. The ledger is a record of consumption, not a queue and not the inbox: a row is created already stamped with its consuming activation, so no row is ever edited and `consumedBy` is never mutated.
+
+```ts
+/** The closed ingress source set. Order is meaningless here; precedence is the constant below. */
+export type IngressEventType =
+  | 'human_decision_recorded' | 'branch_integrated' | 'gate_verdict_recorded'
+  | 'remediation_completed' | 'dependency_unsatisfiable' | 'artifact_published';
+
+/**
+ * Normative class precedence, highest first. A source commit matching several classes produces
+ * exactly **one** entry, typed by the earliest member of this array that it matches. Distinct
+ * commits are distinct facts even when they express one logical step.
+ */
+export const INGRESS_CLASS_PRECEDENCE = [
+  'human_decision_recorded',
+  'branch_integrated',
+  'gate_verdict_recorded',
+  'remediation_completed',
+  'dependency_unsatisfiable',
+  'artifact_published',
+] as const satisfies readonly IngressEventType[];
+
+/** One durable inbox entry. Every field is written once at append and never recomputed. */
+export interface IngressEntry {
+  /** Stable monotonic position, assigned **once** at append and never recomputed. It is not a
+   *  count of anything outside the inbox and it is never derived from an observable ref. */
+  seq: IngressSeq;
+  epoch: IngressEpoch;                 // the epoch that assigned this seq
+  /** SHA-256 over the canonical identity tuple below. The entry's identity and the
+   *  deduplication key. */
+  factId: FactId;
+  /** SHA-256 over the bytes of the source artifact at the source commit. Lets a later reader
+   *  detect that `sourcePath` was rewritten since the append; that detection is a finding,
+   *  never a silent renumbering. */
+  contentHash: Sha256Hex;
+  eventType: IngressEventType;         // the single class the fact resolves to after precedence
+  producerTask: TaskId;
+  producerRole: string;
+  /** Provenance only. `sourceCommit` and `sourcePath` identify where the fact came from; they
+   *  never determine its position. */
+  sourceCommit: string;                // 40 lowercase hex
+  sourcePath: string;                  // repository-relative
+  appendedBy: string;                  // the adapter or activation that appended the entry
+  /** Provenance only. Explicitly **not** an ordering input; see `IngressFactCandidate`. */
+  appendedAt: IsoTimestamp;
+  consumedBy: ActivationId | null;     // written once, never mutated
+}
+
+/**
+ * What an adapter offers the inbox. It carries **no timestamp**, so a timestamp cannot be an
+ * ordering input even by mistake, and it carries every class the commit matched, so precedence
+ * is resolved in one place — the inbox — rather than separately in each adapter.
+ */
+export interface IngressFactCandidate {
+  matchedClasses: IngressEventType[];  // non-empty; the inbox applies INGRESS_CLASS_PRECEDENCE
+  producerTask: TaskId;
+  producerRole: string;
+  sourceCommit: string;
+  sourcePath: string;
+  contentHash: Sha256Hex;
+  appendedBy: string;
+}
+
+/** An epoch declares the observation model that assigned its positions. */
+export interface IngressEpochRecord {
+  epoch: IngressEpoch;
+  /** The previous epoch's high-water mark. The epoch's first entry takes `seqBase + 1`, so the
+   *  cursor is monotonic across the boundary and never runs ahead of the observed facts. */
+  seqBase: IngressSeq;
+  model: string;                       // English description of the observation model
+  declaredBy: string;                  // the numbered model correction that declared it
+  status: 'active' | 'sealed';
+  declaredAt: IsoTimestamp;
+  sealedAt: IsoTimestamp | null;
+}
+
+/** One row of the consumption ledger. Created already consumed; never edited. */
+export interface IngressConsumptionRow {
+  seq: IngressSeq;
+  epoch: IngressEpoch;
+  factId: FactId;
+  contentHash: Sha256Hex;
+  eventType: IngressEventType;
+  producerTask: TaskId;
+  producerRole: string;
+  sourceCommit: string;
+  sourcePath: string;
+  consumedBy: ActivationId;            // stamped at creation
+  consumedAt: IsoTimestamp;
+}
+```
+
+### The canonical identity tuple
+
+`factId` is the lowercase hexadecimal SHA-256 of this exact byte sequence: UTF-8, LF separators, one trailing LF.
+
+```text
+epoch=<n>
+event_type=<eventType>
+producer_task=<TaskId>
+source_commit=<40-hex commit id>
+source_path=<repository-relative path>
+content_hash=<64-hex>
+```
+
+Identity is a function of the fact, never of when it was discovered. `seq`, `appendedBy`, `appendedAt`, and `consumedBy` are deliberately absent from it.
+
+### The inbox interface
+
+```ts
+export interface IngressInbox {
+  /**
+   * Identity-keyed, crash-safe append. For each candidate the inbox resolves its class by
+   * `INGRESS_CLASS_PRECEDENCE`, computes `factId`, and appends only when that `factId` is not
+   * already present — so re-observing a fact is a no-op and a fact can never be counted twice.
+   * Within one call, candidates are ordered by **ascending `sourceCommit` identifier**, a total
+   * order independent of refs, of branch existence, and of clocks. Committer timestamps are
+   * never used and are not accepted as an input.
+   * Two candidates sharing a `sourceCommit` collapse to one entry by precedence.
+   */
+  append(batch: IngressFactCandidate[]): Promise<IngressAppendResult>;
+
+  /**
+   * `max(seq)` over every entry of every epoch, or 0 when the inbox is empty. Non-decreasing
+   * for the life of the run. It reads no Git ref, so branch deletion, force-push, rebase, and
+   * clock skew cannot change it.
+   */
+  highWaterMark(): Promise<IngressSeq>;
+
+  /** Entries in the contiguous range `(afterSeq, throughSeq]`, ascending by `seq`. */
+  read(afterSeq: IngressSeq, throughSeq: IngressSeq): Promise<IngressEntry[]>;
+
+  /**
+   * Declares the next epoch with `seqBase` equal to the current high-water mark and seals the
+   * previous one. Entries of a previous epoch are never re-derived, renumbered, reclassified,
+   * or edited; there is no operation on this interface that expresses any of those.
+   */
+  declareEpoch(declaration: IngressEpochDeclaration): Promise<IngressEpochResult>;
+
+  epochs(): Promise<IngressEpochRecord[]>;
+}
+
+export interface IngressEpochDeclaration {
+  model: string;                       // English
+  declaredBy: string;                  // the numbered model correction
+  now: IsoTimestamp;
+}
+
+export type IngressAppendResult =
+  | { ok: true; appended: IngressEntry[]; deduplicated: FactId[]; highWaterMark: IngressSeq }
+  | { ok: false; error: 'SelfExcludedProducer'; factId: FactId }
+  | { ok: false; error: 'UnknownClass' | 'MalformedCandidate'; detail: string }
+  | { ok: false; error: 'NoActiveEpoch' };
+
+export type IngressEpochResult =
+  | { ok: true; sealed: IngressEpochRecord | null; active: IngressEpochRecord }
+  | { ok: false; error: 'EpochAlreadyActive' | 'MalformedDeclaration'; detail: string };
+
+/**
+ * Adapter configuration. `consumerTaskId` and `consumerBranch` are what make self-exclusion
+ * structural: a commit authored by the consuming activation on its own branch is never an
+ * ingress fact under any class. The adapter does not offer it, and `append` rejects it with
+ * `SelfExcludedProducer` if it is offered anyway. This is what makes quiescence after an
+ * activation demonstrable rather than assumed — an activation's own effects commit cannot
+ * raise `ingressSeq`.
+ */
+export interface IngressAdapterConfig {
+  consumerTaskId: TaskId;
+  consumerBranch: string;
+  sources: IngressSourceClass[];       // one per member of IngressEventType
+}
+
+export interface IngressSourceClass {
+  eventType: IngressEventType;
+  producerRoles: string[];             // the roles permitted to produce this class
+  pathScope: string[];                 // the producing owner's own write scope
+}
+```
+
+### The rules the interface encodes
+
+1. **Identity-keyed append.** An entry is appended only if its `factId` is absent. Re-observation is a no-op, so appending is idempotent.
+2. **Append-stable positions.** `seq` is assigned in append order and never changes. A fact discovered late — a backdated commit, a branch published after the fact, a historical commit nobody had scanned — receives the **next free `seq`**. Nothing is ever inserted before an existing entry, so `ingressSeq = max(seq)` is non-decreasing for the life of the run.
+3. **Batch order.** Ascending `sourceCommit` identifier, never a timestamp. `IngressFactCandidate` has no timestamp field, so the rule is unrepresentable to violate.
+4. **Reference independence and retention.** An entry outlives the ref that carried its source commit. Deleting, rewriting, or garbage-collecting a branch cannot remove an entry and therefore cannot lower `ingressSeq`.
+5. **Class precedence.** One commit, at most one entry, typed by the highest-precedence class it matched.
+6. **Self-exclusion.** The consuming activation is a consumer, not a producer, and its own commits are never facts.
+7. **The cursor.** `ingressSeq = max(seq)`, or 0 when empty. **Dispatchable:** `ingressSeq > activation.lastConsumedEventSeq`. **Quiescent:** equal. **Invalid:** `lastConsumedEventSeq > ingressSeq`, rejected at load.
+8. **Exactly-once consumption.** An activation consumes `(lastConsumedEventSeq, ingressSeq]`. The effects, the ledger rows for the consumed range, and the cursor advance are applied in **one batch**. If the batch does not land, the cursor is unchanged, no ledger row exists, and the same range is consumed again by the next activation with identical effects, because every transition a control-plane activation performs is idempotent.
+9. **Epochs.** A new epoch is declared only by a numbered model correction, takes `seqBase` from the previous epoch's high-water mark, and never re-derives, renumbers, reclassifies, or edits a prior epoch's entries.
+
+Rules 1, 2, 4, and 9 are why a count over a scan of mutable refs is not a position, and why this contract is not that. Rules 3, 5, and 6 are why `ingressSeq` is reproducible from the inbox alone.
+
+## 2d. Process-tree and workspace registers — `state/contracts` (TASK-003)
 
 Added under TASK-016. Both are durable registers that recovery reads; the mechanisms that maintain them belong to TASK-004 and TASK-017 respectively.
 
@@ -433,7 +774,7 @@ export type RuntimeEvent =
   | { type: 'RunStarted' }
   | { type: 'RunPauseRequested'; requestedBy: string }
   | { type: 'RunStopRequested'; requestedBy: string }
-  | { type: 'RunDrainCompleted'; intent: 'pause' | 'stop'; abandonedTaskIds: TaskId[] }
+  | { type: 'RunDrainCompleted'; intent: 'pause' | 'stop'; abandonedTaskIds: TaskId[]; treeClosure: 'all_verified' }  // TASK-024
   | { type: 'RunResumeRequested'; writerEpoch: WriterEpoch }
   | { type: 'RunRecoveryCompleted'; reclaimedTaskIds: TaskId[]; adoptedTaskIds: TaskId[] }
   | { type: 'RunCompleted'; state: 'succeeded' | 'failed' | 'cancelled'; reason: TerminalReason }
@@ -465,26 +806,50 @@ export type RuntimeEvent =
   | { type: 'ProcessGroupBound'; invocationId: InvocationId; pid: number; groupRef: string; processStartTime: string }
   | { type: 'ProcessGroupClosed'; invocationId: InvocationId; outcome: ProcessTreeOutcome; exitCode: number | null; escalation: 'none' | 'graceful' | 'forced'; verifiedExit: boolean; unresolvedReason: InvocationRecord['unresolvedReason'] }
 
-  // Workspace lifecycle (ADR-0011)
+  // Workspace lifecycle (ADR-0011, amended by ADR-0019)
   | { type: 'WorkspacePrepareIntended'; workspaceId: WorkspaceId; taskId: TaskId; attempt: number; branch: string; worktreePath: string }
   | { type: 'WorkspacePrepared'; workspaceId: WorkspaceId; lockSessionId: string; hooksVerified: true }
   | { type: 'WorkspaceFinalizeIntended'; workspaceId: WorkspaceId }
   | { type: 'WorkspaceFinalized'; workspaceId: WorkspaceId; lockReleased: boolean }
+  | { type: 'WorkspaceAbandonIntended'; workspaceId: WorkspaceId; reason: string }   // TASK-024 — enters `abandoning`
   | { type: 'WorkspaceAbandoned'; workspaceId: WorkspaceId; reason: string; lockReleased: boolean }
   | { type: 'WorkspaceReconciled'; workspaceId: WorkspaceId; resolvedTo: WorkspaceState; unresolvedReason: WorkspaceRecord['unresolvedReason'] }
 
-  // Typed scheduling, gates, publication, integration (ADR-0015)
+  // Typed scheduling, gates, publication, integration (ADR-0015, amended by ADR-0018)
   | { type: 'ArtifactPublished'; taskId: TaskId; publication: PublicationRecord }
-  | { type: 'GateVerdictRecorded'; targetTaskId: TaskId; gateTaskId: TaskId; gate: GateName; round: number; verdict: GateVerdict; blockingFindingsOpen: number; artifactPath: string; remediatedBy: TaskId | null; revalidatedBy: TaskId | null; acceptedBy: HumanDecisionId | null }
+  /** TASK-024. One review produces exactly one verdict, applied atomically to every relation
+   *  the gate task carries. Applying this event appends one GateVerdictRecord per relation and
+   *  sets the verdict of each named lineage round. A split outcome is not representable. */
+  | { type: 'GateVerdictRecorded'; gateTaskId: TaskId; verdict: GateVerdict; blockingFindingsOpen: number; artifactPath: string; remediatedBy: TaskId | null; revalidatedBy: TaskId | null; acceptedBy: HumanDecisionId | null; relations: GateTarget[] }
   | { type: 'BranchIntegrated'; taskId: TaskId; integrationBranch: string; mergedCommit: string }
   | { type: 'HumanDecisionRecorded'; decisionId: HumanDecisionId; commit: string; summary: string }
   | { type: 'DependencyUnsatisfiable'; taskId: TaskId; dependency: TaskDependency; reason: string }
   | { type: 'RemediationCompleted'; taskId: TaskId; remediates: Array<{ task: TaskId; finding: string }> }
 
-  // Event-triggered recurring activation (ADR-0015)
-  | { type: 'ActivationEventAppended'; eventType: ActivationEventType; sourceRef: string; subjectTaskId: TaskId | null }
-  | { type: 'TaskActivated'; taskId: TaskId; throughSeq: ActivationSeq }
-  | { type: 'TaskQuiesced'; taskId: TaskId; atSeq: ActivationSeq };
+  // ---- TASK-024 additions ----
+
+  // Gate lineages (ADR-0018)
+  | { type: 'GateLineageDeclared'; lineage: GateLineageId; gate: GateName; cohort: TaskId[] }
+  | { type: 'GateLineageCohortExtended'; lineage: GateLineageId; task: TaskId }
+  | { type: 'GateLineageRoundOpened'; lineage: GateLineageId; lineageRound: number; gateTaskId: TaskId }
+
+  // Ingress inbox, cursor, and consumption ledger (ADR-0017)
+  /** The observer's durable record that the inbox's high-water mark advanced. It carries no
+   *  entry payload: the entries live in the inbox, not in the journal. */
+  | { type: 'IngressHighWaterMarkObserved'; epoch: IngressEpoch; ingressSeq: IngressSeq }
+  | { type: 'IngressEpochDeclared'; epoch: IngressEpoch; seqBase: IngressSeq; model: string; declaredBy: string }
+  /** Appends one ledger row per entry of `(fromSeq, throughSeq]` and advances that task's
+   *  cursor to `throughSeq`, in one event. Applied in the same batch as the activation's
+   *  effects and its `WorkerSucceeded`. */
+  | { type: 'IngressRangeConsumed'; taskId: TaskId; activationId: ActivationId; fromSeq: IngressSeq; throughSeq: IngressSeq; rows: IngressConsumptionRow[] }
+  | { type: 'TaskActivated'; taskId: TaskId; activationId: ActivationId; observedIngressSeq: IngressSeq }
+  | { type: 'TaskQuiesced'; taskId: TaskId; atSeq: IngressSeq }
+
+  // Durable adoptable results (ADR-0020)
+  | { type: 'WorkerResultRecorded'; taskId: TaskId; fencingToken: FencingToken; attempt: number; adoptable: AdoptableResult }
+
+  // Unqualified drain closure (ADR-0022)
+  | { type: 'RunDrainBlocked'; intent: 'pause' | 'stop'; reason: 'unverified_process_tree'; unresolvedInvocationIds: InvocationId[] };
 
 export interface TaskProposal {
   taskId: TaskId;
@@ -501,15 +866,22 @@ export interface TaskProposal {
   // TASK-016 additions, mirroring TaskRecord
   preMergeGates?: GateName[];          // defaults to []
   gateTasks?: GateAssignment[];        // defaults to []
-  gateFor?: GateTarget | null;         // defaults to null
   resourceLock?: string | null;        // defaults to null
   activation?: ActivationSpec | null;  // defaults to null
+
+  // TASK-024 additions, mirroring TaskRecord
+  gateFor?: GateTarget[];              // defaults to []
+  publicationClass: PublicationClass;  // required; never inferred
 }
 ```
 
-`RuntimeEvent` is a closed union of 44 members. Adding a member is a contract change and requires an ADR amendment; the nineteen members above were added by this amendment under ADR-0011 and ADR-0013 through ADR-0015.
+`RuntimeEvent` is a closed union of **52** members under this amendment. Adding a member is a contract change and requires an ADR amendment.
 
-Seventeen of the nineteen change no state field — every one except `TaskActivated` and `TaskQuiesced`. They record a durable fact — a gate verdict, a publication, an accepted control request, a process group, a workspace step — and each still advances `stateVersion` by exactly one, so replay determinism and the derivation of fencing tokens from `stateVersion` are unaffected. [STATE-MACHINE.md](STATE-MACHINE.md) lists which states each is legal from.
+The membership arithmetic, stated so it can be recomputed rather than trusted: TASK-002 declared 25; TASK-016 added 19, giving 44; TASK-024 **withdraws** `ActivationEventAppended` and adds nine — `WorkspaceAbandonIntended`, `GateLineageDeclared`, `GateLineageCohortExtended`, `GateLineageRoundOpened`, `IngressHighWaterMarkObserved`, `IngressEpochDeclared`, `IngressRangeConsumed`, `WorkerResultRecorded`, and `RunDrainBlocked` — giving 52. `TaskActivated` and `TaskQuiesced` survive with changed payloads rather than being withdrawn.
+
+Of the nine additions, seven change no task or run state field: every one except `IngressRangeConsumed`, which advances a cursor, and `WorkspaceAbandonIntended`, which enters `abandoning`. Each still advances `stateVersion` by exactly one, so replay determinism and the derivation of fencing tokens from `stateVersion` are unaffected. [STATE-MACHINE.md](STATE-MACHINE.md) lists which states each is legal from.
+
+`ActivationEventAppended` is withdrawn because its record effect — creating a row in `run.activationEvents` with a `seq` assigned by `applyEvent` — is precisely the internal-queue model finding A-101 rejected. Ingress positions are assigned by the inbox at append time and the journal observes them; it does not mint them.
 
 ## 3a. Journal line framing — `state/contracts` (TASK-003)
 
@@ -606,7 +978,10 @@ export type LoadResult =
   | { ok: false; error: 'RunNotFound' };
 
 export type AppendResult =
-  | { ok: true; version: StateVersion; run: RunRecord }
+  /** TASK-024. `receipts` carries one `DurableAppendReceipt` per event of the batch, in batch
+   *  order, issued only after the batch commit record is durable. It is how a module proves to
+   *  another module that a named intent is durable without being given write authority. */
+  | { ok: true; version: StateVersion; run: RunRecord; receipts: DurableAppendReceipt[] }
   | { ok: false; error: 'VersionConflict'; currentVersion: StateVersion }
   | { ok: false; error: 'StaleWriterEpoch'; currentEpoch: WriterEpoch }
   | { ok: false; error: 'StaleFencingToken'; taskId: TaskId; expected: FencingToken; presented: FencingToken }
@@ -679,8 +1054,10 @@ export interface DispatchCandidate {
   createdSeq: number;
   /** TASK-016. Activatable candidates sort ahead of ordinary ones. */
   activationClass: 'activation' | 'ordinary';
-  /** TASK-016. Set for an activation candidate; the range TaskActivated will claim. */
-  activateThroughSeq: ActivationSeq | null;
+  /** TASK-024 — was `activateThroughSeq: ActivationSeq | null`. Set for an activation
+   *  candidate: the inbox high-water mark observed when the candidate was selected. It is an
+   *  observation, not a reservation: nothing is claimed until `IngressRangeConsumed` lands. */
+  observedIngressSeq: IngressSeq | null;
 }
 
 export interface Scheduler {
@@ -699,11 +1076,23 @@ export interface Scheduler {
   isEdgeSatisfied(run: RunRecord, edge: TaskDependency): EdgeEvaluation;
 
   /**
-   * TASK-016. Pure. Validates the whole graph against the five no-deadlock invariants,
-   * including acyclicity of the expanded precondition graph. Called at load and on every
-   * TaskCreated admission. Returns every violation, not only the first.
+   * TASK-024 — was five invariants. Pure. Validates the whole graph against the **eight**
+   * no-deadlock invariants of `tasks/TASK-001-DEPENDENCY-GRAPH.md` revision 5, including
+   * acyclicity of the expanded precondition graph, `gate_passed` form resolution with the
+   * owner form withdrawn, gate-pair scheduling-property agreement, and gate-lineage
+   * well-formedness. Called at load and on every TaskCreated admission. Returns every
+   * violation, not only the first.
    */
   validateGraph(run: RunRecord): GraphValidation;
+
+  /**
+   * TASK-024 (ADR-0017). Pure. Given the run record and the inbox high-water mark, returns the
+   * tasks whose cursor is behind it, in dispatch order. `ingressSeq` is supplied by the caller
+   * because reading the inbox is I/O and the scheduler is pure; the ingress observer in
+   * `src/orchestrator/scheduling/` performs the read and appends
+   * `IngressHighWaterMarkObserved` before calling this.
+   */
+  activatableTasks(run: RunRecord, ingressSeq: IngressSeq): DispatchCandidate[];
 
   /** Emits LeaseGranted for the candidate. Returns the token the caller must present. */
   grantLease(run: RunRecord, candidate: DispatchCandidate, now: IsoTimestamp): LeaseGrant;
@@ -727,10 +1116,30 @@ export type GraphValidation =
 
 export interface GraphViolation {
   code:
+    // invariants 1 … 5, unchanged from TASK-016
     | 'GRAPH_CYCLE_SCHEDULING' | 'GRAPH_GATE_HOLDS_STRONG_EDGE'
     | 'GRAPH_GATE_PAIR_MISMATCH' | 'GRAPH_PREMERGE_GATE_AWAITS_MERGE'
-    | 'GRAPH_CYCLE_EXPANDED' | 'GRAPH_UNKNOWN_TARGET' | 'GRAPH_TERMINAL_EDGE_CYCLE';
+    | 'GRAPH_CYCLE_EXPANDED' | 'GRAPH_UNKNOWN_TARGET' | 'GRAPH_TERMINAL_EDGE_CYCLE'
+    // TASK-024 — invariant 6, gate_passed form resolution
+    | 'GRAPH_GATE_PASSED_FORM_AMBIGUOUS'      // declares neither or both of task and lineage
+    | 'GRAPH_GATE_PASSED_OWNER_FORM'          // the withdrawn owner form; message names the lineage form
+    | 'GRAPH_GATE_PASSED_UNKNOWN_LINEAGE'     // lineage absent from the register
+    | 'GRAPH_GATE_PASSED_GATE_NOT_REQUIRED'   // target form naming a gate absent from requiredGates
+    // TASK-024 — invariant 7, gate scheduling properties
+    | 'GRAPH_GATE_CLASS_MISMATCH'             // declared gateClass differs from the computed class
+    | 'GRAPH_RETROSPECTIVE_MISMATCH'          // declared retrospective differs from gate ∉ preMergeGates
+    | 'GRAPH_DELAYED_GATE_UNREGISTERED'       // aggregate or retrospective pair with no register entry
+    // TASK-024 — invariant 8, gate-lineage well-formedness
+    | 'GRAPH_LINEAGE_UNDECLARED'              // a pair naming a lineage the register does not hold
+    | 'GRAPH_LINEAGE_GATE_INCONSISTENT'       // the gate name is not constant within the lineage
+    | 'GRAPH_LINEAGE_ROUND_COLLISION'         // two gate tasks declaring the same lineage round
+    | 'GRAPH_LINEAGE_ROUND_GAP'               // declared rounds are not 1 … k
+    | 'GRAPH_LINEAGE_COHORT_VIOLATION'        // a pair whose target is not a cohort member
+    | 'GRAPH_LINEAGE_ROUND_PREMATURE'         // round n > 1 opened before round n − 1 recorded a verdict
+    // TASK-024 — declared-field completeness
+    | 'GRAPH_PUBLICATION_CLASS_MISSING';      // a task record omitting publicationClass
   taskIds: TaskId[];                   // the cycle in order, or the tasks involved
+  lineages: GateLineageId[];           // TASK-024; the lineages involved, may be empty
   detail: string;                      // English
 }
 
@@ -856,8 +1265,92 @@ export interface WorkerResult {
   outcome: AdapterOutcome;
 }
 
+/**
+ * TASK-024 (ADR-0019), resolving A-102. `execute` was one opaque call whose `spawnOwned`
+ * pre-condition — "the caller must have appended ProcessGroupRegistered" — no caller could
+ * satisfy, because the supervisor had no seam inside the call and the worker holds no
+ * state-write authority. The call is split into three phases. The supervisor appends between
+ * them; the worker still appends nothing and still receives no state store.
+ *
+ *   1. supervisor: plan = worker.planInvocation(assignment)            pure, spawns nothing
+ *   2. supervisor: append ProcessGroupRegistered{ plan.invocationId }  durable
+ *   3. supervisor: receipt = the append path's receipt for that event
+ *   4. supervisor: begun = await worker.beginInvocation(plan, receipt, signal)
+ *   5. supervisor: append ProcessGroupBound{ begun.binding }           durable, immediately after
+ *   6. supervisor: result = await worker.completeInvocation(begun.handle, signal)
+ *   7. supervisor: append ProcessGroupClosed{ result.close }           durable
+ */
 export interface AgentWorker {
-  execute(assignment: WorkAssignment, signal: AbortSignal): Promise<WorkerResult>;
+  /**
+   * Phase 1. Pure and deterministic. Resolves the adapter, derives `invocationId` from
+   * `(runId, taskId, attempt, idempotencyKey)`, derives the group name from it, and assembles
+   * the command vector. Spawns no process, touches no filesystem, appends nothing.
+   */
+  planInvocation(assignment: WorkAssignment): WorkerInvocationPlan;
+
+  /**
+   * Phase 2. Creates the owned group and spawns the provider into it.
+   * **Refuses without a receipt** whose `invocationId` equals `plan.invocationId` and whose
+   * `writerEpoch` is the current one, returning `RegistrationNotDurable`. Because a receipt is
+   * issued only by the state store's append path after `ProcessGroupRegistered` is durable,
+   * there is no code path in which a process exists before its identity does.
+   */
+  beginInvocation(
+    plan: WorkerInvocationPlan,
+    receipt: ProcessGroupRegistrationReceipt,
+    signal: AbortSignal,
+  ): Promise<WorkerBeginResult>;
+
+  /** Phase 3. Awaits the provider outcome, then the verified close of the owned tree. */
+  completeInvocation(handle: WorkerInvocationHandle, signal: AbortSignal): Promise<WorkerResult>;
+}
+
+export interface WorkerInvocationPlan {
+  invocationId: InvocationId;
+  taskId: TaskId;
+  attempt: number;
+  groupKind: ProcessGroupKind;
+  groupName: string;                   // derived from invocationId; known before the spawn
+  invocation: AgentInvocation;
+  command: SpawnCommand;
+  fencingToken: FencingToken;          // carried through untouched
+}
+
+/**
+ * TASK-024. Proof that a named event is durable. Issued by `StateStore.append` and by nothing
+ * else; a module that receives one has evidence, not authority. It carries no capability to
+ * write and cannot be used to append anything.
+ */
+export interface DurableAppendReceipt {
+  eventType: RuntimeEvent['type'];
+  stateVersion: StateVersion;          // the version the event produced
+  writerEpoch: WriterEpoch;
+  batchId: BatchId;
+  issuedAt: IsoTimestamp;
+}
+
+export interface ProcessGroupRegistrationReceipt extends DurableAppendReceipt {
+  eventType: 'ProcessGroupRegistered';
+  invocationId: InvocationId;
+}
+
+export type WorkerBeginResult =
+  | { ok: true; handle: WorkerInvocationHandle; binding: ProcessGroupBinding }
+  | { ok: false; error: 'RegistrationNotDurable'; detail: string }
+  | { ok: false; failure: AdapterFailure };
+
+export interface ProcessGroupBinding {
+  invocationId: InvocationId;
+  pid: number;
+  groupRef: string;
+  processStartTime: string;
+}
+
+/** Opaque to every consumer. Only TASK-004 interprets it. */
+export interface WorkerInvocationHandle {
+  invocationId: InvocationId;
+  taskId: TaskId;
+  attempt: number;
 }
 
 /**
@@ -870,9 +1363,15 @@ export interface ProcessTreeController {
    * On Windows the job object is created with KILL_ON_JOB_CLOSE **before** the spawn, so a
    * supervisor crash terminates the whole tree. On POSIX the child is spawned detached into a
    * new process group whose pgid equals its pid.
-   * The caller must have appended ProcessGroupRegistered before calling this.
+   * TASK-024: the durability pre-condition is discharged by the receipt parameter, which
+   * `AgentWorker.beginInvocation` obtained from the supervisor. This method is not callable
+   * without one, so "registration is durable before the spawn" is a signature, not a comment.
    */
-  spawnOwned(invocation: AgentInvocation, command: SpawnCommand): Promise<SpawnOwnedResult>;
+  spawnOwned(
+    invocation: AgentInvocation,
+    command: SpawnCommand,
+    receipt: ProcessGroupRegistrationReceipt,
+  ): Promise<SpawnOwnedResult>;
 
   /**
    * Graceful cancellation, then bounded escalation, then verified exit.
@@ -905,6 +1404,11 @@ export interface TreeCancelDeadlines {
   gracefulCancelGraceMs: number;
   treeExitVerifyTimeoutMs: number;
   treeExitPollIntervalMs: number;
+  /** TASK-024 (ADR-0022). Total budget across every escalation and verification round for one
+   *  invocation. `cancelTree` re-forces and re-verifies until either exit is verified or this
+   *  budget is exhausted; exhaustion returns `verifiedExit: false`, which the drain treats as a
+   *  blocking outcome rather than as a permitted exception. */
+  treeCloseTotalBudgetMs: number;
 }
 
 export interface TreeCloseOutcome {
@@ -917,7 +1421,7 @@ export interface TreeCloseOutcome {
 }
 ```
 
-`agents/contracts` re-declares `RunId`, `TaskId`, `Sha256Hex`, `IsoTimestamp`, `FencingToken`, `TaskProposal`, and — added under TASK-016 — `InvocationId`, `WorkspaceId`, `InvocationRecord`, and `ProcessTreeOutcome` locally as structurally identical aliases. This is the first of the two permitted duplications: it lets TASK-004 compile in parallel with TASK-003 without an import edge between the two contract roots. TypeScript structural typing makes the two views interchangeable at every consumer. The second permitted duplication is `WorkspaceFailureClass`; see [COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md).
+`agents/contracts` re-declares `RunId`, `TaskId`, `Sha256Hex`, `IsoTimestamp`, `FencingToken`, `TaskProposal`, — added under TASK-016 — `InvocationId`, `WorkspaceId`, `InvocationRecord`, and `ProcessTreeOutcome`, and — added under TASK-024 — `StateVersion`, `WriterEpoch`, `BatchId`, `DurableAppendReceipt`, and `ProcessGroupRegistrationReceipt`, locally as structurally identical aliases. This is the first of the two permitted duplications: it lets TASK-004 compile in parallel with TASK-003 without an import edge between the two contract roots. TypeScript structural typing makes the two views interchangeable at every consumer. The second permitted duplication is `WorkspaceFailureClass`; see [COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md).
 
 ## 7. Retry, timeout, and recovery — declared in `state/contracts`, implemented by TASK-008
 
@@ -945,6 +1449,10 @@ export interface RecoveryCoordinator {
 export interface RecoveryContext {
   holderId: string;
   now: IsoTimestamp;
+  /** TASK-024 (ADR-0020). The durable adoptable results restored with the record, supplied so
+   *  that every input to the reconciliation decision is durable and the `adopt` decision can
+   *  build a complete `WorkerSucceeded`. Resolves A-104. */
+  pendingResults: Readonly<Record<TaskId, AdoptableResult>>;
 }
 
 export type RecoveryOutcome =
@@ -974,7 +1482,16 @@ export interface ReconciliationDecision {
   leaseState: 'none' | 'superseded' | 'current_epoch';
   ledgerState: 'none' | 'intended_idempotent' | 'intended_non_idempotent' | 'committed';
   deadline: 'elapsed' | 'not_elapsed';
-  decision: 'adopt' | 'escalate' | 'reclaim' | 'retry_timeout' | 'exhaust_timeout' | 'none';
+  /** TASK-024. `reclaim_activation` is the decision for a task carrying an `activation` block:
+   *  a control-plane consumption is never adopted, because its cursor advance and its effects
+   *  are one batch that either landed or did not. `escalate` additionally covers the
+   *  `unreconstructable_result` case in the A-104 fix. */
+  decision:
+    | 'adopt' | 'escalate' | 'reclaim' | 'reclaim_activation'
+    | 'retry_timeout' | 'exhaust_timeout' | 'none';
+  /** TASK-024. Present when `decision` is `adopt`; the durable result the emitted
+   *  `WorkerSucceeded` is built from. Null for every other decision. */
+  adoptable: AdoptableResult | null;
   emitted: Array<RuntimeEvent['type']>;   // the fixed sequence for this decision
   toState: TaskState;
 }
@@ -1036,7 +1553,10 @@ export interface RunOutcome {
   runId: RunId;
   runState: RunState;
   terminalReason: TerminalReason | null;
-  exitCode: 0 | 1 | 2 | 3 | 4;
+  /** TASK-024 (ADR-0022). 5 is added: the drain could not verify closure of every process tree
+   *  of this writer epoch, so no `RunDrainCompleted` was emitted and the command did **not**
+   *  return a paused or cancelled run. */
+  exitCode: 0 | 1 | 2 | 3 | 4 | 5;
 }
 
 export interface RunStatusView {
@@ -1046,9 +1566,19 @@ export interface RunStatusView {
   counts: Record<TaskState, number>;
   inFlight: TaskId[];
   blocked: Array<{ taskId: TaskId; reason: string }>;
-  // TASK-016 additions
-  quiescent: Array<{ taskId: TaskId; lastConsumedEventSeq: ActivationSeq; maxSubscribedSeq: ActivationSeq }>;
+  // TASK-016 additions, amended by TASK-024
+  quiescent: Array<{ taskId: TaskId; lastConsumedEventSeq: IngressSeq; ingressSeq: IngressSeq }>;
   openGates: Array<{ taskId: TaskId; gate: GateName; highestRound: number; verdict: GateVerdict | null }>;
+
+  // TASK-024 additions
+  ingressSeq: IngressSeq;
+  ingressEpoch: IngressEpoch;
+  openLineages: Array<{
+    lineage: GateLineageId;
+    gate: GateName;
+    highestLineageRound: number;
+    authoritativeVerdict: GateVerdict | null;
+  }>;
 }
 
 /**
@@ -1171,12 +1701,74 @@ export interface WorkspaceFailure {
   exitCode: number | null;
 }
 
+/**
+ * TASK-024 (ADR-0019), resolving A-103. Each mutating operation is split into a **plan** phase
+ * that produces the intent event and performs no side effect, and an **execute** phase that
+ * refuses to act without a receipt proving the intent is durable. The module still appends
+ * nothing; the supervisor appends the intent between the two phases.
+ *
+ *   1. supervisor: plan = ws.planPrepare(request)          pure; no script, no git, no filesystem
+ *   2. supervisor: append plan.intentEvent                 WorkspacePrepareIntended, durable
+ *   3. supervisor: receipt = the append path's receipt
+ *   4. supervisor: result = await ws.executePrepare(plan, receipt)
+ *
+ * `finalize` and `abandon` follow the identical shape. A crash during any script or Git
+ * operation therefore always leaves a durable intent for `reconcile` to discover, because the
+ * operation is unreachable before its intent is durable.
+ */
 export interface WorkspaceLifecycle {
-  prepare(request: WorkspacePrepareRequest): Promise<WorkspacePrepareResult>;
-  finalize(handle: WorkspaceHandle, request: WorkspaceFinalizeRequest): Promise<WorkspaceFinalizeResult>;
-  abandon(handle: WorkspaceHandle, reason: string): Promise<WorkspaceAbandonResult>;
+  planPrepare(request: WorkspacePrepareRequest): WorkspacePreparePlan | WorkspacePlanRefusal;
+  executePrepare(plan: WorkspacePreparePlan, receipt: WorkspaceIntentReceipt): Promise<WorkspacePrepareResult>;
+
+  planFinalize(handle: WorkspaceHandle, request: WorkspaceFinalizeRequest): WorkspaceFinalizePlan | WorkspacePlanRefusal;
+  executeFinalize(plan: WorkspaceFinalizePlan, receipt: WorkspaceIntentReceipt): Promise<WorkspaceFinalizeResult>;
+
+  planAbandon(handle: WorkspaceHandle, reason: string): WorkspaceAbandonPlan | WorkspacePlanRefusal;
+  executeAbandon(plan: WorkspaceAbandonPlan, receipt: WorkspaceIntentReceipt): Promise<WorkspaceAbandonResult>;
+
   reconcile(runId: RunId, context: WorkspaceReconcileContext): Promise<WorkspaceReconcileResult>;
 }
+
+export type WorkspaceIntent = 'prepare' | 'finalize' | 'abandon';
+
+export interface WorkspaceIntentReceipt extends DurableAppendReceipt {
+  eventType: 'WorkspacePrepareIntended' | 'WorkspaceFinalizeIntended' | 'WorkspaceAbandonIntended';
+  workspaceId: WorkspaceId;
+  intent: WorkspaceIntent;
+}
+
+/** Each plan carries the intent event the supervisor must append, and the validated identity
+ *  the execute phase will act on. A plan is pure data; holding one performs nothing. */
+export interface WorkspacePreparePlan {
+  intent: 'prepare';
+  workspaceId: WorkspaceId;
+  taskId: TaskId;
+  attempt: number;
+  branch: string;                      // derived and validated; never from agent output
+  worktreePath: string;
+  baseRef: string;
+  intentEvent: EventEnvelopeInput;     // WorkspacePrepareIntended
+}
+
+export interface WorkspaceFinalizePlan {
+  intent: 'finalize';
+  workspaceId: WorkspaceId;
+  taskId: TaskId;
+  request: WorkspaceFinalizeRequest;
+  intentEvent: EventEnvelopeInput;     // WorkspaceFinalizeIntended
+}
+
+export interface WorkspaceAbandonPlan {
+  intent: 'abandon';
+  workspaceId: WorkspaceId;
+  taskId: TaskId;
+  reason: string;                      // English
+  intentEvent: EventEnvelopeInput;     // WorkspaceAbandonIntended — TASK-024; enters `abandoning`
+}
+
+/** A plan phase can refuse before any intent exists: a branch or worktree that fails
+ *  derivation validation is a dispatch refusal, not a sanitization opportunity. */
+export type WorkspacePlanRefusal = { ok: false; outcome: 'failed'; failure: WorkspaceFailure };
 
 export interface WorkspacePrepareRequest {
   runId: RunId;
@@ -1197,7 +1789,10 @@ export interface WorkspaceFinalizeRequest {
   writeScope: string[];                // the only paths that may be staged
   remote: string | null;
   integrationBranch: string;           // pull-request base
-  allowLocalOnlyPublication: boolean;
+  /** TASK-024 — replaces `allowLocalOnlyPublication`. The owning task's declared class decides
+   *  whether an unreachable remote is a recorded `local-only` publication or a `blocked`
+   *  outcome. It is read from the task record, never from a run-global flag. */
+  publicationClass: PublicationClass;
   now: IsoTimestamp;
 }
 
@@ -1230,21 +1825,34 @@ export type WorkspaceReconcileResult =
 
 Every operation returns `events` rather than appending them. The workspace module produces envelopes and the supervisor's append path applies them, which is the same rule that binds the scheduler and the recovery layer: only one module mutates durable state.
 
-`prepare` and `finalize` return an `events` array even on failure, because the intent events they already made durable, and the abandonment or blocked record that follows, are part of the outcome the caller must persist.
+`executePrepare`, `executeFinalize`, and `executeAbandon` return an `events` array even on failure, because the completion, abandonment, or blocked record that follows the durable intent is part of the outcome the caller must persist. TASK-024 moves the **intent** out of that array and into the plan, which is what makes "intent is durable before the side effect" a property of the call sequence rather than a promise inside one call.
+
+`WorkspaceIntentReceipt` gives the module evidence, not authority. It carries no capability to append, and the module cannot manufacture one, because only `StateStore.append` issues a `DurableAppendReceipt`.
+
+## 10a. Recovery reconstruction of an adopted result
+
+The recovery layer reads `run.pendingResults[taskId]` to build the `WorkerSucceeded` event that decision `adopt` emits. That is the whole of the A-104 fix at the contract level, and the two things it needed are present: `AdoptableResult.result` is a complete `TaskResultSummary`, and `AdoptableResult.proposedTasks` is the verbatim proposal list.
+
+`RecoveryContext` in section 7 carries `pendingResults` so the reconciliation decision is a function of durable inputs only.
+
+The fate of `proposedTasks` is stated once, here, and nowhere contradicted: they are recorded verbatim before the result effect is committed, they are adopted with the result, and they are admitted by the same `TaskCreated` guards an uninterrupted run would apply. They are never digested, never truncated, and never silently dropped. When a task's current attempt has a `committed` result effect and **no** matching `pendingResults` entry, the decision is `escalate` with reason `unreconstructable_result:<effectId>`, not `adopt` with a partial event — because a terminal task graph missing a proposal is a worse outcome than a blocked task naming the defect.
 
 ## 11. Contract ownership summary
 
 | Section | Contract root | Owner task | Consumed by |
 |---|---|---|---|
-| 1–4, 9 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005, TASK-006, TASK-007, TASK-008, TASK-017 |
-| 2a, 2b | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005, TASK-006, TASK-008, TASK-017 |
+| 1–4, 9 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005, TASK-006, TASK-007, TASK-008, TASK-017, TASK-026 |
+| 2a, 2d | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005, TASK-006, TASK-008, TASK-017 |
+| 2b | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005 and TASK-026; TASK-006 applies the ingress events |
 | 3a | `src/orchestrator/state/contracts/` | TASK-003 | TASK-003 only; no other module reads a journal line |
 | 5 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005, TASK-006 |
 | 6 | `src/agents/contracts/` | TASK-004 | TASK-005, TASK-006, TASK-007, TASK-008 |
 | 7 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-008 |
 | 8 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-007 |
-| 10 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-006, TASK-008, TASK-017 |
+| 10, 10a | `src/orchestrator/state/contracts/` | TASK-003 | TASK-006, TASK-008, TASK-017 |
 
-TASK-003 owns more contract surface than it implements. That is intentional: the contract root must exist before Wave 3 begins, and TASK-003 is the earliest module every later task depends on. TASK-003 implements only the `StateStore`; it declares the `Scheduler`, `RetryPolicy`, `TimeoutWatchdog`, `RecoveryCoordinator`, `RunController`, `ControlChannel`, and `WorkspaceLifecycle` interfaces without implementing them.
+TASK-003 owns more contract surface than it implements. That is intentional: the contract root must exist before Wave 3 begins, and TASK-003 is the earliest module every later task depends on. TASK-003 implements only the `StateStore`; it declares the `Scheduler`, `RetryPolicy`, `TimeoutWatchdog`, `RecoveryCoordinator`, `RunController`, `ControlChannel`, `WorkspaceLifecycle`, and — added under TASK-024 — `IngressInbox` interfaces without implementing them.
 
-TASK-017 is added to the consumer set of `state/contracts` and appears in no row of `agents/contracts`, which is what keeps the workspace module at a single contract root.
+TASK-017 and TASK-026 are consumers of `state/contracts` and appear in no row of `agents/contracts`, which is what keeps the workspace module and the ingress module at a single contract root each.
+
+`DurableAppendReceipt` and its two refinements are declared in `state/contracts` and re-declared structurally in `agents/contracts` as `ProcessGroupRegistrationReceipt`, under the same rationale as the six primitive aliases: it lets TASK-004 compile in parallel with TASK-003 with no import edge between the roots. It is a **refinement of an existing permitted duplication**, not a third one — the aliases in that duplication are enumerated in [COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md) and the enumeration is extended there rather than a new duplication being opened here.

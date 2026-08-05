@@ -1,8 +1,21 @@
 # Integration and Branch Aggregation Strategy
 
-Normative integration strategy for the runtime task graph. Produced under TASK-002, amended under TASK-016. Related decisions: [ADR-0010](../../adr/0010-integration-and-branch-aggregation-strategy.md) as superseded in part by [ADR-0016](../../adr/0016-integration-branch-and-typed-merge-order.md), and [ADR-0015](../../adr/0015-typed-scheduling-gate-and-activation-contracts.md).
+Normative integration strategy for the runtime task graph. Produced under TASK-002, amended under TASK-016, amended again under TASK-024. Related decisions: [ADR-0010](../../adr/0010-integration-and-branch-aggregation-strategy.md) as superseded in part by [ADR-0016](../../adr/0016-integration-branch-and-typed-merge-order.md), [ADR-0015](../../adr/0015-typed-scheduling-gate-and-activation-contracts.md), and — under TASK-024 — [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) and [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md).
 
-Seven implementation tasks — TASK-003 through TASK-008 and TASK-017 — run in waves across isolated worktrees and separate agent branches, behind a toolchain task and an architecture amendment. This document defines how their branches converge without contract drift and without a merge conflict any agent has to resolve.
+**Eight** implementation tasks — TASK-003 through TASK-008, TASK-017, and TASK-026 — run in waves across isolated worktrees and separate agent branches, behind a toolchain task and two architecture amendments. This document defines how their branches converge without contract drift and without a merge conflict any agent has to resolve.
+
+## Amendment register — TASK-024
+
+TASK-020's finding A-101 recorded that this document still proved the revision-3 five-invariant graph and still described a seven-module runtime. Every row below is a reconciliation with revision 5 of `tasks/TASK-001-DEPENDENCY-GRAPH.md`.
+
+| Superseded claim (TASK-016) | Superseded by | Finding | Decision |
+|---|---|---|---|
+| A seven-branch topology ending at TASK-008 in Wave 6 | [Branch topology](#branch-topology): eleven rows over the revision-5 wave assignment, adding TASK-024, TASK-025, and TASK-026 | A-101 | [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md) |
+| A nine-row integration order whose step 1 merges TASK-016 on the strength of TASK-020 | [Integration order](#integration-order): eleven rows, in which TASK-024 is the amendment that merges and TASK-025 is the gate that releases it | A-101 | [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md) |
+| "Releases `gate_passed(TASK-016, review)` for TASK-003 …" — the target form naming one task | The lineage form `gate_passed(LIN-ARCH-REVIEW, review, 3)`, which needs no retarget when a round is superseded | A-101 | [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md) |
+| Contract immutability "during Waves 3 through 6" | During Waves 3 through **7**, matching the revision-5 wave numbering after TASK-026 was inserted at Wave 4 | A-101 | [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md) |
+| "Ownership gaps that remain: none. The module map now has seven modules" | Eight modules, eight owners; the ingress gap opened by F-301 is closed by this amendment and TASK-026 | A-101, F-301 | [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md) |
+| "Six parallel implementations" in contract change control | Eight | A-101 | [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md) |
 
 ## Amendment register — TASK-016
 
@@ -17,14 +30,14 @@ Seven implementation tasks — TASK-003 through TASK-008 and TASK-017 — run in
 
 ## Why conflicts are structurally impossible
 
-The write-scope partition recorded in `tasks/TASK-001-DEPENDENCY-GRAPH.md` gives no two tasks a shared path. Every module has exactly one owner ([COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md)). Consequently:
+The write-scope partition recorded in `tasks/TASK-001-DEPENDENCY-GRAPH.md` revision 5 gives no two tasks a shared path. Every module has exactly one owner ([COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md)), and TASK-026's `src/orchestrator/ingress/**` is disjoint from TASK-003's `state/`, TASK-005's `scheduling/`, TASK-006's `supervisor/`, TASK-007's `lifecycle/`, TASK-008's `recovery/`, and TASK-017's `workspace/`. Consequently:
 
 - Two agent branches never modify the same file, so a textual merge conflict cannot arise from the partition itself.
 - The remaining risk is **semantic**, not textual: two branches can compile independently and still disagree about a contract. That is the risk this strategy manages.
 
-Two tasks whose scopes genuinely cannot be made disjoint — because the second exists to revise what the first produced — declare a shared `resource_lock` instead, and the scheduler serializes them at admission. `architecture-docs`, held by TASK-002 and by this task, is one of the two.
+Two tasks whose scopes genuinely cannot be made disjoint — because the second exists to revise what the first produced — declare a shared `resource_lock` instead, and the scheduler serializes them at admission. `architecture-docs`, held by TASK-002, TASK-016, and TASK-024, is one of the two.
 
-The single control for semantic drift is that [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md) is normative and immutable during Waves 3 through 6.
+The single control for semantic drift is that [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md) is normative and immutable during Waves 3 through 7.
 
 ## Branch topology
 
@@ -34,23 +47,28 @@ main
  +-- integration/autonomous-runtime         the runtime's integration branch
       |
       +-- agent/claude/architect/task-002    Wave 0   docs and ADRs
-      +-- agent/claude/architect/task-016    Wave 0   this amendment
-      +-- agent/gpt/reviewer/task-020        Wave 1   gates task-016 before it merges
+      +-- agent/claude/architect/task-016    Wave 0   first amendment
+      +-- agent/gpt/reviewer/task-020        Wave 0   gated task-016; recorded changes-required
+      +-- agent/claude/architect/task-024    Wave 0   second amendment, this document set
+      +-- agent/gpt/reviewer/task-025        Wave 1   gates task-024 before it merges
       +-- agent/claude/devops/task-018       Wave 2   toolchain manifests, scripts/quality/**
       +-- agent/gpt/reviewer/task-019        Wave 2   gates task-018 before it merges
       +-- agent/claude/runtime/task-003      Wave 3   src/orchestrator/state/**
       +-- agent/claude/runtime/task-004      Wave 3   src/agents/**
-      +-- agent/claude/runtime/task-005      Wave 4   src/orchestrator/scheduling/**
       +-- agent/claude/runtime/task-017      Wave 4   src/orchestrator/workspace/**
-      +-- agent/claude/runtime/task-006      Wave 5   src/orchestrator/supervisor/**
-      +-- agent/claude/runtime/task-007      Wave 6   src/orchestrator/lifecycle/**, bin/**
-      +-- agent/claude/runtime/task-008      Wave 6   src/orchestrator/recovery/**
+      +-- agent/claude/runtime/task-026      Wave 4   src/orchestrator/ingress/**
+      +-- agent/claude/runtime/task-005      Wave 5   src/orchestrator/scheduling/**
+      +-- agent/claude/runtime/task-006      Wave 6   src/orchestrator/supervisor/**
+      +-- agent/claude/runtime/task-007      Wave 7   src/orchestrator/lifecycle/**, bin/**
+      +-- agent/claude/runtime/task-008      Wave 7   src/orchestrator/recovery/**
 ```
+
+Revision 5 inserted TASK-026 at Wave 4 and moved the scheduler and everything after it one wave later, because the scheduler's ingress observer reads a durable inbox TASK-026 owns. The wave numbers above are revision 5's, not revision 3's.
 
 Rules:
 
 1. **Every task branches from `integration/autonomous-runtime`**, never from a sibling agent branch. A task created from a sibling would inherit unreviewed work and would make the sibling's review gate meaningless.
-2. **A task branches at or after the commit where its declared dependencies reached `integrated`.** Wave 4 worktrees are created after TASK-003 and TASK-004 are integrated; Wave 5 after TASK-005 and TASK-017; Wave 6 after TASK-006.
+2. **A task branches at or after the commit where its declared dependencies reached `integrated`.** Wave 4 worktrees are created after TASK-003 and TASK-004 are integrated; Wave 5 after TASK-017 and TASK-026; Wave 6 after TASK-005; Wave 7 after TASK-006.
 3. **No agent pushes to `main`, and no agent merges into `main`.** The tracked pre-push hook blocks the push, every branch integrates by pull request, and the runtime's workspace module has no code path that can construct a push to any ref but its own task branch ([WORKSPACE-LIFECYCLE.md](WORKSPACE-LIFECYCLE.md)).
 4. **No rebasing of a sibling's branch by anyone but its owner.** A branch that needs a newer integration branch is rebased or merged by its own owner, in its own worktree.
 5. **`main` receives the runtime as one human-reviewed pull request** from `integration/autonomous-runtime`, not as a stream of agent merges.
@@ -63,19 +81,23 @@ Each row states what merging that task **releases**, in the typed vocabulary of 
 
 | Step | Wave | Merge into `integration/autonomous-runtime` | `pre_merge_gates` that must close first | Releases |
 |---|---|---|---|---|
-| 1 | 0 | TASK-016, this amendment | `review` — TASK-020 | `gate_passed(TASK-016, review)` for TASK-003 … TASK-008, TASK-017, TASK-018 |
-| 2 | 0 | TASK-002, whose review gate closes at round 2 on the strength of this amendment | `review` — TASK-015 r1, TASK-020 r2 | Nothing further; its consumers now name TASK-016 |
-| 3 | 2 | TASK-018, the toolchain | `review` — TASK-019 | `integrated(TASK-018)` for TASK-003, TASK-004, TASK-017 |
-| 4 | 3 | TASK-003 and TASK-004, in either order | none — assembly gates only | `integrated` for TASK-005, TASK-006, TASK-008, TASK-017 |
-| 5 | 4 | TASK-005 | none | `integrated(TASK-005)` for TASK-006 |
+| 1 | 0 | TASK-024, this amendment | `review` — TASK-025 r1 | `gate_passed(LIN-ARCH-REVIEW, review, 3)` for TASK-003 … TASK-008, TASK-017, TASK-018, TASK-026 |
+| 2 | 0 | TASK-016, whose review gate closes at round 2 on the strength of this amendment | `review` — TASK-020 r1, TASK-025 r2 | Nothing further; its consumers name the lineage, not the task |
+| 3 | 0 | TASK-002, whose review gate closes at round 3 | `review` — TASK-015 r1, TASK-020 r2, TASK-025 r3 | Nothing further; same reason |
+| 4 | 2 | TASK-018, the toolchain | `review` — TASK-019 r1 | `integrated(TASK-018)` for TASK-003, TASK-004, TASK-017, TASK-026 |
+| 5 | 3 | TASK-003 and TASK-004, in either order | none — assembly gates only | `integrated` for TASK-005, TASK-006, TASK-008, TASK-017, TASK-026 |
 | 6 | 4 | TASK-017, the workspace module | none | `integrated(TASK-017)` for TASK-006 and TASK-008 |
-| 7 | 5 | TASK-006 | none | `integrated(TASK-006)` for TASK-007 and TASK-008 |
-| 8 | 6 | TASK-007 and TASK-008, in either order | none | `review_ready` for TASK-009 … TASK-012 |
-| 9 | — | `integration/autonomous-runtime` into `main` | every assembly gate closed | Release |
+| 7 | 4 | TASK-026, the ingress inbox | none | `integrated(TASK-026)` for TASK-005 |
+| 8 | 5 | TASK-005 | none | `integrated(TASK-005)` for TASK-006 |
+| 9 | 6 | TASK-006 | none | `integrated(TASK-006)` for TASK-007 and TASK-008 |
+| 10 | 7 | TASK-007 and TASK-008, in either order | none | `review_ready` for TASK-009 … TASK-012 |
+| 11 | — | `integration/autonomous-runtime` into `main` | every assembly gate closed | Release |
 
-Within a wave, parallel tasks may merge in either order and require no coordination, because their scopes are disjoint and neither imports the other. TASK-005 and TASK-017 are the Wave 4 pair: `src/orchestrator/scheduling/**` and `src/orchestrator/workspace/**` do not overlap, and neither imports the other's implementation.
+Within a wave, parallel tasks may merge in either order and require no coordination, because their scopes are disjoint and neither imports the other. TASK-017 and TASK-026 are the Wave 4 pair: `src/orchestrator/workspace/**` and `src/orchestrator/ingress/**` do not overlap, and neither imports the other's implementation. Both sit at level 1 of the module partial order, so neither can depend on the other even accidentally.
 
-Steps 1 and 3 are the only rows with a non-empty `pre_merge_gates`. That is what makes TASK-019 and TASK-020 schedulable before their targets merge, and it is the reason a review gate no longer waits on a merge that waits on the review gate.
+Steps 1 through 4 are the only rows with a non-empty `pre_merge_gates`. That is what makes TASK-019 and TASK-025 schedulable before their targets merge, and it is the reason a review gate no longer waits on a merge that waits on the review gate.
+
+**The architecture edge is the lineage form.** Step 1 releases `{ lineage: LIN-ARCH-REVIEW, gate: review, lineageRound: 3 }`, held by nine tasks, rather than a target-form edge naming TASK-024. That is deliberate and it is the F-302 correction: revision 4 had to retarget this edge by hand when TASK-016 superseded TASK-002, and would have had to do so again for TASK-024. The lineage form names the durable relation, so a fourth round would require no edit to any consumer. `lineageRound: 3` is a floor, not an equality — the amendment carrying A-101 … A-105 must be the approved one, so a passing verdict at lineage round 1 or 2 does not satisfy it.
 
 **Merge method: squash per task**, one commit per task on the integration branch, message prefixed `feat:` and naming the task ID. One commit per task keeps the branch bisectable at task granularity and makes the remediation routing in TASK-013 able to name a single commit per finding.
 
@@ -93,11 +115,11 @@ The fallback recorded in TASK-002 — cutting `release/*` from the last pre-runt
 
 ## Contract change control
 
-This is the mechanism that keeps six parallel implementations compatible.
+This is the mechanism that keeps eight parallel implementations compatible.
 
-**Rule.** During Waves 3 through 6, no implementation task may change a type, signature, field name, or string-literal union defined in [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md), even inside its own write scope.
+**Rule.** During Waves 3 through 7, no implementation task may change a type, signature, field name, or string-literal union defined in [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md), even inside its own write scope.
 
-TASK-016 is itself the procedure below, executed once: TASK-015 found four contracts wrong before any implementation existed, the Orchestrator routed the amendment to the architect in a separate execution context, and this document set is the result. It is much cheaper here than it would have been in Wave 5, which is the whole argument for the rule.
+TASK-016 and TASK-024 are each the procedure below, executed once. TASK-015 found four contracts wrong before any implementation existed and TASK-016 amended them; TASK-020 then found five more, and this document set is TASK-024's amendment. Both are much cheaper here than they would have been in Wave 6, which is the whole argument for the rule — and the fact that the procedure ran twice before Wave 3 is evidence for it, not against it.
 
 **Procedure when a contract is wrong.**
 
@@ -123,7 +145,15 @@ The parameters TASK-018 must satisfy remain those in [ADR-0001](../../adr/0001-r
 
 ## Ownership gaps that remain
 
-None. Both gaps TASK-002 recorded are closed: the toolchain by HUMAN-001 and TASK-018, and the agent workspace lifecycle by this amendment and TASK-017. The module map now has seven modules, seven owners, and no unassigned runtime responsibility ([COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md)).
+None. All three gaps recorded against this graph are closed.
+
+| Gap | Recorded by | Closed by |
+|---|---|---|
+| No task owned the root toolchain manifests or `scripts/quality/**` | TASK-002 | HUMAN-001 at `fb9f45c`; TASK-018 owns the toolchain |
+| No module owned the agent workspace lifecycle that `AgentInvocation.worktreePath` presupposed | TASK-002, narrowed by F-105 | ADR-0011 under TASK-016; TASK-017 owns it. TASK-024 makes its intents durable before their side effects (A-103) |
+| No module owned the durable ingress inbox the activation model requires | F-301, inherited by A-101 | ADR-0017 and ADR-0021 under TASK-024; TASK-026 owns it |
+
+The module map now has **eight** modules, eight owners, and no unassigned runtime responsibility ([COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md)).
 
 ## Validation gates per branch
 
@@ -141,6 +171,8 @@ For work the **runtime** dispatches, these steps are performed by the workspace 
 
 ## Findings and remediation
 
-Findings from TASK-009 through TASK-012, and from TASK-014, TASK-015, TASK-019, TASK-020, and TASK-021, name the responsible task ID. TASK-013 creates one remediation task per responsible owner, and the owner fixes it on a new branch from the current integration branch. A validating role never edits the implementation, and a remediation branch follows the same partition and the same contract change control as the original.
+Findings from TASK-009 through TASK-012, and from TASK-014, TASK-015, and TASK-019 through TASK-023 and TASK-025, name the responsible task ID. TASK-013 creates one remediation task per responsible owner, and the owner fixes it on a new branch from the current integration branch. A validating role never edits the implementation, and a remediation branch follows the same partition and the same contract change control as the original.
 
-A superseding round is a **new gate task**, never a re-entered one. A recorded verdict is durable: a later round supersedes it and both stay recorded. That rule is enforced structurally in the runtime contracts — `gateVerdicts` is append-only and no event expresses a rewrite — and procedurally in the task graph, where TASK-020 performs round 2 of TASK-002's review rather than TASK-015 being reopened.
+A superseding round is a **new gate task**, never a re-entered one. A recorded verdict is durable: a later round supersedes it and both stay recorded. That rule is enforced structurally in the runtime contracts — `gateVerdicts` is append-only, `gateLineages[l].rounds` is append-only, and no event expresses a rewrite of either — and procedurally in the task graph, where TASK-020 performed round 2 of TASK-002's review rather than TASK-015 being reopened, and TASK-025 performs round 3 rather than TASK-020 being reopened.
+
+**The relation that survives supersession is the lineage.** `LIN-ARCH-REVIEW` has one gate name, a cohort that grew TASK-002 → TASK-016 → TASK-024, and three lineage rounds recorded by three distinct gate tasks. A consumer that needs "an approved runtime architecture" names the lineage and a floor round; it never names the gate task, so no consumer edge changed when TASK-016 superseded TASK-002 or when TASK-024 superseded TASK-016, and none will change if a fourth round becomes necessary. That is the whole of the F-302 correction, and it is why the owner form of `gate_passed` is withdrawn rather than merely discouraged.

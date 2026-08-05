@@ -15,14 +15,24 @@ Normative provider contract for the autonomous runtime. Produced under TASK-002,
 The supervisor knows a role has an `llm` family name. It does not know what that name means, how that provider is invoked, what its errors look like, or whether it is a CLI, an HTTP API, or a local process.
 
 ```text
-supervisor  ->  AgentWorker.execute(assignment)      provider-neutral
+supervisor  ->  AgentWorker.planInvocation(assignment)          provider-neutral
+                    |                                           TASK-024: three phases,
+                supervisor appends ProcessGroupRegistered       with the supervisor's
+                    |                                           appends between them
+                AgentWorker.beginInvocation(plan, receipt)      provider-neutral
                     |
                     v
-                AdapterRegistry.resolve(family)      provider-neutral
+                AdapterRegistry.resolve(family)                 provider-neutral
                     |
                     v
-                ProviderAdapter.invoke(invocation)   the only provider-specific code
+                ProviderAdapter.invoke(invocation)              the only provider-specific code
+                    |
+                supervisor appends ProcessGroupBound
+                    |
+                AgentWorker.completeInvocation(handle)          provider-neutral
 ```
+
+The three phases replace the single `AgentWorker.execute` call under TASK-024. The boundary itself is unchanged: the supervisor still knows only a family name, and `ProviderAdapter.invoke` is still the only provider-specific code.
 
 **Extension test.** Adding a provider must require exactly one change: registering a new `ProviderAdapter` implementation in the registry. If a new provider forces a change in `src/orchestrator/**`, the boundary has been violated. This is TASK-004's first acceptance criterion and the reviewer's most direct check.
 
@@ -92,16 +102,27 @@ Added under TASK-016 to resolve the second half of A-003. **This module owns it*
 
 ### Durable invocation identity
 
-Every invocation has an `invocationId` that is durable **before** any process exists, and the runtime records the binding immediately after:
+Every invocation has an `invocationId` that is durable **before** any process exists, and the runtime records the binding immediately after.
 
-| Step | Action | Journal |
-|---|---|---|
-| 1 | Compute `invocationId` deterministically from `(runId, taskId, attempt, idempotencyKey)`; derive the group name from it | `ProcessGroupRegistered { invocationId, taskId, attempt, groupKind, groupName }`, appended and durable **before** the spawn |
-| 2 | Create the owned group and spawn the provider into it | — |
-| 3 | Record what was created | `ProcessGroupBound { invocationId, pid, groupRef, processStartTime }`, appended immediately after the spawn returns |
-| 4 | On completion or cancellation, verify the tree has exited | `ProcessGroupClosed { invocationId, outcome, exitCode, escalation, verifiedExit, closedAt }` |
+Amended under TASK-024 (ADR-0019) to resolve A-102. TASK-016 stated this sequence and then gave `AgentWorker.execute` a single opaque signature, so no caller could interleave an append with the spawn. The sequence diagram closed the gap by showing the worker appending directly, which violates the declared boundary — workers never write durable state. The handshake below has a seam at every append, and every append is performed by the supervisor.
 
-Step 1 before the spawn is what makes an orphan attributable after a crash. A process spawned before its existence was recorded is a process recovery cannot name, and the window between steps 1 and 3 is the residual risk recorded in [CRASH-RECOVERY.md](CRASH-RECOVERY.md).
+| Step | Actor | Action | Journal |
+|---|---|---|---|
+| 1 | supervisor | `plan = worker.planInvocation(assignment)`. Pure: computes `invocationId` deterministically from `(runId, taskId, attempt, idempotencyKey)`, derives the group name from it, assembles the command vector. Spawns nothing | — |
+| 2 | supervisor | Append the registration | `ProcessGroupRegistered { invocationId, taskId, attempt, groupKind, groupName }`, durable **before** the spawn |
+| 3 | supervisor | Take `receipt` from the append result | — |
+| 4 | supervisor | `begun = await worker.beginInvocation(plan, receipt, signal)`. The worker refuses without a receipt naming `plan.invocationId`, returning `RegistrationNotDurable`; with one, it creates the owned group and spawns the provider into it | — |
+| 5 | supervisor | Append the binding, immediately after step 4 returns | `ProcessGroupBound { invocationId, pid, groupRef, processStartTime }` |
+| 6 | supervisor | `result = await worker.completeInvocation(begun.handle, signal)`, which awaits the provider outcome and then the verified tree close | — |
+| 7 | supervisor | Append the close | `ProcessGroupClosed { invocationId, outcome, exitCode, escalation, verifiedExit, closedAt }` |
+
+Three properties this buys, each checkable rather than promised:
+
+1. **Registration is durable before the spawn, by signature.** `ProcessTreeController.spawnOwned` takes a `ProcessGroupRegistrationReceipt` parameter and there is no overload without one. A receipt is issued only by `StateStore.append`, only after the batch commit record is durable. A spawn before a durable registration is therefore not expressible, rather than being a comment a reviewer must check.
+2. **TASK-004 gains no state-write ownership.** A receipt is evidence, not a capability: it carries a state version, a writer epoch, and a batch identifier, and no method that writes. `agents` still never touches durable state, and the diagram shows no worker append.
+3. **The binding is durable immediately after the spawn.** Step 5 is the supervisor's next action after step 4 returns, with nothing between them, which keeps the unbound window exactly one append wide — the same width TASK-016 claimed and could not deliver.
+
+The window between steps 2 and 5 is the residual risk recorded in [CRASH-RECOVERY.md](CRASH-RECOVERY.md): a POSIX crash inside it leaves a child whose group was never recorded. It is unchanged in width by this amendment; what changed is that the window is now the *only* gap, rather than one gap among several that the interface could not close at all.
 
 `processStartTime` is recorded so that identity can be re-verified later. A pid alone is not an identity: pids are reused, and signalling a reused pid would terminate an unrelated process.
 
@@ -128,19 +149,25 @@ An adapter that spawns a provider without an owned group is non-conforming. Ther
    until treeExitVerifyTimeoutMs:                                 verification
      POSIX:   kill(-pgid, 0) returns ESRCH
      Windows: the job reports zero assigned process ids
-5. Append ProcessGroupClosed with the escalation reached
+5. If verification did not succeed and treeCloseTotalBudgetMs      TASK-024: re-escalation
+   is not exhausted, repeat steps 3 and 4.
+6. Append ProcessGroupClosed with the escalation reached
    and verifiedExit true or false.
 ```
 
-Defaults: `gracefulCancelGraceMs` 10 000, `treeExitVerifyTimeoutMs` 5 000, `treeExitPollIntervalMs` 250, `processTreeCloseTimeoutMs` 20 000. All are run limits, all are injected, and none is read from wall-clock time directly.
+Defaults: `gracefulCancelGraceMs` 10 000, `treeExitVerifyTimeoutMs` 5 000, `treeExitPollIntervalMs` 250, `processTreeCloseTimeoutMs` 20 000, and — added under TASK-024 — `processTreeCloseTotalBudgetMs` 60 000. All are run limits, all are injected, and none is read from wall-clock time directly.
 
-A child that ignores step 2 is expected, not exceptional: agent CLIs trap interrupts to flush their own state. Step 3 is unconditional once the grace elapses, and step 4 is what turns "we sent a signal" into "the tree is gone". `verifiedExit: false` after `treeExitVerifyTimeoutMs` is recorded as `orphan_unresolved` and reported; it is never silently treated as success.
+A child that ignores step 2 is expected, not exceptional: agent CLIs trap interrupts to flush their own state. Step 3 is unconditional once the grace elapses, and step 4 is what turns "we sent a signal" into "the tree is gone". Step 5 is added under TASK-024: a single verification timeout is no longer the end of the attempt, because one timed-out poll is weak evidence that a tree is unkillable. `verifiedExit: false` after the **total budget** is exhausted is recorded as `orphan_unresolved` and reported; it is never silently treated as success, and — under ADR-0022 — it is never treated as an acceptable state in which a drain may return.
 
 ### Persisted outcome before the writer lock is released
 
-**Normative.** `releaseWriter` must not be called, and `RunDrainCompleted` must not be emitted, while any invocation of the current writer epoch lacks a durable `ProcessGroupClosed`. `pause` and `stop` therefore wait for step 5 of every in-flight invocation, bounded by `processTreeCloseTimeoutMs`.
+**Normative.** `releaseWriter` must not be called, and `RunDrainCompleted` must not be emitted, while any invocation of the current writer epoch lacks a durable `ProcessGroupClosed`. `pause` and `stop` therefore wait for step 6 of every in-flight invocation, bounded by `processTreeCloseTotalBudgetMs`.
 
-This is what gives the pause post-condition in [LIFECYCLE-AND-BOOTSTRAP.md](LIFECYCLE-AND-BOOTSTRAP.md) its teeth: pause may leave resumable **task** state, and it may not return while an unmanaged descendant remains.
+**Amended under TASK-024 (ADR-0022).** TASK-016 stopped here, which left the pause post-condition qualified: an `orphan_unresolved` outcome satisfied "has a durable `ProcessGroupClosed`" while a descendant might still be alive, so `pause` could return reporting a clean, resumable run with a process still editing a worktree. Finding A-102 recorded that as contrary to the unqualified criterion.
+
+`RunDrainCompleted` now additionally requires `verifiedExit: true` for every invocation of the epoch. When the budget is exhausted with any invocation unverified, the runtime appends `RunDrainBlocked` naming those invocations, writes a checkpoint, releases the writer lock, and exits **5**. The run stays in `pausing` or `draining`; it does not reach `paused` or `cancelled`. The next attach fences and terminates the orphans through Phase 5 of [CRASH-RECOVERY.md](CRASH-RECOVERY.md).
+
+This is what gives the pause post-condition in [LIFECYCLE-AND-BOOTSTRAP.md](LIFECYCLE-AND-BOOTSTRAP.md) its teeth, and the post-condition is now unqualified: pause may leave resumable **task** state, and there is no outcome under which it returns a paused run while an unmanaged descendant remains.
 
 ### Test obligations for A-003
 
@@ -152,7 +179,14 @@ The finding names one scenario explicitly; it is required, and four more follow 
 4. **Pid reuse.** Present a live process holding the recorded pid with a different start time. Assert no signal is sent and the outcome is `orphan_unresolved` with reason `pid_reuse`.
 5. **Registered but unbound.** Simulate a crash between the pre-spawn append and the post-spawn append. Assert the outcome is `orphan_unresolved` with reason `unbound`, that `RECOVERY_ORPHAN_UNRESOLVED` is emitted, and that the invocation is fenced so a late result changes nothing.
 
-Tests 1 through 5 use a fake adapter and real OS processes; none makes a network call or invokes a real provider.
+### Test obligations added for A-102 under TASK-024
+
+6. **Spawn without a receipt is refused.** Call `beginInvocation` with no receipt, with a receipt naming a different `invocationId`, and with a receipt carrying a superseded `writerEpoch`. Assert each returns `RegistrationNotDurable`, that no process was created, asserted on the OS process table, and that no journal append was attempted.
+7. **Registration precedes every spawn.** Over a fixture run dispatching many tasks, assert that for every `ProcessGroupBound` there is a `ProcessGroupRegistered` for the same `invocationId` at a strictly lower `stateVersion`, and that no process start time precedes the registration's durability.
+8. **The worker appends nothing.** Assert the `AgentWorker` implementation is constructed without a `StateStore` and that a static check finds no import of the store interface in `src/agents/`. This is the boundary the sequence diagram previously violated.
+9. **Drain does not return with a live descendant.** With a tree that survives the total budget, assert `RunDrainCompleted` is absent, `RunDrainBlocked` names the invocation, the run is still `pausing`, the command exits 5, and the next attach terminates the tree and records `terminated_by_recovery`.
+
+Tests 1 through 9 use a fake adapter and real OS processes; none makes a network call or invokes a real provider.
 
 ## Credentials
 
@@ -165,13 +199,12 @@ Tests 1 through 5 use a fake adapter and real OS processes; none makes a network
 
 ## Worker responsibilities
 
-`AgentWorker.execute` is the provider-neutral half:
+The provider-neutral half, amended under TASK-024 to the three-phase handshake:
 
-1. Resolve the adapter by `invocation.llm`; an unregistered family is `invalid_request` with code `UNKNOWN_PROVIDER_FAMILY`.
-2. Assemble the invocation from the role contract paths and the task record path. The worker reads those files; it does not interpret governance.
-3. Start the abort timer, call `invoke`, and stop the timer.
-4. Normalize the outcome into a `WorkerResult` carrying the invocation identifiers, the attempt, the idempotency key, the fencing token it was handed, and the start and finish timestamps.
-5. Return. The worker performs no state write and no retry.
+1. **`planInvocation`.** Resolve the adapter by `invocation.llm`; an unregistered family is `invalid_request` with code `UNKNOWN_PROVIDER_FAMILY`. Compute `invocationId` and the group name. Assemble the invocation from the role contract paths and the task record path — the worker reads those files; it does not interpret governance. Build the command vector. Pure with respect to processes: nothing is spawned.
+2. **`beginInvocation`.** Verify the receipt. Create the owned group, spawn the provider into it, and return the binding.
+3. **`completeInvocation`.** Start the abort timer, await the adapter outcome, stop the timer, then close the tree with verified exit. Normalize the outcome into a `WorkerResult` carrying the invocation identifiers, the attempt, the idempotency key, the fencing token it was handed, and the start and finish timestamps.
+4. Return. **The worker performs no state write and no retry**, in any phase. It receives no `StateStore` and holds no append path; the receipts it receives are evidence and carry no capability.
 
 The `fencingToken` on `WorkAssignment` is carried through untouched so that the supervisor can present it when applying the result. The worker treats it as an opaque value.
 
@@ -185,8 +218,11 @@ The `fencingToken` on `WorkAssignment` is carried through untouched so that the 
 | Timeouts are bounded | With an adapter that never resolves, `execute` returns a `timeout` outcome within `timeoutMs` plus a fixed tolerance |
 | Results are addressable | Every `WorkerResult` carries `runId`, `taskId`, `attempt`, `idempotencyKey`, and `fencingToken` |
 | No credential leakage | A round-trip of every produced record and event contains no value returned by `SecretProvider` |
-| Every process is owned | For every spawned provider process, a `ProcessGroupRegistered` precedes the spawn and a `ProcessGroupBound` follows it; a spawn with no owned group fails the test suite |
+| Every process is owned | For every spawned provider process, a `ProcessGroupRegistered` is durable before the spawn and a `ProcessGroupBound` follows it; a spawn with no owned group fails the test suite |
+| Registration is durable before the spawn | `beginInvocation` without a valid receipt creates no process; asserted on the OS process table, not on a log line |
+| The worker writes no durable state | `src/agents/` contains no import of `StateStore`, and the worker is constructible without one |
 | Every tree is closed | For every `ProcessGroupRegistered` there is exactly one `ProcessGroupClosed` before the writer lock is released |
+| No drain returns with a live descendant | No `RunDrainCompleted` exists in any journal alongside an invocation of the same epoch whose `verifiedExit` is false |
 | Escalation is bounded | With a child that ignores graceful termination, the forced step occurs within `gracefulCancelGraceMs` plus a fixed tolerance |
 | Exit is verified, not assumed | `ProcessGroupClosed.verifiedExit` is true only after the platform check reports no remaining process; a timeout on that check records `orphan_unresolved` |
 | No invocation runs outside a worktree | `execute` refuses an assignment whose workspace handle is not `prepared`, asserted with preparation stubbed to fail |

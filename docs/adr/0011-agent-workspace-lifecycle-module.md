@@ -1,6 +1,6 @@
 # ADR-0011: Agent workspace lifecycle as the seventh runtime module
 
-- Status: Accepted
+- Status: Accepted; superseded in part by [ADR-0019](0019-durable-intent-receipts-for-side-effects.md), which replaces the four single-call operations with plan/execute phases behind a durable-intent receipt and adds the abandonment intent event, and by [ADR-0021](0021-durable-ingress-module-and-the-eight-module-map.md), which replaces "seven modules" with eight. Every other decision below stands as written.
 - Date: 2026-08-05
 - Deciders: Solution Architect under TASK-016
 - Affects: TASK-017 primarily; TASK-006 and TASK-008 consume it; TASK-004's invocation shape changes

@@ -1,6 +1,14 @@
 # Lifecycle Control and One-Input Bootstrap
 
-Normative lifecycle contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016. Related decisions: [ADR-0008](../../adr/0008-one-input-project-bootstrap-contract.md) and [ADR-0009](../../adr/0009-graceful-pause-drain-and-crash-recovery.md), as superseded in part by [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md). Implemented by TASK-007.
+Normative lifecycle contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016, amended again under TASK-024. Related decisions: [ADR-0008](../../adr/0008-one-input-project-bootstrap-contract.md) and [ADR-0009](../../adr/0009-graceful-pause-drain-and-crash-recovery.md), as superseded in part by [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md) and further amended by [ADR-0022](../../adr/0022-unqualified-drain-closure.md). Implemented by TASK-007.
+
+## Amendment register — TASK-024
+
+| Superseded claim (TASK-016) | Superseded by | Finding | Decision |
+|---|---|---|---|
+| Pause post-condition 5, "no unmanaged descendant remains, **except** one recorded as `orphan_unresolved`" | [Pause and resume equivalence](#pause-and-resume-equivalence): post-condition 5 is unqualified, because `pause` returns `paused` only when every tree is verified closed | A-102 | [ADR-0022](../../adr/0022-unqualified-drain-closure.md) |
+| Drain step 5, waiting only for a durable `ProcessGroupClosed` of any outcome | [Graceful drain](#graceful-drain) step 5: `verifiedExit: true` for every invocation, with re-escalation inside a total budget | A-102 | [ADR-0022](../../adr/0022-unqualified-drain-closure.md) |
+| Five exit codes, 0 … 4 | Six; **5** reports a blocked drain, an outcome distinct from both a paused run and a startup error | A-102 | [ADR-0022](../../adr/0022-unqualified-drain-closure.md) |
 
 ## Amendment register — TASK-016
 
@@ -202,10 +210,12 @@ Drain is one mechanism with two intents. `pause` ends in `paused`; `stop` ends i
 2. In-flight tasks continue. Their leases keep being renewed so the scheduler does not reclaim work that is about to finish. Results arriving during drain are applied normally.
 3. Wait until no task is `leased` or `running`, or until `limits.drainTimeoutMs` elapses.
 4. On the deadline, tasks still in flight are abandoned **at the task level** — their leases are left to lapse, their identifiers are recorded in `RunDrainCompleted.abandonedTaskIds`, and the next attach reconciles them exactly as it reconciles a crash. Their **OS process trees are not abandoned**: each registered invocation is cancelled gracefully, escalated within a bound, and verified to have exited, per [PROVIDER-ADAPTERS.md](PROVIDER-ADAPTERS.md).
-5. Wait for every registered invocation of this writer epoch to have a durable `ProcessGroupClosed`. This wait is bounded by `limits.processTreeCloseTimeoutMs` and cannot be skipped.
+5. Wait for every registered invocation of this writer epoch to have a durable `ProcessGroupClosed` **with `verifiedExit: true`**. Cancellation re-escalates and re-verifies within `limits.processTreeCloseTotalBudgetMs`. This wait is bounded and cannot be skipped.
 6. Write a checkpoint at the current version.
-7. Emit `RunDrainCompleted{ intent }`, releasing the run to `paused` or `cancelled`.
-8. Release the writer lock and exit.
+7. If step 5 verified every invocation, emit `RunDrainCompleted{ intent, treeClosure: 'all_verified' }`, releasing the run to `paused` or `cancelled`. Otherwise emit `RunDrainBlocked{ intent, reason: 'unverified_process_tree', unresolvedInvocationIds }`, which leaves the run in `pausing` or `draining`.
+8. Release the writer lock and exit — 0 or 2 after `RunDrainCompleted`, **5** after `RunDrainBlocked`.
+
+Step 5's `verifiedExit` requirement and step 7's branch are added under TASK-024 (ADR-0022), resolving the second half of A-102. Under TASK-016, an `orphan_unresolved` outcome satisfied step 5 while a descendant might still be alive, so `pause` could return reporting a clean run with a process still editing a worktree. There is now no drain outcome under which the command returns a paused or cancelled run with an unverified tree; an unverifiable tree is a **failure of the drain**, reported as such, and the next attach terminates it through recovery Phase 5.
 
 Step 4 supersedes the TASK-002 rule that in-flight work is never killed at the drain deadline. That rule was chosen to avoid manufacturing indeterminate effects, and the reasoning was sound about the ledger. Finding A-003 established what it did not account for: fencing stops a superseded worker from writing **run state**, and does nothing at all to stop a detached `claude`, `codex`, or `gemini` process from continuing to consume quota, edit a worktree, and perform external effects after the supervisor has exited. That process holds no lease, answers to no epoch, and appears in no record. Terminating it converts an unbounded, invisible problem into a bounded, recorded one that the effect ledger already knows how to adjudicate. The cost — more `indeterminate_effect` escalations — is analyzed in [RETRIES-TIMEOUTS-AND-IDEMPOTENCY.md](RETRIES-TIMEOUTS-AND-IDEMPOTENCY.md).
 
@@ -218,10 +228,14 @@ Step 5 is why `pause` cannot return early. A command that returns while a descen
 1. A checkpoint exists at the run's current version and validates.
 2. Every acknowledged event is durable, at a committed batch boundary.
 3. No live writer holds the run.
-4. Every invocation registered under this writer epoch has a durable `ProcessGroupClosed`.
-5. **No unmanaged descendant of any such invocation remains**, except one recorded as `orphan_unresolved` with its reason, which on Windows cannot arise and on POSIX is bounded by the single-append window described in [CRASH-RECOVERY.md](CRASH-RECOVERY.md).
+4. Every invocation registered under this writer epoch has a durable `ProcessGroupClosed` with `verifiedExit: true`.
+5. **No unmanaged descendant of any such invocation remains.** There is no exception.
 
-Post-conditions 4 and 5 are added under TASK-016. They apply to `stop` and to the signal-triggered drain identically; there is one drain mechanism and it has one set of post-conditions.
+Post-conditions 4 and 5 were added under TASK-016 and are **amended under TASK-024** (ADR-0022). TASK-016 qualified post-condition 5 with "except one recorded as `orphan_unresolved`", which finding A-102 recorded as contrary to the unqualified criterion: an exception that permits a surviving descendant is not a post-condition about descendants. The qualification is removed, and the way it is removed is by making the *antecedent* unreachable rather than by asserting more strongly — `pause` returns `paused` only when step 5 verified every tree, and otherwise it does not return a paused run at all. The POSIX residual has not vanished; it is now reported as exit code 5 and handled by the next attach, instead of being recorded inside a success.
+
+These post-conditions apply to `stop` and to the signal-triggered drain identically; there is one drain mechanism and it has one set of post-conditions.
+
+**Blocked-drain post-condition.** After `pause` or `stop` exits 5, all of the following hold: a validated checkpoint exists at the current version; `RunDrainBlocked` names every unverified invocation; the run is `pausing` or `draining` and is **not** `paused` or `cancelled`; the writer lock is released; and the Turkish operator message names the run and states that provider processes may still be running and that the next `resume` will terminate them.
 
 **Resume pre-condition.** No live writer; a validated checkpoint or a replayable journal exists.
 
@@ -257,8 +271,11 @@ An interrupt therefore triggers graceful drain rather than an abrupt exit, and t
 | 2 | Run reached `cancelled` | `Çalışma iptal edildi.` |
 | 3 | Run drained with tasks left in `blocked`, requiring a human decision | `Çalışma insan kararı bekleyen görevlerle durduruldu.` |
 | 4 | Startup or configuration error, including a live writer on the target run | `Çalışma başlatılamadı: <sebep>` |
+| 5 | The drain could not verify that every provider process tree had exited; `RunDrainBlocked` was recorded and the run was **not** paused or cancelled | `Çalışma duraklatılamadı: bazı sağlayıcı süreçleri sonlandırılamadı. Devam etmek için çalışmayı sürdürün.` |
 
 Exit code 3 is distinct from 1 and 2 because a blocked run is resumable after a human acts, and an automation wrapper must be able to tell "act and resume" from "this failed". The reported summary lists the terminal reason, the per-state task counts, and every blocked task with its reason.
+
+Exit code 5 is added under TASK-024 (ADR-0022) and is distinct from 4 for the same reason: 4 means the run never started, 5 means the run is intact and durable but its process trees could not be verified closed, so an automation wrapper must resume rather than retry the pause. The reported summary names each unresolved invocation and its task.
 
 ## Observable pre- and post-conditions
 
@@ -272,7 +289,8 @@ Exit code 3 is distinct from 1 and 2 because a blocked run is resumable after a 
 | Pause is durable | After `pause`, a checkpoint at the current version exists and validates |
 | Resume does not duplicate work | The count of `DispatchStarted` events for any `succeeded` task is unchanged across a pause and resume |
 | Interrupt drains | A single `SIGINT` produces `RunDrainCompleted` and exit code 2, not an abrupt exit |
-| Codes are distinct | Success, failure, cancellation, and blocked-run outcomes yield 0, 1, 2, and 3 |
+| Codes are distinct | Success, failure, cancellation, blocked-run, startup-error, and blocked-drain outcomes yield 0, 1, 2, 3, 4, and 5 |
+| A drain never returns a paused run with a live tree | No journal contains a `RunDrainCompleted` alongside an invocation of the same epoch whose `ProcessGroupClosed` records `verifiedExit: false` |
 | Language policy holds | Every operator-visible string is Turkish; every flag, code, and log line is English |
 | Control requests are delivered once | A `pause` file replayed after acceptance yields `superseded` and no second run transition |
 | Control requests are answered | Every consumed request has an acknowledgement file; the absence of one means nobody consumed it |

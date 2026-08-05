@@ -1,6 +1,6 @@
 # ADR-0016: Integration branch and typed merge order
 
-- Status: Accepted
+- Status: Accepted; superseded in part by [ADR-0021](0021-durable-ingress-module-and-the-eight-module-map.md), which moves TASK-005 through TASK-008 one wave later after inserting TASK-026 at Wave 4, so contract immutability covers Waves 3 through 7 rather than 3 through 6. The integration branch, the squash-per-task merge method, the typed merge order, and the contract change control procedure stand as written.
 - Date: 2026-08-05
 - Deciders: Solution Architect under TASK-016
 - Affects: every task that publishes a branch; the Orchestrator's routing; TASK-017's pull-request base

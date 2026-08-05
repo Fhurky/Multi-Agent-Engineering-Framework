@@ -1,6 +1,13 @@
 # Retries, Timeouts, and Idempotency
 
-Normative retry and idempotency contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016. Related decisions: [ADR-0006](../../adr/0006-retry-classification-backoff-and-idempotency-keys.md), [ADR-0013](../../adr/0013-single-decision-recovery-reconciliation.md), and [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md). Implemented by TASK-008 against the taxonomy owned by TASK-004.
+Normative retry and idempotency contract for the autonomous runtime. Produced under TASK-002, amended under TASK-016, amended again under TASK-024. Related decisions: [ADR-0006](../../adr/0006-retry-classification-backoff-and-idempotency-keys.md), [ADR-0013](../../adr/0013-single-decision-recovery-reconciliation.md), and [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md), as amended by [ADR-0020](../../adr/0020-durable-adoptable-results-for-recovery.md). Implemented by TASK-008 against the taxonomy owned by TASK-004.
+
+## Amendment register — TASK-024
+
+| Superseded claim (TASK-016) | Superseded by | Finding | Decision |
+|---|---|---|---|
+| A `committed` ledger state contributing `adopt` with only `resultDigest` durably retained | [Effect ledger](#effect-ledger) step 0 and [Recovery application](#recovery-application): the complete `AdoptableResult` is durable before the commit, and a `committed` entry without one escalates instead of adopting | A-104 | [ADR-0020](../../adr/0020-durable-adoptable-results-for-recovery.md) |
+| No statement of what happens to `proposedTasks` across a crash | Stated explicitly: recorded verbatim, adopted with the result, never digested or dropped | A-104 | [ADR-0020](../../adr/0020-durable-adoptable-results-for-recovery.md) |
 
 ## Amendment register — TASK-016
 
@@ -41,6 +48,18 @@ An **effect** is anything externally visible that outlives the process: a commit
 2. ... the effect is performed ...
 3. EffectCommitted { effectId, resultDigest }
 ```
+
+**The task's own result effect carries one extra step, added under TASK-024 (ADR-0020).** The effect that registers a task's result is marked `isTaskResultEffect: true`, and the complete adoptable result is made durable **before** it is committed:
+
+```text
+0. WorkerResultRecorded { taskId, attempt, adoptable }   the complete TaskResultSummary and proposedTasks
+1. EffectIntentRecorded { effectId, isTaskResultEffect: true, ... }
+2. ... the effect is performed ...
+3. EffectCommitted { effectId, resultDigest }
+4. WorkerSucceeded { result, proposedTasks }             the transition; clears pendingResults[taskId]
+```
+
+Step 0 exists because finding A-104 established that a `committed` entry retaining only `resultDigest` is not enough to reconstruct step 4 after a crash between 3 and 4 — and that window is exactly the one recovery is meant to close. With step 0, a committed result effect always has a complete durable result behind it. `proposedTasks` are stored verbatim and never digested, because losing them can change the terminal task graph.
 
 `effectId = sha256(canonicalJson({ idempotencyKey, effectKind, effectTarget }))`, so the same logical effect from the same attempt always has the same identifier. Both events go through the ordinary compare-and-set append, so both are durable before and after the effect respectively.
 
@@ -133,7 +152,8 @@ Amended under TASK-016. TASK-002 described recovery as reconciling leases, then 
 
 | Ledger state for the current attempt | Contribution to the decision |
 |---|---|
-| `committed` | `adopt` — outranks every other input, including an elapsed deadline. The work is recorded as done; a timeout-driven retry would duplicate it |
+| `committed`, with a durable `AdoptableResult` | `adopt` — outranks every other input except an `activation` block, including an elapsed deadline. The work is recorded as done; a timeout-driven retry would duplicate it. The emitted `WorkerSucceeded` carries the complete summary and the verbatim `proposedTasks` from `run.pendingResults` |
+| `committed`, with no `AdoptableResult` — TASK-024 | `escalate` with reason `unreconstructable_result`. Not `adopt` with a partial event: a terminal task graph missing a proposal is worse than a blocked task naming the defect |
 | `intended`, `idempotent: false` | `escalate` — outranks an elapsed deadline, because a timeout leads to a retry and retrying an indeterminate non-idempotent effect is the one action this document refuses to take |
 | `intended`, `idempotent: true` | `reclaim` when the deadline has not elapsed; the timeout path when it has. Both are safe: re-execution converges under the same idempotency key, and a retry is a new attempt with a new key |
 | No entry | `reclaim` when the deadline has not elapsed; the timeout path when it has. Nothing externally visible happened |
@@ -164,5 +184,7 @@ The drain deadline therefore stays bounded, the tree is gone when the command re
 | Backoff is deterministic | Two runs with the same seed produce identical `delayMs` sequences |
 | Backoff respects the ceiling | Every `delayMs` is at most `retryMaxDelayMs`, or equal to a larger provider-supplied `retryAfterMs` |
 | Committed effects are not repeated | Replaying a dispatch whose `effectId` is `committed` produces no new `EffectIntentRecorded` |
+| A committed result is reconstructable | For every `EffectCommitted` on an entry with `isTaskResultEffect`, a `WorkerResultRecorded` for the same `(taskId, attempt)` appears at a strictly lower `stateVersion` |
+| Task proposals survive a crash | The set of admitted tasks after a crash between `EffectCommitted` and `WorkerSucceeded` equals the set an uninterrupted run admits, compared under canonical JSON |
 | Indeterminate non-idempotent effects escalate | An `intended` entry with `idempotent: false` transitions the task to `blocked` with reason `indeterminate_effect` |
 | A retry does not double-advance state | Applying the same `WorkerSucceeded` twice yields `IllegalTransition` on the second, and `stateVersion` advances by one, not two |

@@ -1,13 +1,15 @@
 # Runtime State Diagrams
 
-Source diagrams for the run and task state machines. Produced under TASK-002, amended under TASK-016.
+Source diagrams for the run and task state machines. Produced under TASK-002, amended under TASK-016, amended again under TASK-024.
 
 - Specification: [STATE-MACHINE.md](../../docs/architecture/runtime/STATE-MACHINE.md)
-- Decisions: [ADR-0003](../../docs/adr/0003-deterministic-run-and-task-state-machine.md), extended by [ADR-0013](../../docs/adr/0013-single-decision-recovery-reconciliation.md) and [ADR-0015](../../docs/adr/0015-typed-scheduling-gate-and-activation-contracts.md)
+- Decisions: [ADR-0003](../../docs/adr/0003-deterministic-run-and-task-state-machine.md), extended by [ADR-0013](../../docs/adr/0013-single-decision-recovery-reconciliation.md) and [ADR-0015](../../docs/adr/0015-typed-scheduling-gate-and-activation-contracts.md), and amended by [ADR-0017](../../docs/adr/0017-durable-ingress-inbox-and-ingress-epochs.md), [ADR-0020](../../docs/adr/0020-durable-adoptable-results-for-recovery.md), and [ADR-0022](../../docs/adr/0022-unqualified-drain-closure.md)
 
 Amended by TASK-016: the task diagram gains the `quiescent` state and its two edges, and the `pending -> ready` edge is relabelled, because dependency satisfaction is now per typed edge rather than "every dependency is `succeeded`".
 
-The transition tables in the specification are normative. These diagrams are a reading aid and omit the `RunCancelled` edge from every non-terminal task state for legibility. They also omit the events that record a durable fact without changing a state — gate verdicts, publication, integration, control acceptance, process-group and workspace records — which are listed in the specification.
+Amended by TASK-024, resolving finding **A-105**: the terminal-state note below stated that *every* event against a terminal task is illegal, while the normative state machine allows four evidence events. This diagram now states the same four exceptions the specification states. The run diagram also gains the `RunDrainBlocked` self-edges, and the task diagram's `quiescent` edges are relabelled over the ingress cursor.
+
+The transition tables in the specification are normative. These diagrams are a reading aid and omit the `RunCancelled` edge from every non-terminal task state for legibility. They also omit the events that record a durable fact without changing a state — gate verdicts, publication, integration, control acceptance, adoptable results, process-group and workspace records — which are listed in the specification.
 
 ## Run states
 
@@ -23,12 +25,14 @@ stateDiagram-v2
   running --> succeeded : RunCompleted(all_tasks_succeeded)
   running --> failed : RunCompleted(task_failed | no_progress)
 
-  pausing --> paused : RunDrainCompleted(pause)
+  pausing --> paused : RunDrainCompleted(pause)<br/>(every tree verifiedExit true)
+  pausing --> pausing : RunDrainBlocked(pause)<br/>(tree close budget exhausted; exit 5)
   pausing --> draining : RunStopRequested
 
   paused --> recovering : RunResumeRequested
 
-  draining --> cancelled : RunDrainCompleted(stop)
+  draining --> cancelled : RunDrainCompleted(stop)<br/>(every tree verifiedExit true)
+  draining --> draining : RunDrainBlocked(stop)<br/>(tree close budget exhausted; exit 5)
 
   recovering --> running : RunRecoveryCompleted
   recovering --> failed : RunCompleted(recovery_failed)
@@ -40,6 +44,8 @@ stateDiagram-v2
 
 `running --> recovering` is what makes a crash detectable without a crash marker: a persisted run in `running` whose writer epoch is stale is by definition a run whose process died.
 
+The two `RunDrainBlocked` self-edges are the whole of the [ADR-0022](../../docs/adr/0022-unqualified-drain-closure.md) change at the run level. A drain that cannot verify closure of every process tree of its writer epoch does **not** reach `paused` or `cancelled`; it records the unresolved invocations, checkpoints, releases the writer lock, and exits 5. The next attach terminates the survivors through recovery Phase 5. There is no edge into `paused` or `cancelled` that a surviving descendant can traverse.
+
 ## Task states
 
 ```mermaid
@@ -48,13 +54,13 @@ stateDiagram-v2
   pending --> ready : TaskDependenciesSatisfied<br/>(every typed edge satisfied)
 
   ready --> leased : LeaseGranted
-  ready --> quiescent : TaskQuiesced (activation task, cursor at max)
+  ready --> quiescent : TaskQuiesced (activation task,<br/>cursor == run.ingressSeq)
   leased --> running : DispatchStarted (workspace prepared)
   leased --> ready : LeaseExpired / LeaseReleased
 
   running --> succeeded : WorkerSucceeded (activation == null)
-  running --> quiescent : WorkerSucceeded (activation task,<br/>no unconsumed event remains)
-  running --> ready : WorkerSucceeded (activation task,<br/>unconsumed event remains)
+  running --> quiescent : WorkerSucceeded (activation task,<br/>cursor == run.ingressSeq after IngressRangeConsumed)
+  running --> ready : WorkerSucceeded (activation task,<br/>cursor &lt; run.ingressSeq after IngressRangeConsumed)
   running --> awaiting_retry : WorkerFailed(retry, attempt < max)<br/>TaskTimedOut(attempt < max)
   running --> failed : WorkerFailed(retry, attempt = max)<br/>WorkerFailed(fail)<br/>TaskTimedOut(attempt = max)
   running --> blocked : WorkerFailed(escalate)<br/>TaskBlocked(indeterminate_effect |<br/>workspace_lock_not_releasable)
@@ -63,7 +69,7 @@ stateDiagram-v2
   awaiting_retry --> awaiting_retry : RetryScheduled (sets notBefore)
   awaiting_retry --> ready : BackoffElapsed
   blocked --> ready : TaskUnblocked
-  quiescent --> ready : TaskActivated(throughSeq > cursor)
+  quiescent --> ready : TaskActivated<br/>(observedIngressSeq > cursor)
 
   succeeded --> [*]
   failed --> [*]
@@ -74,9 +80,9 @@ Details the diagram encodes deliberately:
 
 - `attempt` increments at `DispatchStarted`, so the `leased --> ready` edge costs no retry budget. Scheduler churn cannot exhaust a task.
 - `blocked` is not terminal. It is the resting place for work that a human or another role can still unblock, and it is why the CLI has a distinct exit code 3.
-- `quiescent` is not terminal and is **not** `blocked`. It is the resting place for event-triggered recurring work whose cursor has caught up. It waits on an event the runtime will append, not on a decision a human must make, so it does not drive exit code 3 and it counts as settled for the completion predicate.
-- There is no `quiescent --> leased` edge. A quiescent task must pass through `TaskActivated`, which records the range it will consume. Dispatching without one is the control-plane loop the state exists to prevent.
-- The cursor advances only on `WorkerSucceeded`, never on `TaskActivated`, which is what makes an activation exactly-once across a crash.
+- `quiescent` is not terminal and is **not** `blocked`. It is the resting place for event-triggered recurring work whose cursor has caught up with the durable ingress inbox. It waits on a fact another owner will publish, not on a decision a human must make, so it does not drive exit code 3 and it counts as settled for the completion predicate.
+- There is no `quiescent --> leased` edge. A quiescent task must pass through `TaskActivated`, which records the observation that raised the dispatch. Dispatching without one is the control-plane loop the state exists to prevent.
+- The cursor advances only on `IngressRangeConsumed`, which is applied in the same batch as the activation's effects and its `WorkerSucceeded`. `TaskActivated` reserves nothing. That is what makes an activation exactly-once across a crash, and it is why consumption state lives in exactly one field.
 
 ## Recovery reconciliation
 
@@ -84,9 +90,10 @@ Recovery emits exactly one decision per task, and each decision expands to one e
 
 | Decision | Edge traversed |
 |---|---|
-| `adopt` | `running --> succeeded` by `WorkerSucceeded` |
-| `escalate` | `running --> blocked` by `TaskBlocked` |
+| `adopt` | `running --> succeeded` by `WorkerSucceeded`, built from the durable `AdoptableResult` in `run.pendingResults` |
+| `escalate` | `running --> blocked` by `TaskBlocked`, with reason `indeterminate_effect` or — when a committed result has no adoptable record — `unreconstructable_result` |
 | `reclaim` | `running --> ready` or `leased --> ready` by `LeaseExpired` |
+| `reclaim_activation` | `running --> ready` by `LeaseExpired`, for a task carrying an `activation` block; an activation is never adopted |
 | `retry_timeout` | `running --> awaiting_retry` by `TaskTimedOut`, then `RetryScheduled` |
 | `exhaust_timeout` | `running --> failed` by `TaskTimedOut` |
 
@@ -97,4 +104,17 @@ Recovery emits exactly one decision per task, and each decision expands to one e
 | Run | `succeeded`, `failed`, `cancelled` | `paused` |
 | Task | `succeeded`, `failed`, `cancelled` | `blocked`, `quiescent`, `awaiting_retry` |
 
-Every event addressed to a terminal run or a terminal task is rejected as `IllegalTransition`. The full illegal-transition list is in the specification.
+Every event addressed to a **terminal run** is rejected as `IllegalTransition`, without exception.
+
+For a **terminal task** the rule is narrower, and this is the correction finding A-105 required. Every event that would **change** a terminal task's state is rejected. Exactly four evidence-recording events remain legal against a terminal task, and none of them changes its state:
+
+| Event | Why it must be legal after the task is terminal |
+|---|---|
+| `ArtifactPublished` | A publication may be superseded forward after the task succeeded |
+| `GateVerdictRecorded` | An assembly gate runs **after** its target succeeded and merged, by definition. A target that had to be non-terminal for its verdict to be recordable could never have one |
+| `BranchIntegrated` | Integration follows success |
+| `RemediationCompleted` | Remediation traceability is recorded against a task that has already finished |
+
+The exception is safe for three reasons: none of the four changes `TaskState`; none can rewrite a value, because `gateVerdicts` is append-only, `integration` may be set once, and `publication` may only be superseded forward; and none applies to a terminal run.
+
+This list is the same list as [STATE-MACHINE.md](../../docs/architecture/runtime/STATE-MACHINE.md#evidence-events-and-the-terminal-task-rule). The full illegal-transition list is in the specification.
