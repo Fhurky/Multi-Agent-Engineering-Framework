@@ -1,7 +1,7 @@
 ---
 task_id: TASK-028
 title: Third architecture amendment for the round-3 blocking findings and the approved pre-dispatch ingress observer contract
-status: ready
+status: review
 owner_role: architect
 llm: gpt
 branch: agent/gpt/architect/task-028
@@ -63,14 +63,21 @@ dependencies_satisfied:
     recorded_by: TASK-013 activation ACT-006
 resource_lock_state_at_creation: free. The shared Git common directory carries no architecture-docs holder at ACT-006. The TASK-024 execution's lock, which ACT-005 recorded as still held, has since been released, and TASK-025 held no lock. This task may therefore be claimed.
 review_target_branch: agent/gpt/architect/task-028
-review_target_commit: not yet published
+review_target_commit: fe0374c45aaa51e589525cee978c8ff244837163
 review_target_base: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
-review_target_applicability: applicable, resolved on publication
-review_target_note: TASK-029 will review this task's immutable published commit against review-diff base c2ee3eb, the TASK-024 amendment this one revises, reading 8d0c570 and 9576fc9 where a judgment needs an earlier baseline. review_target_commit is recorded by the Orchestrator at the activation that consumes this task's publication; it is not guessed here.
+review_target_applicability: applicable and resolved, bound by TASK-013 activation ACT-007 from the branch as published
+review_target_note: TASK-029 reviews the immutable published commit fe0374c against review-diff base c2ee3eb, the TASK-024 amendment this one revises, reading 8d0c570 and 9576fc9 where a judgment needs an earlier baseline. The Orchestrator bound review_target_commit at ACT-007, the activation that consumed this task's publication, reading it from origin/agent/gpt/architect/task-028 rather than guessing it. This target is immutable and is not changed by a later TASK-013 activation.
 branch_point_of: human/reroute/task-028-gpt
-scope_validation_base: git merge-base HEAD human/reroute/task-028-gpt
-scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
-scope_validation_note: Create agent/gpt/architect/task-028 from the head of human/reroute/task-028-gpt at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD human/reroute/task-028-gpt and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass a review-diff base, c2ee3eb, 8d0c570, c325275, or origin/main. Findings F-403 and A-209 each recorded why. The interrupted Claude draft is imported as uncommitted source material, not as a merge or an approved artifact; the GPT architect owns and must inspect the complete resulting delta. If you import another owner's published artifact by merging it onto this branch, that merge is part of your authored delta and its paths must already be inside this task's write scope.
+scope_validation_base: 0b413b7ab7a48dc4d02f0439bd50f1626dde4685
+scope_validation_applicability: applicable and resolved, pinned by TASK-013 activation ACT-007 from the branch as published
+scope_validation_note: The execution followed this record's prescription exactly. The branch was created from the head of human/reroute/task-028-gpt, which was the HUMAN-003 reroute commit 0b413b7, and the owner resolved, reported, and validated against that value. It is confirmed from the repository as the parent of this branch's single authored commit fe0374c, and git diff --name-only 0b413b7...fe0374c returns 44 paths, all under docs/ and diagrams/ and all inside this task's declared write scope. Unlike A-209 there is no divergence between what this record prescribed and what the branch did. Never pass a review-diff base, c2ee3eb, 8d0c570, c325275, or origin/main.
+scope_validation_acceptance_result: valid, 44 files, as reported by the owner in pull request 15 from branch point 0b413b7ab7a48dc4d02f0439bd50f1626dde4685
+published_commit: fe0374c45aaa51e589525cee978c8ff244837163
+published_branch: agent/gpt/architect/task-028
+published_remote_ref: refs/heads/agent/gpt/architect/task-028
+pull_request: 15
+publication: published
+integration_state: not integrable. pull_request 15 is open and reports CONFLICTING against main. review is in pre_merge_gates and that gate is open, so the amendment may not be merged regardless. The conflict is recorded as an integration risk below and is not resolved by this activation.
 ---
 
 # TASK-028: Third architecture amendment for the round-3 blocking findings and the approved pre-dispatch ingress observer contract
@@ -206,9 +213,14 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the owner's commit, pull request, and handoff.
+Maintained by the Orchestrator under TASK-013 from the owner's commit, pull request, and handoff. Transcribed by activation `ACT-007` when it consumed ingress entry `seq` 15.
 
-- Commit or pull request:
-- Verification:
+- Commit or pull request: `fe0374c45aaa51e589525cee978c8ff244837163` `docs: complete TASK-028 runtime architecture amendment` on `agent/gpt/architect/task-028`, parent `0b413b7`, published at `refs/heads/agent/gpt/architect/task-028` on `origin` and opened as pull request 15 targeting `main`. The commit changes **44 files, all under `docs/` and `diagrams/`**; none is under `tasks/`, `config/`, `scripts/`, or any governance path. Nine ADRs are new — **0023** `immutable-ingress-entries-and-named-bootstrap-dispatch-contracts`, **0024** `task-record-projection-contract`, **0025** `result-effect-identity-in-the-event-union`, **0026** `blocked-drain-attach-and-unverified-closure-recovery`, **0027** `finalize-split-around-the-publication-append`, **0028** `nominal-store-issued-durable-append-receipts`, **0029** `ingress-delivery-ownership`, **0030** `one-canonical-recovery-decision-input-domain`, and **0031** `pre-dispatch-ingress-observer-and-collector` — which is one ADR per scope item, numbered from 0023 as the record required.
+- Publication outcome: `publication_class: bootstrap` with the remote step **succeeded**, so `publication: published` and **`review_ready(TASK-028)` is satisfied**. That released the `review_ready(TASK-028)` edge TASK-029 holds, and nothing else.
+- Verification, as the owner recorded it in pull request 15: `scripts/ci/validate-framework.ps1` passed; `scripts/ci/test-orchestration.ps1` passed; `scripts/orchestration/validate-assignment.ps1 -Role architect -Llm gpt` passed; `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 0b413b7ab7a48dc4d02f0439bd50f1626dde4685` passed over 44 files; Markdown relative links and anchors checked across 47 files with 0 broken; module graph reported as 8 modules, 8 owners, 8 paths, acyclic, with 2 independent contract roots; task-record projection fixture audit over 30 records and 92 relation documents with 92 verdicts.
+- The owner's own scope claims, recorded as claims and **not** as outcomes: that the amendment defines immutable ingress entries and named bootstrap dispatch contracts, defines task-record parsing and projection ownership, makes result-effect identity and recovery ordering representable, adds a legal blocked-drain attach with recovery over unverified closures, splits finalize around the durable publication append, defines nominal identity-bearing store-verifiable receipts, assigns ingress delivery and represents the `HUMAN-002` pre-dispatch collector, and defines one canonical recovery decision domain. The owner states explicitly that this is "an architect-authored amendment, not a passing review judgment". **Whether any of A-201 … A-208 or the `HUMAN-002` contract representation is actually satisfied is TASK-029's judgment.** The Orchestrator transcribes these claims and judges none of them.
 - Known risks:
-- Next owner: orchestrator via TASK-013, to record the publication, move this record to `review`, and release the `review_ready(TASK-028)` edge that TASK-029 holds
+  - **Publication is not approval.** `fe0374c` is `review_ready`. `gate_passed(LIN-ARCH-REVIEW, review, 4)` is unsatisfied, so TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 stay `blocked`, and this amendment is not integrable while `review` is in its `pre_merge_gates`.
+  - **Integration risk — the branch point predates two merged architecture publications.** `0b413b7` descends from `e7bd748`, which does not contain the TASK-016 publication `8d0c570` or the TASK-024 publication `c2ee3eb`, although both are already on `main` through pull requests 3 and 9. Twelve ADRs, 0011 … 0022, therefore appear as **additions** in the authored delta rather than as modifications, and pull request 15 reports **`CONFLICTING`** against `main`. This is an integration-order fact, not a scope violation: the validator was run against the correct branch point and returned valid, and no architecture document present at `c2ee3eb` is absent at `fe0374c` — verified path by path. The conflict is recorded here and routed; **this activation did not resolve it, did not merge pull request 15, and holds no authority to.**
+  - **Reading the target.** The authored delta is `git diff 0b413b7..fe0374c`, 44 paths. The cumulative architecture comparison against the round-3 amendment is `git diff c2ee3eb..fe0374c -- docs diagrams`, **32 paths**. The unrestricted `git diff c2ee3eb..fe0374c` returns 66 paths, of which **34 are ancestry differences under `tasks/**` and `config/`** that this owner did not author and must not be attributed to it. TASK-029's record states this separation so the round-7 F-502 conflation of a target diff with a review scope is not repeated in the architecture lineage.
+- Next owner: **reviewer / gpt for TASK-029**, moved to `ready` by this activation on the now-satisfied `review_ready(TASK-028)` edge, with its review target bound immutably to `fe0374c` against review-diff base `c2ee3eb`. TASK-029 must run in a separate execution context from this one; the TASK-028 author context is prohibited from executing it.

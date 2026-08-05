@@ -68,7 +68,7 @@ branch_point_of: agent/claude/orchestrator/task-013
 scope_validation_note: Resolved by this activation from the published branch; git merge-base agent/claude/architect/task-024 agent/claude/orchestrator/task-013 returns 890b8e0. The owner ran the check against that branch point and recorded valid True with changed_files 35. The originally prescribed -BaseRef c325275 is superseded under finding F-403.
 review_target_branch: agent/claude/architect/task-024
 review_target_commit: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
-review_target_base: 8d0c570
+review_target_base: 8d0c570e190a534a7ae929377ed19b1675bbde86
 review_target_note: TASK-025 reviews the immutable commit c2ee3eb against review-diff base 8d0c570, the TASK-016 amendment this one revises, reading 9576fc9 where a judgment needs the original baseline. The authored delta is 6e5a9df..c2ee3eb, 28 files. This target is immutable and is not changed by a later TASK-013 activation.
 review_target_applicability: applicable and resolved
 scope_validation_applicability: applicable and resolved
