@@ -24,6 +24,8 @@ dependencies:
     edge: review_ready
   - task: TASK-017
     edge: review_ready
+  - task: TASK-026
+    edge: review_ready
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -33,47 +35,69 @@ gate_for:
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
   - task: TASK-004
     gate: review
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
   - task: TASK-005
     gate: review
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
   - task: TASK-006
     gate: review
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
   - task: TASK-007
     gate: review
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
   - task: TASK-008
     gate: review
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
   - task: TASK-017
     gate: review
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
+  - task: TASK-026
+    gate: review
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
 gate_scheduling: This gate is an aggregate assembly gate for every target. Its reason and its recorded risk are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, row "TASK-009 / review".
 parent_task: TASK-001
 publication_class: bootstrap
-blocked_reason: The runtime implementation tasks have not published their branches.
-exit_condition: TASK-003 through TASK-008 and TASK-017 are review_ready, each with an immutable published commit. This task does not wait for those tasks to be integrated or to reach done, because it is the gate that lets them reach done. It is nevertheless an aggregate gate: it waits for every target before it can gate any one of them, and every target is already integrated by then.
+blocked_reason: The runtime implementation tasks have not published their branches. The cohort gained TASK-026, the durable ingress inbox, at activation ACT-004.
+exit_condition: TASK-003 through TASK-008, TASK-017, and TASK-026 are review_ready, each with an immutable published commit. This task does not wait for those tasks to be integrated or to reach done, because it is the gate that lets them reach done. It is nevertheless an aggregate gate: it waits for every target before it can gate any one of them, and every target is already integrated by then.
 ---
 
 # TASK-009: Independent code review of the autonomous runtime
@@ -111,13 +135,16 @@ Finding **F-202** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.
 - [ ] **`V9-A004-EDGE` — typed dependency, gate readiness, and no-deadlock.** TASK-005 implements ready-task selection over the full typed edge vocabulary, both forms of `gate_passed` with the ambiguity rejection, the atomic multi-relation verdict, and the load-time rejection of each of the seven no-deadlock invariants in `tasks/TASK-001-DEPENDENCY-GRAPH.md`. Each invariant has a rejection test that actually fails an invalid graph.
 - [ ] **`V9-A004-LOCK` — named resource-lock admission.** TASK-005 enforces named resource-lock exclusion at admission alongside write-scope exclusion, refuses admission rather than queueing, and a test asserts that two tasks declaring the same `resource_lock` are never concurrently leased even when their paths would otherwise permit it.
 - [ ] **`V9-A004-ACT` — event ingress, activation, quiescence, exactly-once, starvation bound.** TASK-005 implements the ingress observer with deterministic ordering, the cursor as the only consumption state, the one-commit effects-plus-cursor rule, load-time rejection of a cursor above `ingress_seq` and of an edited ledger row, and a starvation bound asserted as a bound rather than as eventual dispatch. Confirm specifically that no code path requires the recurring task itself to produce its own ingress fact — the defect finding F-201 recorded.
+- [ ] **`V9-F301-STORE` — the ingress inbox is a position store, not a tally.** TASK-026's inbox assigns `seq` once at append and never recomputes it; `fact_id` is SHA-256 over the canonical identity tuple and reproduces byte for byte against a hand-computed fixture; `content_hash` is SHA-256 over the source artifact bytes; append is idempotent by `fact_id` and crash-atomic with no partial entry, duplicate `seq`, or duplicate `fact_id` at any crash point; `maxSeq()` is non-decreasing; and entries survive deletion, rewrite, or garbage collection of the producing ref. Confirm by reading the code that **no** path derives a position from a count of commits, refs, branches, or files, and that a sealed epoch's entries are never re-derived or renumbered. This is the defect finding F-301 recorded.
+- [ ] **`V9-F301-CLASS` — one commit, one entry, and no self-trigger.** The adapters resolve a source commit matching several fact classes to exactly one entry under the declared precedence order; distinct commits stay distinct facts; batch ordering uses the source commit identifier and **no** path reads a committer or author timestamp; the epoch `seq_base` rule is implemented; and every commit authored by a recurring-task activation on its own branch is excluded from every fact class by an explicit rule. Confirm that fields read out of commit, report, or handoff text are validated against the contract types and that none is used to derive a path, a ref, or a command argument.
+- [ ] **`V9-F302-LINEAGE` — supersession without weakening history.** TASK-005 resolves the target and lineage forms of `gate_passed`, rejects the withdrawn owner form at load time, and enforces invariant 8 over every registered lineage. Confirm that the lineage form is satisfied only by a passing or formally accepted authoritative verdict, that a successor gate task passing at lineage round n+1 releases a consumer with no edit to the consumer's edge, and that every superseded round remains readable with its verdict, its commit, and its `remediated_by` and `revalidated_by` fields intact. This is the deadlock finding F-302 constructed.
 - [ ] **`V9-F105` — task-branch publication, idempotent pull request, blocked remote outcome.** TASK-017's `finalize` publishes the branch, records commit, branch, and pull-request identity durably before lock release, creates or updates exactly one pull request per task and branch across reruns and crash replays, and returns an explicit `blocked` outcome with a typed failure class when the remote or credentials are unavailable. Confirm by inspecting the constructed command vectors that no code path can push `main` or any ref other than `refs/heads/agent/<llm>/<role>/<task-id>`, and that no `succeeded` outcome is reachable from a local-only commit.
 
 ## Expected artifacts
 
 - `reports/code-review/REVIEW.md` summary.
 - Detailed findings under `reports/code-review/runtime/`.
-- `reports/code-review/runtime/AMENDED-BEHAVIOR-COVERAGE.md`, recording the `met` / `not met` judgment and the supporting evidence for each of `V9-A001`, `V9-A002`, `V9-A004-EDGE`, `V9-A004-LOCK`, `V9-A004-ACT`, and `V9-F105`.
+- `reports/code-review/runtime/AMENDED-BEHAVIOR-COVERAGE.md`, recording the `met` / `not met` judgment and the supporting evidence for each of the nine tagged obligations: `V9-A001`, `V9-A002`, `V9-A004-EDGE`, `V9-A004-LOCK`, `V9-A004-ACT`, `V9-F105`, `V9-F301-STORE`, `V9-F301-CLASS`, and `V9-F302-LINEAGE`.
 
 ## Write-scope isolation
 

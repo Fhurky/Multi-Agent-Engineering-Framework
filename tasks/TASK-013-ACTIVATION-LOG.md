@@ -21,10 +21,21 @@ The event rows below are the entries this log promises never to edit. This expla
 | ID | Activation | What changed and why |
 |---|---|---|
 | `MC-001` | `ACT-002` | Replaced the revision-3 activation model, which finding F-201 in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md` showed was both deadlocked and internally impossible. Revision 3 made a row in this file the dispatch signal while TASK-013 was the only task authorized to write it, so nothing could wake TASK-013 after TASK-021 recorded its verdict; and it declared rows immutable while requiring TASK-005 to later set `consumed_by`, which is an edit. The corrected model separates three surfaces — the ingress fact produced by an owner inside its own scope, the cursor in TASK-013's frontmatter, and this append-only consumption ledger — so the producer is no longer TASK-013 and consumption state lives only in the cursor. Rows 1 … 3 are unchanged by this correction; only the legend and the dispatch predicate changed |
+| `MC-002` | `ACT-004` | Replaced the revision-4 **observation rule**, which finding F-301 in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md` showed was not a cursor. Revision 4 scanned every fact reachable from mutable refs, ordered by committer timestamp, and used the **count** as `ingress_seq`; a backdated commit could insert before the cursor, a deleted branch could lower the count below it, a commit matching several classes had no rule, the ledger applied an unstated selection policy, and TASK-013's own effects commit matched `remediation_completed`. Revision 5 replaces the count with a durable append-only **ingress inbox** whose entries carry a stable `seq` assigned once at append, a `fact_id` content hash as identity, and a `content_hash` over the source artifact. `ingress_seq` is `max(seq)` over the inbox and reads no ref, no branch, no commit count, and no timestamp. Class precedence, batch order by source commit identifier, identity-keyed deduplication, ref-independent retention, and explicit self-exclusion of TASK-013's own commits are normative. The full model is in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, section "TASK-013 activation and event-ingress model". Implementation is routed to **TASK-026** for the store and adapters and to **TASK-005** for the observer and predicate |
+| `MC-003` | `ACT-004` | Declared **ingress epoch 2** and sealed epoch 1. Epoch 1 covers rows 1 … 6, produced under the revision-3 and revision-4 rules. Under those rules its own high-water mark is not reproducible, for exactly the reasons F-301 gave: rows 4 folded two distinct merge commits into one row, the reachable round-1 verdict `8ac0dbd` was never recorded, and one of `a2aad47` / `adfb982` was selected with no stated rule. Rather than renumber or re-derive history — which would edit rows this log promises never to edit — epoch 1 is retained verbatim as durable provenance and closed. Epoch 2 declares `seq_base = 6`, so its first entry is `seq` 7 and the cursor stays monotonic across the boundary. Epoch 2's entries carry the full entry schema; epoch 1's do not, and no attempt is made to backfill them |
+
+## Ingress epochs
+
+| Epoch | Model | Entries | Status |
+|---|---|---|---|
+| 1 | Scan reachable refs, order by committer timestamp then SHA, `ingress_seq` = the count | `seq` 1 … 6 | **Sealed** by `MC-003` at `ACT-004`. Retained as durable provenance; not reproducible under its own rule, which is why the boundary exists |
+| 2 | Durable append-only ingress inbox; `ingress_seq = max(seq)`; identity by `fact_id`; positions assigned once at append | `seq_base = 6`, entries from `seq` 7 | **Active** |
 
 ## Event log
 
-`seq` is a strictly increasing integer assigned in the deterministic observation order defined in the dependency graph. `consumed_by` names the activation that consumed the fact and that wrote the row; it is written once and never changed.
+`seq` is a stable monotonic integer. In epoch 1 it was assigned in the observation order that epoch's rule defined. In epoch 2 it is assigned **once, at append time**, in ascending order of `source_commit` identifier within a batch, and is never recomputed from a count, a scan, or a timestamp. `consumed_by` names the activation that consumed the entry and wrote the row; it is written once and never changed.
+
+Epoch-2 rows additionally record `fact_id` and `content_hash`, which are the entry's identity and the hash of its source artifact. Until TASK-026 exists, these rows are the durable record of the inbox.
 
 | seq | event_type | Source | Payload | consumed_by |
 |---|---|---|---|---|
@@ -35,9 +46,14 @@ The event rows below are the entries this log promises never to edit. This expla
 | 5 | `gate_verdict_recorded` | commit `adfb982` `review: record TASK-021 publication outcome` on `agent/gpt/reviewer/task-021`, whose parent `a2aad47` `review: assess TASK-001 decomposition round 3` authored the artifact; artifact `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.md`; published to `origin` and opened as pull request #2 at `https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/2` | TASK-021 round 3 recorded `changes-required` on TASK-001 against the `ACT-001` target `5febe3b`, reviewed head `88dc554`, base `049158d`. Round 2 dispositions: F-101 partially resolved, F-102 resolved, F-103 resolved, F-104 partially resolved, F-105 resolved. New findings F-201 … F-205. TASK-001 may not reach `done` | ACT-002 |
 | 6 | `artifact_published` | commit `8d0c570` `docs: amend the runtime architecture for TASK-016` on `agent/claude/architect/task-016`, base `c325275`; published to `origin/agent/claude/architect/task-016` and opened as pull request #3 at `https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/3`, targeting `main`; committer timestamp `2026-08-05T08:36:13+03:00` | TASK-016 published the runtime architecture amendment: 29 files, 22 amended and 7 added, all under `docs/` and `diagrams/`, with `docs/architecture/runtime/WORKSPACE-LIFECYCLE.md` and ADR-0011 … ADR-0016 new. `publication_class: bootstrap` with the remote step succeeded, so `publication: published` and `review_ready(TASK-016)` is satisfied. Owner-recorded verification: write-scope validator valid `True` over 29 files against base `c325275`; framework validator passed for 13 roles; orchestration unit checks passed; `git diff --check` clean; 0 broken links or anchors. Task lock released and worktree clean. **No verdict on this amendment exists**; its `review` gate, owned by TASK-020 round 1, is open | ACT-003 |
 
-`ingress_seq = 6`. `activation.last_consumed_event_seq = 6`. TASK-013 is quiescent.
+| 7 | `gate_verdict_recorded` | commit `4874a9d518c9505df5521d0d3a747dc89ad8c247` `docs: record TASK-020 architecture amendment review` on `agent/gpt/reviewer/task-020`, parent `c325275`; published at `refs/heads/agent/gpt/reviewer/task-020` on `origin`; artifact `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md`. Epoch 2. `fact_id` `0b96f7ee68c80a2a428aff107fd3ee932f3407f6c3e384d867c12d02e1da18d2`; `content_hash` `f2ae25e93ab780bce064cbd67712ad957f99b546ad6c501d3610d8f020796384` | TASK-020 recorded **one** verdict, `changes-required`, applied atomically to `(TASK-016, review, round 1)` and `(TASK-002, review, round 2)`, producing two durable gate-verdict facts. Round-1 dispositions: A-001 `resolved`, A-002 `partially resolved`, A-003 `partially resolved`, A-004 `not resolved`. New findings A-101, A-102, A-103, A-104 (High) and A-105 (Medium). The report states that TASK-016 may not be integrated and that TASK-003 … TASK-008, TASK-017, and TASK-018 may not leave `blocked` on the strength of this review | ACT-004 |
+| 8 | `gate_verdict_recorded` | commit `e8eb23db51d34616c06fa3e371396206d560d323` `review: assess TASK-001 decomposition round 4` on `agent/gpt/reviewer/task-022`, parent `c325275`; published at `refs/heads/agent/gpt/reviewer/task-022` on `origin`; artifact `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md`. Epoch 2. `fact_id` `482ba10ca7496474df8d47f4c9c4657ea036122585617fca141f84b82359a32e`; `content_hash` `ba75c1b2f59b59e5dc62e3db05a21baf60e31065a3bfc414eaa03b7a3e65ae07` | TASK-022 round 4 recorded `changes-required` on TASK-001 against the `ACT-002` target `f590749` with follow-up head `4f8a1cc`, base `c325275`. Round-3 dispositions: F-201 `partially resolved`, F-202 `resolved`, F-203 `partially resolved`, F-204 `partially resolved`, F-205 `resolved`, F-101 residual `resolved`, F-104 residual `partially resolved`. New findings F-301 (High), F-302 (High), F-303 (Medium). TASK-001 may not reach `done` | ACT-004 |
 
-Rows 1 … 5 are byte-identical to their prior state. Row 6 was appended; nothing was substituted, and no `consumed_by` value was mutated.
+`ingress_seq = 8`. `activation.last_consumed_event_seq = 8`. TASK-013 is quiescent.
+
+**Batch order for the `ACT-004` append.** Both entries were appended in one batch. Under the epoch-2 rule they are ordered by ascending `source_commit` identifier: `4874a9d5…` precedes `e8eb23db…`, so TASK-020's verdict took `seq` 7 and TASK-022's took `seq` 8. Committer timestamps were **not** consulted; had they been, the order would have been the reverse, which is precisely the instability F-301 recorded.
+
+**Append-only audit.** Rows 1 … 6 are byte-identical to their prior state. Rows 7 and 8 were appended; nothing was substituted, no row was renumbered across the epoch boundary, and no `consumed_by` value was mutated.
 
 ## Activation ACT-001
 
@@ -314,3 +330,141 @@ No high or critical security finding exists yet, so no formal human acceptance i
 - No follow-up commit records its hash, because — unlike `ACT-001` and `ACT-002` — this activation created no new gate task and therefore pinned no new immutable review target. Nothing downstream needs the hash, so recording it would require a second commit for no consumer.
 - The commit is identified durably by the head of `agent/claude/orchestrator/task-013` at push time and by pull request #4.
 - This activation did **not** alter TASK-022's review target. Round 4 still reviews `f590749` against `c325275`.
+
+## Activation ACT-004
+
+- Activation ID: `ACT-004`
+- Date: 2026-08-05
+- Branch: `agent/claude/orchestrator/task-013`
+- Worktree: `C:/Users/furko/Desktop/multi-agent-worktrees/claude-orchestrator-task-013`
+- Base ref for validation: `c325275`
+- Events consumed: `(6, 8]` — seq 7 and seq 8, both epoch 2
+- Cursor before: `6`. Cursor after: `8`.
+- Effects, the two new ledger rows, the epoch declaration, and the cursor advance are recorded in one commit, which is what makes consumption exactly-once.
+- Concurrency: the `task-records` lock was held by this execution; TASK-001 was not claimed. The `architecture-docs` lock is free — released by both the TASK-002 and the TASK-016 executions — so TASK-024 may be claimed. The TASK-020 and TASK-022 locks are released; both reviewer executions finished before this activation began.
+- Publication: pushed when a remote is available. `publication_class: bootstrap`.
+
+### Triggers and the transitions they justified
+
+| Trigger event | Trigger row in TASK-013's table | Transitions performed |
+|---|---|---|
+| seq 7, `gate_verdict_recorded` | "On findings, route one remediation task per responsible owner … and move the affected record back to `in-progress` or `blocked`" | TASK-020's single `changes-required` verdict recorded as two durable gate-verdict facts, `(TASK-016, review, r1)` and `(TASK-002, review, r2)`. Both relations left **open**. A-101 … A-105 routed to **TASK-024**, a new architect-owned amendment task. **TASK-025** created to record `LIN-ARCH-REVIEW` lineage round 3 — `(TASK-024, r1)`, `(TASK-016, r2)`, `(TASK-002, r3)`. TASK-020 moved to `done` with its verdict transcribed. TASK-016 and TASK-002 stay in `tasks/review/`; neither may be integrated and neither may reach `done` |
+| seq 8, `gate_verdict_recorded` | Same row | TASK-022's round 4 `changes-required` recorded on `(TASK-001, review, r4)`, left **open**. F-302 and F-303 remediated in this activation as Orchestrator-owned corrections. F-301's specification half remediated here; its architecture half routed to **TASK-024** and its implementation half routed to **TASK-026**, a new runtime-owned task, plus the corrected observer obligations on TASK-005. **TASK-023** created to record `LIN-DECOMP-REVIEW` lineage round 5. TASK-022 moved to `done` with its verdict transcribed. TASK-001 stays in `tasks/review/` and may not reach `done` |
+
+### Finding dispositions — TASK-020, A-101 … A-105
+
+Every finding maps to exactly one remediation task. **No gate is closed by this activation.** TASK-013 records verdicts that gate owners produced; it never produces one, and it does not judge whether a finding is correct.
+
+| Finding | Severity | Responsible owner | Disposition | Where the work lives |
+|---|---|---|---|---|
+| A-101 | High | architect | Routed | **TASK-024** scope item 1: transcribe the revision-5 scheduling vocabulary name for name — publication classes; the target and **lineage** forms of `gate_passed` with `round` and `lineage_round`; the withdrawal of the owner form; plural gate relations on one gate task; `gate_class` and per-pair `retrospective`; `gate_lineage`; invariants 6, 7, and 8 — and replace the pre-`ACT-002` `activationEvents` / `pendingThroughSeq` model with the three ingress surfaces, cursor-only consumption state, and the durable append-only inbox. Implementation is owned by TASK-005 and TASK-026 |
+| A-102 | High | architect | Routed | **TASK-024** scope item 2: an implementation-ready supervisor/worker handshake that makes `ProcessGroupRegistered` durable before the worker-owned spawn and the binding durable immediately after it, without giving TASK-004 state-write ownership; and a non-success outcome that prevents pause or drain from returning while an `orphan_unresolved` descendant survives. Implementation is owned by TASK-004, TASK-006, TASK-007, and TASK-008 |
+| A-103 | High | architect | Routed | **TASK-024** scope item 3: explicit begin/execute/complete phases or an append-acknowledgement callback so workspace `prepare`, `finalize`, and `abandon` intent is durable before any script or Git side effect, plus a distinct abandonment-intent event and the transition that enters `abandoning`. Implementation is owned by TASK-017 |
+| A-104 | High | architect | Routed | **TASK-024** scope item 4: either durably record the complete adoptable result before commitment, or define a recovery-specific adoption event carrying sufficient durable source data with explicit record effects, so recovery can construct the transition the table calls legal after a crash between `EffectCommitted` and `WorkerSucceeded`. Implementation is owned by TASK-003, TASK-006, and TASK-008 |
+| A-105 | Medium | architect | Routed | **TASK-024** scope item 5: make `runtime-state-machine.md`, `runtime-components.md`, and `runtime-sequences.md` state the same allowed paths, terminal-event exceptions, and repository access paths as the normative contracts |
+
+A-101 through A-104 are High and block integration of the amendment. A-105 is Medium and is corrected in the same amendment so cross-document consistency is restored in one round rather than two. No High finding here is a **security** finding, so no formal human acceptance is required or recorded.
+
+### Finding dispositions — TASK-022 round 4, F-301 … F-303
+
+| Finding | Severity | Responsible owner | Disposition | Where the work lives |
+|---|---|---|---|---|
+| F-301 | High | orchestrator for the specification; architect for the contract; runtime for the implementation | Remediated in this activation for the specification half; routed for the other two | The observation rule is replaced, not patched. `ingress_seq` is no longer a count over a scan of mutable refs: it is `max(seq)` over a durable append-only **ingress inbox** whose entries carry a stable one-time `seq`, a `fact_id` identity hash, and a `content_hash` over the source artifact. Epoch, identity-keyed deduplication, class precedence, batch order by source commit identifier, ref-independent retention, and explicit self-exclusion of TASK-013's own commits are all normative and are stated in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, section "TASK-013 activation and event-ingress model", and in `MC-002` and `MC-003` above. Epoch 1 is sealed rather than re-derived, so no existing ledger row is edited. The store and its adapters are routed to **TASK-026**; the observer, predicate, cursor validation, and one-commit rule stay with **TASK-005**; the contract representation is **TASK-024** scope item 1; the six failure modes the finding named are tests `V11-F301-STORE` and `V11-F301-CLASS` on **TASK-011** with the static half on **TASK-009** and fact-authenticity on **TASK-010** as `V10-F301-AUTH` |
+| F-302 | High | orchestrator | Remediated in this activation | The owner form of `gate_passed` is **withdrawn** and rejected at load time. It is replaced by the **lineage form**, `{lineage: <LIN-id>, edge: gate_passed, gate: <name>, lineage_round: <n>}`, satisfied when the lineage's authoritative verdict — the verdict at its highest recorded lineage round — is passing or formally accepted at a round ≥ `<n>`. Eight lineages are registered in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, section "Gate lineages", every `gate_for` / `gate_tasks` pair declares `gate_lineage` and `lineage_round`, and new invariant 8 makes lineage well-formedness machine-checkable. TASK-012's edge became `{lineage: LIN-RUNTIME-QA, gate: qa, lineage_round: 1}`, so a successor QA task passing at lineage round 2 releases it with no edit to any edge. The architecture edge held by nine tasks became `{lineage: LIN-ARCH-REVIEW, gate: review, lineage_round: 3}` for the same reason. **Immutable gate history is not weakened:** gate-round rule clause 4 is unchanged, every superseded verdict stays recorded with its round and its commit, and the lineage only names which round is currently authoritative. Validator obligations are **TASK-009 `V9-F302-LINEAGE`** and **TASK-011 `V11-F302-LINEAGE`** |
+| F-303 | Medium | orchestrator | Remediated in this activation | The three contradictory passages are corrected **and** the duplication that produced them is removed. `tasks/review/TASK-001-autonomous-runtime-orchestration.md`, `tasks/done/TASK-021-…`, and `tasks/done/TASK-022-…` no longer restate a pair's `retrospective` value; each now names the register instead. The graph states the new rule explicitly: a pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are normative in the pair's own frontmatter and in the aggregate and retrospective gate register, **and nowhere else**; a record body may name the register but may not restate the value. No verdict, round, or gate relation was altered by this correction |
+
+### Residual dispositions carried from TASK-021 round 3
+
+| Finding | Round-4 disposition | Closed out by this activation |
+|---|---|---|
+| F-201 | `partially resolved` | Yes, jointly with F-301. The producer half was already structurally correct; the unresolved half was the observation rule, which is replaced |
+| F-203 | `partially resolved` | Yes, jointly with F-303. The frontmatter and register were mechanically correct at round 4; the prose that contradicted them is gone and the single-source rule prevents its return |
+| F-204 | `partially resolved` | Yes, jointly with F-302. The owner form resolved the *current* graph correctly and failed across rounds; the lineage form resolves both |
+| F-104 | `partially resolved` | Yes, jointly with F-301. Round 4 recorded that the loop was not exactly-once because the source set and the count cursor were unstable. Both are replaced |
+| F-101, F-202, F-205 | `resolved` at round 4 | No further action. Recorded as closed |
+
+### Lifecycle transitions performed
+
+| Task | From | To | Trigger and justification | Source artifact |
+|---|---|---|---|---|
+| TASK-020 | `tasks/ready/`, `ready` | `tasks/done/`, `done` | Its single declared verdict is recorded and durable, it has no gates of its own, and its artifact is published at `4874a9d` on `origin/agent/gpt/reviewer/task-020` | `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md` |
+| TASK-022 | `tasks/ready/`, `ready` | `tasks/done/`, `done` | Same, at `e8eb23d` on `origin/agent/gpt/reviewer/task-022` | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md` |
+| TASK-023 | — | `tasks/ready/`, `ready` | Created; `review_ready(TASK-001)` is satisfied and the review target is the `ACT-004` effects commit on `agent/claude/orchestrator/task-013`. Records `LIN-DECOMP-REVIEW` lineage round 5 | This activation |
+| TASK-024 | — | `tasks/ready/`, `ready` | Created; its single dependency `gate_recorded(TASK-020)` is satisfied at `4874a9d`, and the `architecture-docs` lock is free | This activation |
+| TASK-025 | — | `tasks/blocked/`, `blocked` | Created; waits on `review_ready(TASK-024)`. Records `LIN-ARCH-REVIEW` lineage round 3 across three relations | This activation |
+| TASK-026 | — | `tasks/blocked/`, `blocked` | Created; waits on `gate_passed(LIN-ARCH-REVIEW, review, 3)` and on `integrated(TASK-003)` and `integrated(TASK-018)` | This activation |
+| TASK-016 | `tasks/review/` | `tasks/review/`, unchanged | Its review gate at round 1 recorded `changes-required`. The record stays in `review` because its published artifact `8d0c570` is durable and the remediation is a **new** task, exactly as TASK-002 stayed in `review` when TASK-016 was created for it. Not integrable; `pre_merge_gates: [review]` is open. Round 2 added, pending TASK-025 | `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md` |
+| TASK-002 | `tasks/review/` | `tasks/review/`, unchanged | Its review gate at round 2 recorded `changes-required`. Round 3 added, pending TASK-025 | Same report |
+| TASK-001 | `tasks/review/` | `tasks/review/`, unchanged | Its review gate at round 4 recorded `changes-required`. Round 5 added, pending TASK-023. Revision 5 applied to the graph and to this record | `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md` |
+| TASK-013 | `tasks/blocked/`, `blocked` | `tasks/blocked/`, `blocked`, `activation.state: quiescent` | Cursor reached `ingress_seq` after consuming seq 7 and 8; no unconsumed inbox entry remains | This log |
+| TASK-003 … TASK-008, TASK-017, TASK-018 | `tasks/blocked/` | `tasks/blocked/`, unchanged | Architecture edge retyped to the lineage form at `lineage_round: 3`, normative-source clause extended to name `8d0c570` and the TASK-024 commit, `blocked_reason` and `exit_condition` restated. No dependency became satisfied — the round-1 verdict on TASK-016 was `changes-required`, so `gate_passed` is further from satisfaction than before, not closer | This activation |
+| TASK-005 | `tasks/blocked/` | `tasks/blocked/`, unchanged | Additionally gained `integrated(TASK-026)`, the corrected observer obligations, `V9-F302-LINEAGE`'s implementation half, and invariant 8 enforcement | This activation |
+| TASK-009, TASK-010, TASK-011 | `tasks/blocked/` | `tasks/blocked/`, unchanged | Gained `review_ready(TASK-026)` and the corresponding `gate_for` relation, plus the new tagged obligations | This activation |
+| TASK-012 | `tasks/blocked/` | `tasks/blocked/`, unchanged | Its `gate_passed` edge retyped from the withdrawn owner form to the lineage form on `LIN-RUNTIME-QA` | This activation |
+| TASK-014, TASK-015, TASK-019, TASK-021 | current directory | unchanged | `gate_for` gained `gate_lineage` and `lineage_round`. TASK-021's body no longer restates a pair's `retrospective` value. Recorded verdicts are untouched | This activation |
+
+### Gate closure register
+
+**No gate is closed by this activation, and no verdict was authored by this role.** Two verdicts were *recorded* from the two reports; both are `changes-required`, so every relation they touch stays open.
+
+| Gated task | Gate | Owner and round | Recorded verdict | Lineage / round | Status | What must happen next |
+|---|---|---|---|---|---|---|
+| TASK-001 | review | TASK-014 r1 | `changes-required` | `LIN-DECOMP-REVIEW` 1 | superseded | Remediated by TASK-001 revision 2; revalidated by TASK-014 round 2 |
+| TASK-001 | review | TASK-014 r2 | `changes-required` | `LIN-DECOMP-REVIEW` 2 | superseded | Remediated by TASK-013 `ACT-001`; revalidated by TASK-021 |
+| TASK-001 | review | TASK-021 r3 | `changes-required` | `LIN-DECOMP-REVIEW` 3 | superseded | Remediated by TASK-013 `ACT-002`; revalidated by TASK-022 |
+| TASK-001 | review | TASK-022 r4 | `changes-required` | `LIN-DECOMP-REVIEW` 4 | superseded by round 5 | Remediated by TASK-013 `ACT-004`; revalidated by TASK-023 |
+| TASK-001 | review | TASK-023 r5 | none | `LIN-DECOMP-REVIEW` 5 | **open** | TASK-023 reviews the `ACT-004` commit against base `c325275` and records a verdict. TASK-001 may not reach `done` before then |
+| TASK-002 | review | TASK-015 r1 | `changes-required` | `LIN-ARCH-REVIEW` 1 | superseded | Remediated by TASK-016; revalidated by TASK-020 |
+| TASK-002 | review | TASK-020 r2 | `changes-required` | `LIN-ARCH-REVIEW` 2 | superseded by round 3 | Remediated by TASK-024; revalidated by TASK-025 |
+| TASK-002 | review | TASK-025 r3 | none | `LIN-ARCH-REVIEW` 3 | **open** | TASK-025's single verdict decides this relation together with TASK-016 r2 and TASK-024 r1 |
+| TASK-016 | review | TASK-020 r1 | `changes-required` | `LIN-ARCH-REVIEW` 2 | superseded by round 2 | Remediated by TASK-024; revalidated by TASK-025. TASK-016 is not integrable |
+| TASK-016 | review | TASK-025 r2 | none | `LIN-ARCH-REVIEW` 3 | **open** | Same single verdict |
+| TASK-024 | review | TASK-025 r1 | none | `LIN-ARCH-REVIEW` 3 | **open** | TASK-024 must publish first |
+| TASK-018 | review | TASK-019 r1 | none | `LIN-TOOLCHAIN-REVIEW` 1 | **open** | TASK-018 must publish first, and it cannot start before the architecture lineage passes at round 3 |
+| TASK-018 | security | TASK-010 r1 | none | `LIN-TOOLCHAIN-SECURITY` 1 | **open** | Wave 8. Register entry: "TASK-010 / security / TASK-018" |
+| TASK-003 … TASK-008, TASK-017, TASK-026 | review | TASK-009 r1 | none | `LIN-RUNTIME-REVIEW` 1 | **open** | Wave 8. Register entry: "TASK-009 / review" |
+| TASK-003 … TASK-008, TASK-017, TASK-026 | security | TASK-010 r1 | none | `LIN-RUNTIME-SECURITY` 1 | **open** | Wave 8. Register entry: "TASK-010 / security / runtime cohort" |
+| TASK-003 … TASK-008, TASK-017, TASK-026 | qa | TASK-011 r1 | none | `LIN-RUNTIME-QA` 1 | **open** | Wave 8. Register entry: "TASK-011 / qa" |
+| TASK-005, TASK-006, TASK-008 | performance | TASK-012 r1 | none | `LIN-RUNTIME-PERFORMANCE` 1 | **open** | Wave 9, and only after `LIN-RUNTIME-QA` records a **passing** authoritative verdict at lineage round ≥ 1. Register entry: "TASK-012 / performance" |
+
+No high or critical **security** finding exists yet. A-101 … A-104 are High architecture-review findings, not security findings, so no formal human acceptance is required or recorded by this activation. Nothing in this graph is marked closed without a recorded verdict from its gate owner.
+
+### Verification performed by this activation
+
+- Both ingress facts were verified against Git rather than accepted from prose. `4874a9d518c9505df5521d0d3a747dc89ad8c247` and `e8eb23db51d34616c06fa3e371396206d560d323` each exist, each has parent `c325275`, each adds exactly one file under `reports/code-review/`, and `git ls-remote --heads origin` shows both at the head of their own branches. Neither touches any path under `tasks/`.
+- The `fact_id` and `content_hash` values in rows 7 and 8 were computed, not asserted. `content_hash` is SHA-256 over `git show <commit>:<path>`; `fact_id` is SHA-256 over the canonical identity tuple defined in the dependency graph. Both are reproducible by any reader with the repository.
+- The batch order was taken from the ascending `source_commit` identifier, not from committer timestamps. The timestamps run in the opposite direction, which is recorded above so the difference is visible rather than incidental.
+- Epoch 1 rows 1 … 6 were compared byte for byte against their prior state and are unchanged. Rows 7 and 8 are appends. No row was renumbered, reclassified, or moved across the epoch boundary.
+- `last_consumed_event_seq = 8 = ingress_seq = max(seq)`. The cursor does not run ahead of the inbox. Under the epoch-2 self-exclusion rule this activation's own effects commit is not an ingress fact, so quiescence at 8 is demonstrable rather than assumed — which is the specific claim F-301 said revision 4 could not make.
+- Every `status` field was compared with its record's lifecycle directory, and both were compared with the state column of the ownership table in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, in both directions, for all 26 records.
+- All 40 `gate_for` / `gate_tasks` pairs were compared in both directions on gate name, round, verdict, `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round`.
+- The eight lineages were checked for contiguous rounds, one gate task per round, constant gate name, and cohort membership of every named target. The single historical exception — TASK-014 recording `LIN-DECOMP-REVIEW` rounds 1 and 2 — is recorded in the register rather than silently permitted.
+- Every `dependencies` list was compared with the ownership table in both directions, including the two retyped lineage edges and TASK-005's new `integrated(TASK-026)` edge.
+- Every declared `write_scope` was compared with its role's configured scope in `config/agents/settings.yaml` and pairwise with every other task's scope. TASK-023's and TASK-025's report paths are new and disjoint from all seven existing reviewer-owned paths; TASK-026's `src/orchestrator/ingress/**` is disjoint from every other runtime task's directory; TASK-024 shares TASK-016's architecture scope and therefore declares the `architecture-docs` lock.
+- The eight no-deadlock invariants were checked against the stated topological order, including new invariant 8 and the revised invariants 1, 2, and 6.
+- No remediation task routes work back to the execution context that reviewed it. TASK-024 is architect / claude and reviews nothing; TASK-023 and TASK-025 are new reviewer / gpt tasks in separate execution contexts, and neither reviews an artifact it authored or previously reviewed. TASK-025 does not reuse TASK-020's execution context.
+- No gate was marked passed, no verdict was authored by this role, and no gate task was made re-entrant.
+- Exact command results are recorded in this activation's handoff.
+
+### Remaining blockers and next owners
+
+| Item | Owner | Why it is open |
+|---|---|---|
+| Second architecture amendment for A-101 … A-105 and the ingress inbox contract | architect / claude, TASK-024 | **Ready and dispatchable now. This is the next owner.** `gate_recorded(TASK-020)` is satisfied at `4874a9d` and the `architecture-docs` lock is free |
+| Independent re-review of the corrected decomposition, round 5 | reviewer / gpt, TASK-023 | **Ready and dispatchable now, in parallel.** Reviews the `ACT-004` effects commit. Its report path is disjoint from every other active scope and it holds no resource lock |
+| Independent review of the second architecture amendment | reviewer / gpt, TASK-025 | Waits on `review_ready(TASK-024)` |
+| Toolchain bootstrap | devops / claude, TASK-018 | Waits on `gate_passed(LIN-ARCH-REVIEW, review, 3)`, which now requires TASK-025's passing verdict rather than TASK-020's |
+| Runtime implementation, Waves 3 … 7 | runtime / claude | Waits on the approved architecture and the integrated toolchain |
+| Durable ingress inbox | runtime / claude, TASK-026 | New. Waits on the architecture lineage and on TASK-003 and TASK-018 being integrated |
+| Runtime validation, Waves 8 … 9 | reviewer, security, qa, performance | Waits on the implementation |
+| Ingress observer implementation | runtime / claude, TASK-005 | Specified and routed but not executable. Until TASK-026 and TASK-005 are integrated, the operator performs discovery; identity, position, and the cursor are already durable and do not depend on that substitution |
+| End-to-end ingress loop test and the six F-301 failure modes | qa / gemini, TASK-011 | Routed as `V11-A004-ACT`, `V11-F301-STORE`, and `V11-F301-CLASS`; run at Wave 8 |
+| Cross-task resource-lock enforcement | runtime / claude, TASK-005 | `claim-task.ps1` enforces a per-task-ID lock, not a named cross-task resource lock. Until TASK-005 lands, `task-records` and `architecture-docs` depend on the Orchestrator not claiming two holders at once. `architecture-docs` now has three holders rather than two |
+| Remote publication for the remaining bootstrap records | user, then runtime / claude, TASK-017 | TASK-001, TASK-016, TASK-020, TASK-021, and TASK-022 are published. TASK-002, TASK-014, and TASK-015 remain `local-only` with a recorded reason |
+
+### Effects commit for ACT-004
+
+- The effects commit is the single commit `chore: activate TASK-013 ACT-004, record two changes-required verdicts, and correct the ingress and lineage models` on `agent/claude/orchestrator/task-013`, base `d0c030a`, carrying the two ledger rows for seq 7 and 8, the epoch declaration, the cursor advance to 8, and every lifecycle effect together.
+- One follow-up commit records that hash here and in TASK-023's frontmatter as `review_target_commit`, because a commit cannot contain its own hash. That follow-up carries no effect, no ledger row, and no cursor change. TASK-023 reviews the branch head, which includes both commits, exactly as TASK-021 and TASK-022 were instructed to for `ACT-001` and `ACT-002`.
+- Effects commit hash: **`ac9c8f2`**, full `ac9c8f23c80a483e65450bfca52dbdb026b14695`, recorded by the follow-up commit. It is TASK-023's immutable review target, against base `c325275`.
+- This activation did **not** alter TASK-022's review target. Round 4 reviewed `f590749` against `c325275`, and that is a closed, durable fact.

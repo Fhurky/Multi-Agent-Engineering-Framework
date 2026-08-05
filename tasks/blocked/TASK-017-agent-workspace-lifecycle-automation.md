@@ -10,9 +10,10 @@ write_scope:
   - src/orchestrator/workspace/**
   - tests/unit/orchestrator/workspace/**
 dependencies:
-  - task: TASK-016
+  - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
+    lineage_round: 3
   - task: TASK-003
     edge: integrated
   - task: TASK-018
@@ -29,28 +30,34 @@ gate_tasks:
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
   - task: TASK-010
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-011
     gate: qa
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
+normative_architecture_source: 9576fc9 as amended by 8d0c570 and by the TASK-024 commit that TASK-025 approves
 remediates:
   - finding: F-001
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
   - finding: F-105
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
-blocked_reason: The workspace lifecycle contract does not exist yet, and neither the durable state store nor the toolchain is integrated.
-exit_condition: TASK-020 records a passing verdict on TASK-016, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
+blocked_reason: The workspace lifecycle contract is published but not approved — TASK-020 recorded A-103, that workspace intent cannot be made durable before its side effects — and neither the durable state store nor the toolchain is integrated.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 3 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
 ---
 
 # TASK-017: Implement automated agent workspace lifecycle and crash-safe cleanup

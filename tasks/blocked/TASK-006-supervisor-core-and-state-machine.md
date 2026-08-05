@@ -10,9 +10,10 @@ write_scope:
   - src/orchestrator/supervisor/**
   - tests/unit/orchestrator/supervisor/**
 dependencies:
-  - task: TASK-016
+  - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
+    lineage_round: 3
   - task: TASK-003
     edge: integrated
   - task: TASK-004
@@ -34,29 +35,37 @@ gate_tasks:
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
   - task: TASK-010
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-011
     gate: qa
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
   - task: TASK-012
     gate: performance
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-PERFORMANCE
+    lineage_round: 1
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
-blocked_reason: TASK-015 returned changes-required on the base architecture, so the state machine contract is not approved and finding A-002 changes the recovery transitions this task implements. The state store, worker contract, scheduler, and workspace lifecycle are not integrated.
-exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, and TASK-003, TASK-004, TASK-005, and TASK-017 are integrated into integration/autonomous-runtime.
+normative_architecture_source: 9576fc9 as amended by 8d0c570 and by the TASK-024 commit that TASK-025 approves
+blocked_reason: TASK-015 returned changes-required on the base architecture and TASK-020 returned changes-required on the first amendment, so the state machine contract is not approved and finding A-002 changes the recovery transitions this task implements. The state store, worker contract, scheduler, and workspace lifecycle are not integrated.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 3 or higher, and TASK-003, TASK-004, TASK-005, and TASK-017 are integrated into integration/autonomous-runtime.
 ---
 
 # TASK-006: Implement the supervisor core and deterministic state machine

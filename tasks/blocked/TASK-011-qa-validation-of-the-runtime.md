@@ -27,6 +27,8 @@ dependencies:
     edge: review_ready
   - task: TASK-017
     edge: review_ready
+  - task: TASK-026
+    edge: review_ready
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -36,53 +38,76 @@ gate_for:
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
   - task: TASK-004
     gate: qa
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
   - task: TASK-005
     gate: qa
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
   - task: TASK-006
     gate: qa
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
   - task: TASK-007
     gate: qa
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
   - task: TASK-008
     gate: qa
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
   - task: TASK-017
     gate: qa
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
+  - task: TASK-026
+    gate: qa
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
 gate_scheduling: This gate is an aggregate assembly gate for every target. Its reason and its recorded risk are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, row "TASK-011 / qa".
 consumed_by:
   - task: TASK-012
     edge: gate_passed
+    lineage: LIN-RUNTIME-QA
     gate: qa
-    round: 1
-    note: TASK-012 is dispatchable only on a passing qa verdict at round 1 or higher, not on any recorded verdict. A changes-required verdict here leaves TASK-012 blocked until a later qa round passes.
+    lineage_round: 1
+    note: TASK-012 depends on the LIN-RUNTIME-QA lineage, not on this task by name. Finding F-302 recorded that an edge naming this task could never be satisfied after a changes-required verdict, because a superseding round is a new gate task and a recorded verdict is durable. A changes-required verdict here therefore leaves TASK-012 blocked until a successor QA task records a passing authoritative verdict at lineage round 2 or higher, at which point the edge is satisfied with no change to it.
 parent_task: TASK-001
 publication_class: bootstrap
-blocked_reason: The runtime implementation tasks have not published their branches.
-exit_condition: TASK-003 through TASK-008 and TASK-017 are each review_ready, with an immutable published commit. Every dependency is listed explicitly; this task does not infer a dependency from another task's dependency list. It is nevertheless an aggregate gate: it waits for every target before it can gate any one of them, and every target is already integrated by then.
+blocked_reason: The runtime implementation tasks have not published their branches. The cohort gained TASK-026, the durable ingress inbox, at activation ACT-004.
+exit_condition: TASK-003 through TASK-008, TASK-017, and TASK-026 are each review_ready, with an immutable published commit. Every dependency is listed explicitly; this task does not infer a dependency from another task's dependency list. It is nevertheless an aggregate gate: it waits for every target before it can gate any one of them, and every target is already integrated by then.
 ---
 
 # TASK-011: QA validation of autonomous run lifecycle behavior
@@ -129,6 +154,9 @@ Finding **F-202** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.
 - [ ] **`V11-A004-EDGE` — typed dependency and no-deadlock end to end.** A run over the full TASK-001 graph shape reaches a state in which every task has been dispatchable, with no deadlock and no livelock. Assert that a graph violating each of the seven no-deadlock invariants is rejected at load time rather than deadlocking at run time.
 - [ ] **`V11-A004-LOCK` — named resource-lock admission end to end.** During an actual multi-task run, two tasks declaring the same `resource_lock` are never concurrently leased, and the second is returned to the ready set rather than queued behind the first.
 - [ ] **`V11-A004-ACT` — the complete event-ingress loop.** One end-to-end test that exercises the full path finding **F-201** required: a gate report is published as a commit by a writer whose scope **excludes** the recurring task's write scope; the ingress observer sees `ingress_seq` rise above the cursor; the recurring task is dispatched within the stated starvation bound; its effects, its ledger rows, and its cursor advance land in one commit; and the task returns to `quiescent` with the cursor equal to `ingress_seq`. The test must additionally assert that (a) no step in the loop requires a write by the recurring task to create its own trigger, (b) no existing ledger row is modified, (c) a crash before the effects commit replays to the identical final state, and (d) appending a further ingress fact afterwards wakes the task again without editing any prior row.
+- [ ] **`V11-F301-STORE` — the six ingress failure modes finding F-301 constructed.** Executable tests, each named for the mode it covers: a **backdated** publication appends at the next free `seq` and never inserts below the cursor; a **late-discovered historical** fact is appended on discovery and consumed exactly once; the **producing ref is deleted** and the entry survives with an unchanged `seq` and a non-decreasing `maxSeq()`; a **crash during append** leaves either a complete entry or none, and a replay of the same fact is a no-op by `fact_id`; `fact_id` and `content_hash` reproduce values computed independently from the same inputs; and a sealed epoch's entries are byte-identical after a new epoch is declared with `seq_base` equal to the prior high-water mark.
+- [ ] **`V11-F301-CLASS` — class precedence and self-exclusion end to end.** A commit matching several fact classes produces exactly one entry under the declared precedence; two distinct commits expressing one logical step produce two entries; a batch containing facts whose committer timestamps run opposite to their source commit identifiers is ordered by the identifier; and a commit authored by a recurring-task activation on its own branch produces **no** entry, so `maxSeq()` is unchanged and the task stays quiescent immediately after its own effects commit.
+- [ ] **`V11-F302-LINEAGE` — a failed round followed by a passing successor round.** One end-to-end test that constructs the deadlock finding F-302 described: the QA lineage records `changes-required` at lineage round 1; remediation lands; a **new** gate task records a passing verdict at lineage round 2; and the consumer holding `gate_passed(LIN-RUNTIME-QA, qa, 1)` becomes dispatchable **without any edit to its edge**. The test must additionally assert that round 1's verdict is still readable with its commit and its `remediated_by` and `revalidated_by` fields, so supersession did not weaken gate history.
 - [ ] **`V11-F105` — publication, idempotent pull request, blocked remote outcome.** Against a local fixture remote: `finalize` publishes the task branch and records commit, branch, and pull-request identity durably before lock release; running `finalize` twice, and once more after a simulated crash between publication and lock release, yields exactly one pull request for the task and branch; and with the fixture remote unreachable or its credential absent, `finalize` returns an explicit `blocked` outcome with a typed failure class, produces no `succeeded` outcome for the local-only commit, and attempts no alternative push target.
 
 ## Expected artifacts
@@ -136,7 +164,8 @@ Finding **F-202** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-3.
 - `reports/qa/BUG_REPORT.md` summary.
 - Integration tests under `tests/integration/`, end-to-end tests under `tests/e2e/`, and fixtures under `tests/fixtures/`.
 - `tests/e2e/activation-ingress-loop/` containing the `V11-A004-ACT` end-to-end test and its fixtures.
-- `reports/qa/AMENDED-BEHAVIOR-COVERAGE.md`, mapping each of `V11-A001`, `V11-A002`, `V11-A003-CTL`, `V11-A003-TREE`, `V11-A004-EDGE`, `V11-A004-LOCK`, `V11-A004-ACT`, and `V11-F105` to the executable test that discharges it and to its result.
+- `tests/e2e/ingress-inbox/` containing the `V11-F301-STORE` and `V11-F301-CLASS` failure-mode tests and their fixtures, and `tests/e2e/gate-lineage-supersession/` containing the `V11-F302-LINEAGE` test.
+- `reports/qa/AMENDED-BEHAVIOR-COVERAGE.md`, mapping each of the eleven tagged obligations — `V11-A001`, `V11-A002`, `V11-A003-CTL`, `V11-A003-TREE`, `V11-A004-EDGE`, `V11-A004-LOCK`, `V11-A004-ACT`, `V11-F105`, `V11-F301-STORE`, `V11-F301-CLASS`, and `V11-F302-LINEAGE` — to the executable test that discharges it and to its result.
 
 ## Gate and remediation path
 

@@ -1,7 +1,7 @@
 ---
 task_id: TASK-020
 title: Independent review of the runtime architecture amendment
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-020
@@ -17,15 +17,25 @@ gate_for:
   - task: TASK-016
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 4874a9d
+    remediated_by: TASK-024
+    revalidated_by: TASK-025
     gate_class: point
     retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 2
   - task: TASK-002
     gate: review
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 4874a9d
+    remediated_by: TASK-024
+    revalidated_by: TASK-025
     gate_class: point
     retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 2
 verdict_cardinality: one
 verdict_application: atomic
 verdict_note: This task records exactly one verdict. That single verdict is applied atomically to both gate relations above, producing two durable gate-verdict facts. Both relations close together or both stay open together; a split outcome is not representable.
@@ -48,6 +58,19 @@ dependencies_satisfied:
 review_target_branch: agent/claude/architect/task-016
 review_target_commit: 8d0c570
 review_target_base: 9576fc9
+verdict: changes-required
+verdict_recorded_at: 4874a9d
+published_commit: 4874a9d
+published_branch: agent/gpt/reviewer/task-020
+published_remote_ref: origin/agent/gpt/reviewer/task-020
+publication: published
+publication_recorded_by: ACT-004
+findings_raised:
+  - A-101
+  - A-102
+  - A-103
+  - A-104
+  - A-105
 ---
 
 # TASK-020: Independent review of the runtime architecture amendment
@@ -130,6 +153,8 @@ This task performs two gate relations, recorded as `gate_for` reverse edges rath
 
 It also carries TASK-002's review gate at round 2. TASK-015 recorded `changes-required` at round 1 and TASK-016 is the remediation for that verdict, so the verdict on the remediation is what closes TASK-002's gate. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, round 1's verdict stays recorded and is superseded, never rewritten.
 
+**Outcome.** This task recorded `changes-required` at commit `4874a9d`. Both relations stayed open together, as the model requires. Both name **TASK-024** as `remediated_by` and **TASK-025** as `revalidated_by`. Both are rounds of the gate lineage `LIN-ARCH-REVIEW`, which TASK-025 continues at lineage round 3. This task is not re-entered.
+
 **One verdict, applied atomically to both relations, yielding two durable gate-verdict facts.** This is the model stated in "Verdict cardinality" above, in the acceptance criteria, in the frontmatter, and in gate-round rule clause 5. Nothing in this record asks for two verdicts.
 
 The reviewer is `gpt` and the architect is `claude`, so author and reviewer are in separate execution contexts and separate LLM families. This task reviews an artifact it did not author and did not previously review; TASK-015's execution context is not reused. Findings return to the Orchestrator under TASK-013, which routes a further amendment to the architect and creates the next round's reviewer task. The architect may not close either gate. Publishing this task's report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
@@ -152,7 +177,12 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to record the single verdict as two durable gate-verdict facts — closing the TASK-016 round 1 and TASK-002 round 2 relations together and unblocking TASK-018 and Wave 3 on a passing verdict, or leaving both open, routing findings back to the architect, and creating the next round's reviewer task
+Transcribed by the Orchestrator under TASK-013 activation `ACT-004` from `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md` at commit `4874a9d`. The Orchestrator did not judge the architecture, the findings, or the verdict; it records what the reviewer published and names the source of each statement.
+
+- **Commit or pull request:** commit `4874a9d518c9505df5521d0d3a747dc89ad8c247` `docs: record TASK-020 architecture amendment review` on `agent/gpt/reviewer/task-020`, parent `c325275`, adding one file, `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md`. The report's own Identity section records the report commit as "pending finalization" and its Risks section records the task lock as not yet released; `git ls-remote --heads origin` nevertheless shows `4874a9d` at `refs/heads/agent/gpt/reviewer/task-020`. Both facts are recorded and neither overwrites the other, exactly as TASK-021's divergence was recorded.
+- **Verdict:** `changes-required`, recorded once and applied atomically to `(TASK-016, review, round 1)` and `(TASK-002, review, round 2)`, producing two durable gate-verdict facts. The report states that TASK-016 may not be integrated and that TASK-003 through TASK-008, TASK-017, and TASK-018 may not leave `blocked` on the strength of this review.
+- **Round 1 dispositions, quoted from the report:** A-001 `resolved`; A-002 `partially resolved` — the `adopt` row emits `WorkerSucceeded` whose contract requires a full `TaskResultSummary` and `proposedTasks` while the only durable committed payload is `resultDigest`; A-003 `partially resolved` — no way to persist registration before the worker-owned spawn, and the pause post-condition permits a surviving `orphan_unresolved` descendant; A-004 `not resolved` — the contracts model neither the current `gate_passed` forms, rounds, plural gate relations, `gate_class`, `retrospective`, nor publication classes, and model activation as an internal `activationEvents` queue rather than the three ingress surfaces.
+- **Findings raised:** A-101, A-102, A-103, A-104 (High) and A-105 (Medium). Each names a location, an affected task ID, and `architect` as the responsible owner role. All five are routed to **TASK-024**; the per-finding disposition register is in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-004`.
+- **Verification, as recorded by the reviewer:** reviewed `git diff 9576fc9..8d0c570` and `git diff c325275..8d0c570`; enumerated exactly 29 changed files, all under `docs/` and `diagrams/`; `git diff --check` clean for both the target range and the report; `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef c325275` reported `valid: True`, role `reviewer`, LLM `gpt`, `changed_files: 1`. All 29 artifacts are covered in the report's coverage table.
+- **Known risks, as recorded by the reviewer:** A-101 through A-104 are unresolved blockers; A-105 is non-blocking by severity but must be corrected in the same amendment to restore cross-document consistency. No architecture, ADR, diagram, task record, runtime source, governance, or enforcement file was modified by this task, which the Orchestrator confirmed from the commit's file list.
+- **Next owner:** **architect / claude for TASK-024**, the remediation, `ready` now. Then **reviewer / gpt for TASK-025**, which records `LIN-ARCH-REVIEW` lineage round 3 across three relations. Neither gate this task carried is closed.

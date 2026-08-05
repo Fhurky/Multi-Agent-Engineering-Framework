@@ -23,6 +23,8 @@ gate_for:
     revalidated_by: TASK-014 round 2
     gate_class: point
     retrospective: true
+    gate_lineage: LIN-DECOMP-REVIEW
+    lineage_round: 1
   - task: TASK-001
     gate: review
     round: 2
@@ -32,6 +34,8 @@ gate_for:
     revalidated_by: TASK-021
     gate_class: point
     retrospective: true
+    gate_lineage: LIN-DECOMP-REVIEW
+    lineage_round: 2
 parent_task: TASK-001
 rounds_completed: 2
 publication_class: bootstrap

@@ -14,9 +14,10 @@ write_scope:
   - scripts/ci/**
   - .github/workflows/**
 dependencies:
-  - task: TASK-016
+  - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
+    lineage_round: 3
 required_gates:
   - review
   - security
@@ -29,16 +30,20 @@ gate_tasks:
     verdict: pending
     gate_class: point
     retrospective: false
+    gate_lineage: LIN-TOOLCHAIN-REVIEW
+    lineage_round: 1
   - task: TASK-010
     gate: security
     round: 1
     verdict: pending
     gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-TOOLCHAIN-SECURITY
+    lineage_round: 1
 gate_scheduling: The security gate is aggregate and retrospective. Its reason and its recorded risk are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, row "TASK-010 / security / TASK-018". It has the longest exposure window in the graph but it is not the only retrospective gate; every runtime assembly gate is retrospective as well.
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by the TASK-016 commit that TASK-020 approves
+normative_architecture_source: 9576fc9 as amended by 8d0c570 and by the TASK-024 commit that TASK-025 approves
 human_decisions:
   - id: HUMAN-001
     status: resolved
@@ -46,8 +51,8 @@ human_decisions:
     decided_at: fb9f45c
     decided_on: 2026-08-04
     effect: package.json, package-lock.json, tsconfig.json, and scripts/quality/** were added to assignments.devops.write_scope in config/agents/settings.yaml.
-blocked_reason: The amended runtime architecture has not passed its independent review gate. Landing a toolchain before the platform decision is reviewed risks landing the wrong one.
-exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, which satisfies gate_passed(TASK-016, review).
+blocked_reason: The amended runtime architecture has not passed its independent review gate. TASK-020 returned changes-required on the first amendment with findings A-101 through A-105, so a second amendment, TASK-024, must be authored and approved first. Landing a toolchain before the platform decision is reviewed risks landing the wrong one.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 3 or higher, which satisfies gate_passed(LIN-ARCH-REVIEW, review, 3).
 ---
 
 # TASK-018: Bootstrap the runtime TypeScript and Node.js toolchain

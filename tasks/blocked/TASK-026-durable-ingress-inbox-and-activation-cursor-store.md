@@ -1,0 +1,175 @@
+---
+task_id: TASK-026
+title: Implement the durable ingress inbox and activation cursor store
+status: blocked
+owner_role: runtime
+llm: claude
+branch: agent/claude/runtime/task-026
+worktree: C:/Users/furko/Desktop/multi-agent-worktrees/claude-runtime-task-026
+write_scope:
+  - src/orchestrator/ingress/**
+  - tests/unit/orchestrator/ingress/**
+dependencies:
+  - lineage: LIN-ARCH-REVIEW
+    edge: gate_passed
+    gate: review
+    lineage_round: 3
+  - task: TASK-003
+    edge: integrated
+  - task: TASK-018
+    edge: integrated
+required_gates:
+  - review
+  - security
+  - qa
+pre_merge_gates: []
+gate_tasks:
+  - task: TASK-009
+    gate: review
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
+  - task: TASK-010
+    gate: security
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
+  - task: TASK-011
+    gate: qa
+    round: 1
+    verdict: pending
+    gate_class: aggregate
+    retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
+parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by 8d0c570 and by the TASK-024 commit that TASK-025 approves
+remediates:
+  - finding: F-301
+    source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md
+    part: implementation of the durable store and its adapters
+blocked_reason: The ingress inbox contract does not exist yet. TASK-020 recorded changes-required on the current architecture amendment, and the ingress contract is TASK-024 scope item 1. Neither the durable state store nor the toolchain is integrated.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 3 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
+---
+
+# TASK-026: Implement the durable ingress inbox and activation cursor store
+
+## Objective
+
+Implement the durable append-only ingress inbox that the activation model requires: a state store whose entries carry a stable one-time sequence number, a content-hash identity, and a hash of their source artifact, so that the recurring task's cursor is a position rather than a count over mutable Git refs.
+
+## Why this task exists
+
+Finding **F-301** in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md` recorded that the revision-4 ingress model derived `ingress_seq` by scanning every matching fact reachable from `integration/autonomous-runtime` and every live `agent/*` branch, ordering by committer timestamp, and taking the **count**. That is not a cursor. A backdated commit inserts a fact before the cursor so the old tail replays and the new fact is skipped; deleting a live branch reduces the count below the cursor, which the model itself declares invalid; a commit matching several event classes has no rule; and the recurring task's own effects commit matched a fact class, so quiescence could never be demonstrated.
+
+Revision 5 of `tasks/TASK-001-DEPENDENCY-GRAPH.md` replaces the observation rule with a durable inbox. This task owns the store and its adapters. **TASK-005** owns the observer, the dispatch predicate, cursor validation, and the one-commit effects-plus-cursor rule that read this store; the two are separate modules with disjoint write scopes.
+
+## Normative source
+
+The named documents at `9576fc9` **as amended by `8d0c570` and by the TASK-024 commit that TASK-025 approves**. `docs/architecture/runtime/COMPONENT-BOUNDARIES.md` must assign the ingress inbox to this task as the eighth module, and `INTERFACE-CONTRACTS.md` must declare its types. Do not start before that contract is approved; a superseded baseline is never the normative source on its own.
+
+Every field name, type, signature, and string-literal union in this module comes from the approved contract. Under the contract change control rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, this task may not change one even inside its own write scope; a contract that is wrong stops at the boundary and is handed to the Orchestrator, which routes an amendment to the architect.
+
+## Scope
+
+**Item 1 — the durable append-only store.**
+
+- Persist entries with the contract's entry schema: `seq`, `epoch`, `fact_id`, `content_hash`, `event_type`, `producer_task`, `producer_role`, `source_commit`, `source_path`, `appended_by`, `consumed_by`.
+- Assign `seq` **once** at append time, in append order. Never recompute it, never derive it from a count of anything outside the store, and never reorder or renumber an existing entry.
+- Compute `fact_id` as SHA-256 over the canonical identity tuple the contract defines, byte for byte, so two independent implementations agree.
+- Compute `content_hash` as SHA-256 over the bytes of the source artifact at the source commit.
+- Make append **idempotent by `fact_id`**: appending a fact already present is a no-op that returns the existing entry.
+- Make append **crash-atomic**: after any crash the store contains either the whole entry or none of it, and never a partial or duplicate `seq`. Reuse the durable-state primitives TASK-003 provides rather than reimplementing them.
+- Expose `maxSeq()` returning `max(seq)` or 0, and a read of the contiguous range `(from, to]` in `seq` order.
+- Retain entries independently of Git refs. Deleting, rewriting, or garbage-collecting a branch must not remove an entry, change a `seq`, or lower `maxSeq()`.
+
+**Item 2 — the ingress adapters.**
+
+- Recognize the closed event-type set from the contract, and resolve a source commit matching several classes to **exactly one** entry using the declared class precedence order.
+- Treat distinct commits as distinct facts even when they express one logical step.
+- Order the entries of one append batch by ascending source commit identifier. **Never order by committer timestamp**, and do not record a timestamp as an ordering input.
+- Exclude, explicitly and by rule, every commit authored by an activation of the recurring task on its own branch. This exclusion is unconditional across all fact classes.
+- Handle the epoch boundary: read the active epoch's `seq_base`, assign the first entry of a new epoch `seq_base + 1`, and never re-derive, renumber, or reclassify an entry from a sealed epoch.
+- Treat every field read out of a commit message, a report, or a handoff as untrusted input: validate it against the contract's types before it becomes an entry field, and never derive a filesystem path, a ref name, or a command argument from it.
+
+**Item 3 — tests.** Committed tests are offline and deterministic, and use fixtures rather than a live remote. The six failure modes F-301 named are each a required test:
+
+| Test | What it must prove |
+|---|---|
+| Backdated publication | A fact whose source commit predates existing entries appends at the next free `seq` and does not insert before any existing entry or before the cursor |
+| Late discovery of a historical fact | A fact reachable all along but never appended is appended on discovery, at the next free `seq`, and is consumed exactly once |
+| Multiple matching classes | A commit matching several fact classes produces exactly one entry, typed by the highest-precedence class |
+| Producing ref deleted | After the source branch is deleted, the entry survives, its `seq` is unchanged, and `maxSeq()` does not decrease |
+| Self-effects publication | A commit authored by a recurring-task activation on its own branch produces no entry, so `maxSeq()` is unchanged and quiescence is preserved |
+| Crash replay | A crash during append leaves either a complete entry or none, and a replay of the same fact is a no-op by `fact_id` rather than a second entry |
+
+Additional required tests: `fact_id` and `content_hash` reproduce the values a reader computes by hand from the same inputs; `maxSeq()` is non-decreasing across an arbitrary interleaving of appends and reads; a duplicate `fact_id` never yields two `seq` values; and a sealed epoch's entries are unchanged after a new epoch is declared.
+
+**Exclusions.** Do not implement the observer, the dispatch predicate, cursor validation, or the one-commit effects-plus-cursor rule; those are TASK-005's and this task writes nothing under `src/orchestrator/scheduling/`. Do not write any task record, report, architecture document, governance file, or enforcement file. Do not decide any gate.
+
+## Acceptance criteria
+
+- [ ] Entries persist with the full contract schema, and every field name and type matches `INTERFACE-CONTRACTS.md` exactly.
+- [ ] `seq` is assigned once at append and is never recomputed, reordered, or renumbered, and no code path derives it from a count of commits, refs, branches, or files.
+- [ ] `fact_id` is SHA-256 over the contract's canonical identity tuple and reproduces byte for byte against a hand-computed value in a test fixture.
+- [ ] `content_hash` is SHA-256 over the source artifact bytes and detects a rewrite of the artifact under the same path.
+- [ ] Append is idempotent by `fact_id` and crash-atomic; no crash point produces a partial entry, a duplicate `seq`, or a duplicate `fact_id`.
+- [ ] `maxSeq()` is non-decreasing for the life of the store under every tested interleaving, including ref deletion and rewrite.
+- [ ] A source commit matching several fact classes produces exactly one entry under the declared precedence order.
+- [ ] Batch ordering uses the source commit identifier; no ordering path reads a committer or author timestamp.
+- [ ] A commit authored by a recurring-task activation on its own branch produces no entry, proven by a test rather than asserted in a comment.
+- [ ] A sealed epoch's entries are byte-identical after a new epoch is declared, and the new epoch's first entry is `seq_base + 1`.
+- [ ] Every field derived from commit, report, or handoff text is validated against the contract types before use, and no path, ref, or command argument is derived from it.
+- [ ] All six F-301 failure-mode tests exist, are named for the mode they cover, and pass.
+- [ ] The module writes nothing outside `src/orchestrator/ingress/**` and `tests/unit/orchestrator/ingress/**`, and imports only from a contract root, never from a sibling implementation.
+- [ ] The toolchain's build, type check, lint, and unit test commands pass.
+- [ ] `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree` reports a valid result and its output is recorded in the handoff.
+- [ ] The branch is published with an immutable commit and a pull request. `publication_class: runtime`, so an unavailable remote is an explicit `blocked` outcome, not a `local-only` success.
+
+## Expected artifacts
+
+- The ingress inbox implementation under `src/orchestrator/ingress/`.
+- The ingress adapters for the closed event-type set, with the precedence and exclusion rules.
+- Unit tests under `tests/unit/orchestrator/ingress/`, including the six named failure-mode tests and the hash-reproduction fixtures.
+
+## Write-scope isolation
+
+`src/orchestrator/ingress/**` and `tests/unit/orchestrator/ingress/**` are new directories, disjoint from TASK-003's `state/`, TASK-005's `scheduling/`, TASK-006's `supervisor/`, TASK-007's `lifecycle/` and `bin/`, TASK-008's `recovery/`, and TASK-017's `workspace/`. Both are inside the runtime role's configured `src/orchestrator/**` and `tests/unit/orchestrator/**`. This task holds no resource lock.
+
+## Gate and remediation path
+
+This task declares `required_gates: [review, security, qa]` and `pre_merge_gates: []`, so it is integrated in wave order and its gates close afterwards. The three relations belong to `LIN-RUNTIME-REVIEW`, `LIN-RUNTIME-SECURITY`, and `LIN-RUNTIME-QA`; their `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in the frontmatter above and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, which records why the delay is accepted and what it costs. This body does not restate them.
+
+The independent validation obligations that specifically cover this module are **TASK-009 `V9-F301-STORE`** and **`V9-F301-CLASS`**, **TASK-010 `V10-F301-AUTH`**, and **TASK-011 `V11-F301-STORE`** and **`V11-F301-CLASS`**. This task's own unit tests never satisfy them.
+
+Findings return to the Orchestrator under TASK-013, which routes remediation to this task's owner. This task never reviews its own work and never closes its own gate.
+
+## Operational steps
+
+1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-026 -Role runtime -Llm claude`.
+2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-026 -Role runtime -Llm claude` before editing.
+3. Branch from `integration/autonomous-runtime` at or after the commit where TASK-003 and TASK-018 merged.
+4. Before handoff, run the toolchain checks and `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree`.
+5. Commit, publish the task branch and open or update a pull request. If the remote or credentials are unavailable, record an explicit `blocked` outcome — `publication_class: runtime` does not permit a `local-only` success — and run `scripts/orchestration/release-task.ps1 -TaskId TASK-026 -Role runtime -Llm claude`.
+
+Do not move this record between lifecycle directories and do not edit its `status` field. `tasks/**` is outside the runtime role's configured write scope. Record the handoff in the commit message and the pull request description; the Orchestrator performs the transition under TASK-013.
+
+## Task-record lifecycle
+
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013.
+
+## Handoff
+
+Maintained by the Orchestrator under TASK-013 from the owner's commit, pull request, and handoff.
+
+- Commit or pull request:
+- Verification:
+- Known risks:
+- Next owner: orchestrator via TASK-013, to record the publication and release the `integrated(TASK-026)` edge TASK-005 holds

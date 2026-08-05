@@ -1,7 +1,7 @@
 ---
 task_id: TASK-022
 title: Independent re-review of the corrected TASK-001 decomposition, round 4
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-022
@@ -17,9 +17,14 @@ gate_for:
   - task: TASK-001
     gate: review
     round: 4
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: e8eb23d
+    remediated_by: TASK-013 activation ACT-004
+    revalidated_by: TASK-023
     gate_class: point
     retrospective: true
+    gate_lineage: LIN-DECOMP-REVIEW
+    lineage_round: 4
 parent_task: TASK-001
 publication_class: bootstrap
 review_target_branch: agent/claude/orchestrator/task-013
@@ -27,6 +32,17 @@ review_target_commit: f590749
 review_target_base: c325275
 review_target_note: The round 4 review target is the TASK-013 activation ACT-002 effects commit. Its hash is recorded here and in tasks/TASK-013-ACTIVATION-LOG.md by a follow-up commit on the same branch, because a commit cannot contain its own hash. Review the branch head, which includes both commits.
 supersedes: TASK-021
+verdict: changes-required
+verdict_recorded_at: e8eb23d
+published_commit: e8eb23d
+published_branch: agent/gpt/reviewer/task-022
+published_remote_ref: origin/agent/gpt/reviewer/task-022
+publication: published
+publication_recorded_by: ACT-004
+findings_raised:
+  - F-301
+  - F-302
+  - F-303
 ---
 
 # TASK-022: Independent re-review of the corrected TASK-001 decomposition, round 4
@@ -39,7 +55,7 @@ Perform round 4 of the independent review gate that TASK-001 declares, on the de
 
 TASK-021 recorded one durable verdict — `changes-required` at round 3, commit `adfb982` — and its record is `done`. Under the gate-round rule in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, a recorded verdict is durable and is superseded rather than rewritten, and **each superseding round is a new task with its own explicit dependency and its own single verdict**. Reusing TASK-021 would reopen a completed task, make its dependency set ambiguous across rounds, and reproduce the defect finding F-102 recorded against TASK-015.
 
-**This task is not re-entrant.** It declares one round, records exactly one verdict, and is not re-entered. If round 4 returns `changes-required`, TASK-013 creates TASK-023 for round 5.
+**This task is not re-entrant.** It declared one round, recorded exactly one verdict, and is not re-entered. Round 4 returned `changes-required`, so TASK-013 activation `ACT-004` created **TASK-023** for round 5.
 
 ## Review target
 
@@ -126,7 +142,7 @@ This task's single file is new and path-disjoint from TASK-009's `reports/code-r
 
 ## Gate and remediation path
 
-This task performs TASK-001's review gate at round 4, recorded as a `gate_for` reverse edge rather than a scheduling dependency, with `gate_class: point` and `retrospective: false`. It becomes dispatchable while TASK-001 is still in `review`; TASK-001 reaches `done` only after this gate closes. The two directions cannot deadlock.
+This task performed TASK-001's review gate at round 4, recorded as a `gate_for` reverse edge rather than a scheduling dependency. Its `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are declared in the frontmatter above and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body does not restate them. Finding **F-303**, which this task itself raised, recorded that this passage previously asserted `retrospective: false`, contradicting the frontmatter, the register, and the invariant-7 recomputation, all of which say `true` because TASK-001 declares `pre_merge_gates: []`. Activation `ACT-004` removed the duplicated claim rather than only correcting its value. The task became dispatchable while TASK-001 was still in `review`; TASK-001 reaches `done` only after the lineage records a passing authoritative verdict. The two directions cannot deadlock.
 
 The reviewer is `gpt` and the decomposition author is `claude`, so author and reviewer are in separate execution contexts and separate LLM families. This task reviews an artifact it did not author and did not previously review; TASK-014's and TASK-021's execution contexts are not reused.
 
@@ -150,7 +166,12 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to close the TASK-001 review gate on a passing verdict, or to route round 4 findings back to the decomposition owner and create the round 5 reviewer task
+Transcribed by the Orchestrator under TASK-013 activation `ACT-004` from `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md` at commit `e8eb23d`. The Orchestrator did not judge the findings or the verdict; it records what the reviewer published and names the source of each statement.
+
+- **Commit or pull request:** commit `e8eb23db51d34616c06fa3e371396206d560d323` `review: assess TASK-001 decomposition round 4` on `agent/gpt/reviewer/task-022`, parent `c325275`, adding one file, `reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md`. The report records its own publication as "pending push and pull-request attempt"; `git ls-remote --heads origin` nevertheless shows `e8eb23d` at `refs/heads/agent/gpt/reviewer/task-022`. Both facts are recorded and neither overwrites the other.
+- **Verdict:** `changes-required` on TASK-001 at round 4. The report states plainly that TASK-001 may **not** reach `done`.
+- **Round 3 dispositions, quoted from the report:** F-201 `partially resolved`; F-202 `resolved`, with the tally correction that the matrix contained 19 tags rather than the eighteen the prose claimed; F-203 `partially resolved`; F-204 `partially resolved`; F-205 `resolved`; F-101 residual `resolved`; F-104 residual `partially resolved`.
+- **Findings raised:** F-301 (High) — the ingress count is not a monotonic, one-to-one consumption cursor; F-302 (High) — a failed TASK-011 verdict permanently blocks TASK-012 across a new-task QA round; F-303 (Medium) — three active record bodies retain the gate-ordering claim F-203 corrected. Each names locations, affected task IDs, and `orchestrator` as the responsible owner for the specification, with `runtime` named for the F-301 implementation after correction. All three are dispositioned in `tasks/TASK-013-ACTIVATION-LOG.md`, activation `ACT-004`.
+- **Verification, as recorded by the reviewer:** immutable target `4f8a1ccec664b9f909c9a063d8c6e86a477c297c`, parent `f5907493570060bad41432fa4d525c0f55cd89bc`, base `c325275ea13918a9766b71a6350821af1c3c471d`; 24 logical artifacts under `tasks/`; `git diff --check` clean; 22 task IDs audited with no missing field, assignment, naming, scope, pair, ownership, or static-invariant failure; exactly two scope overlaps; 33 of 33 gate pairs matched; 19 of 19 tagged obligations confirmed in the records they are cited from; ledger rows 1 through 3 byte-identical to `c325275` with rows 4 and 5 added, and their SHA-256 row hashes recorded; reachability of `8ac0dbd`, `e8edbcd`, and `c325275` confirmed, which is the evidence for F-301. The report notes that the live target branch advanced during review and that all evidence is pinned to `4f8a1cc` under the immutable-target rule.
+- **Known risks, as recorded by the reviewer:** F-301 and F-302 are blocking High findings and F-303 is Medium; F-201, F-203, F-204, and F-104 remain partial. No reviewed task, graph, log, architecture, runtime source, governance, test, or enforcement file was changed by this task, which the Orchestrator confirmed from the commit's file list.
+- **Next owner:** **reviewer / gpt for TASK-023**, which records `LIN-DECOMP-REVIEW` lineage round 5 against the `ACT-004` effects commit. TASK-001's review gate is not closed.
