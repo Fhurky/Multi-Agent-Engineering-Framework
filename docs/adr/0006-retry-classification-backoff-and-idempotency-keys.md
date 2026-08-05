@@ -1,6 +1,7 @@
 # ADR-0006: Retry classification, backoff, and idempotency keys
 
-- Status: Accepted
+- Status: Accepted; refined by [ADR-0011](0011-agent-workspace-lifecycle-module.md)
+- Refined: pull-request creation remains non-idempotent in the general case. ADR-0011 establishes a dedup key for the runtime's own usage — one derived push ref per task, and look-up-then-create-or-update by head branch — so task-branch publication and pull-request creation are registered `idempotent: true`. An implementation that does not follow that contract must register them `idempotent: false`.
 - Date: 2026-08-04
 - Deciders: Solution Architect under TASK-002
 - Affects: TASK-008 primarily; TASK-004, TASK-006 consume it
