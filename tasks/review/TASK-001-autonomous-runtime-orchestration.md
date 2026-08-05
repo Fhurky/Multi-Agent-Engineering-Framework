@@ -95,7 +95,7 @@ published_branch: agent/claude/orchestrator/task-013
 publication: published
 publication_reason: Revisions 3, 4, 5, 6, and 7 are authored by TASK-013 activations on agent/claude/orchestrator/task-013. The ACT-001 revision was integrated at e8edbcd and merged to main at c325275 through pull request #1; the ACT-002, ACT-004, ACT-005, and ACT-006 revisions are published on the same branch with their own pull requests.
 review_target_branch: agent/claude/orchestrator/task-013
-review_target_commit: recorded by the ACT-006 follow-up commit
+review_target_commit: 83c1e03
 review_target_base: 62d6f2d553bae9f19b60a5405f173b517f8c9a62
 review_target_applicability: applicable, bound by the ACT-006 follow-up commit
 review_target_note: Revision 7 was authored by TASK-013 activation ACT-006, because TASK-013 is the exclusive owner of every task-record mutation in this graph. The round 7 review target is the ACT-006 effects commit on agent/claude/orchestrator/task-013, recorded in tasks/TASK-013-ACTIVATION-LOG.md and in TASK-030's frontmatter by a single follow-up commit. The review-diff base is 62d6f2d, the head round 6 reviewed, so round 7 covers exactly the ACT-006 delta. The superseded round 6 target was 70162b0 with follow-up head 62d6f2d against base 890b8e0; round 5 reviewed ac9c8f2 with follow-up head 890b8e0 against c325275; round 4 reviewed f590749 with follow-up 4f8a1cc against c325275; round 3 reviewed 5febe3b against 049158d. A review-diff base is never a scope-validation base; see findings F-403 and A-209 and the Task baselines section of tasks/TASK-001-DEPENDENCY-GRAPH.md.

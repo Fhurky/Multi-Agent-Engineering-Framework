@@ -25,7 +25,7 @@ gate_for:
 parent_task: TASK-001
 publication_class: bootstrap
 review_target_branch: agent/claude/orchestrator/task-013
-review_target_commit: recorded by the ACT-006 follow-up commit
+review_target_commit: 83c1e0380e5f33954543e0c0eeb7f977271fade9
 review_target_base: 62d6f2d553bae9f19b60a5405f173b517f8c9a62
 review_target_applicability: applicable, bound by the ACT-006 follow-up commit
 review_target_note: The round 7 review target is the TASK-013 activation ACT-006 effects commit. Its hash cannot be written by the commit that carries it, so it is recorded here and in tasks/TASK-013-ACTIVATION-LOG.md by a single follow-up commit on the same branch, following the ACT-002, ACT-004, and ACT-005 pattern. Review the branch head, which includes both commits. The review-diff base is 62d6f2d, the head round 6 reviewed, so this round covers exactly the ACT-006 delta and nothing round 6 already judged.
