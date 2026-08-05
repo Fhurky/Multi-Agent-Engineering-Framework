@@ -3,9 +3,9 @@ task_id: TASK-028
 title: Third architecture amendment for the round-3 blocking findings and the approved pre-dispatch ingress observer contract
 status: ready
 owner_role: architect
-llm: claude
-branch: agent/claude/architect/task-028
-worktree: C:/Users/furko/Desktop/multi-agent-worktrees/claude-architect-task-028
+llm: gpt
+branch: agent/gpt/architect/task-028
+worktree: C:/Users/furko/Desktop/multi-agent-worktrees/gpt-architect-task-028
 write_scope:
   - docs/architecture/ARCHITECTURE.md
   - docs/architecture/runtime/**
@@ -62,18 +62,22 @@ dependencies_satisfied:
     verdict_recorded: changes-required
     recorded_by: TASK-013 activation ACT-006
 resource_lock_state_at_creation: free. The shared Git common directory carries no architecture-docs holder at ACT-006. The TASK-024 execution's lock, which ACT-005 recorded as still held, has since been released, and TASK-025 held no lock. This task may therefore be claimed.
-review_target_branch: agent/claude/architect/task-028
+review_target_branch: agent/gpt/architect/task-028
 review_target_commit: not yet published
 review_target_base: c2ee3ebfe62a8bb295948d79b7cccfdcfd04fc4a
 review_target_applicability: applicable, resolved on publication
 review_target_note: TASK-029 will review this task's immutable published commit against review-diff base c2ee3eb, the TASK-024 amendment this one revises, reading 8d0c570 and 9576fc9 where a judgment needs an earlier baseline. review_target_commit is recorded by the Orchestrator at the activation that consumes this task's publication; it is not guessed here.
-branch_point_of: agent/claude/orchestrator/task-013
-scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
+branch_point_of: human/reroute/task-028-gpt
+scope_validation_base: git merge-base HEAD human/reroute/task-028-gpt
 scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
-scope_validation_note: Create agent/claude/architect/task-028 from the head of agent/claude/orchestrator/task-013 at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/orchestrator/task-013 and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass a review-diff base, c2ee3eb, 8d0c570, c325275, or origin/main. Findings F-403 and A-209 each recorded why. If you import another owner's published artifact by merging it onto this branch, that merge is part of your authored delta and its paths must already be inside this task's write scope.
+scope_validation_note: Create agent/gpt/architect/task-028 from the head of human/reroute/task-028-gpt at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD human/reroute/task-028-gpt and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass a review-diff base, c2ee3eb, 8d0c570, c325275, or origin/main. Findings F-403 and A-209 each recorded why. The interrupted Claude draft is imported as uncommitted source material, not as a merge or an approved artifact; the GPT architect owns and must inspect the complete resulting delta. If you import another owner's published artifact by merging it onto this branch, that merge is part of your authored delta and its paths must already be inside this task's write scope.
 ---
 
 # TASK-028: Third architecture amendment for the round-3 blocking findings and the approved pre-dispatch ingress observer contract
+
+## Human-authorized execution-provider reroute
+
+On 2026-08-05 the user rerouted this task from `claude` to `gpt` after the managed control environment refused to send repository, reviewer, and unpushed draft content to an external Claude service. The Claude process tree was verified stopped, its task lock was released normally with its matching session token, and its worktree retained 43 uncommitted in-scope paths with no commit or push. The GPT architect starts from `human/reroute/task-028-gpt`, imports that draft only as source material, and owns the inspection, correction, validation, and final commit of the complete architecture delta. This reroute changes execution identity and provenance only; it changes no scope, dependency, acceptance criterion, gate, lineage, or decision authority.
 
 ## Objective
 
@@ -182,17 +186,17 @@ This task declares `required_gates: [review]` and `pre_merge_gates: [review]`. I
 
 **Publication is not approval.** Reaching `review_ready` makes this amendment reviewable and releases nothing. `gate_passed(LIN-ARCH-REVIEW, review, 4)` is satisfied only by a passing or formally accepted authoritative verdict, which **TASK-029** owns. TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 stay `blocked` until then.
 
-The architect is `claude` and the reviewer is `gpt`, so author and reviewer are in separate execution contexts and separate LLM families. Neither the TASK-015, TASK-020, nor TASK-025 execution context is reused. This task may not close its own gate, and it may not judge whether any prior finding is resolved — that is TASK-029's judgment.
+The architect and reviewer are both assigned to the `gpt` family after the human-authorized reroute, but they must run in separate execution contexts. The TASK-028 author context may not execute TASK-029, and neither the TASK-015, TASK-020, nor TASK-025 execution context is reused. This task may not close its own gate, and it may not judge whether any prior finding is resolved — that is TASK-029's judgment. The repository's cross-family reviewer preference is not a substitute for, and does not weaken, the mandatory execution-context separation.
 
 Publishing this task's artifact is what wakes TASK-013. Until the approved observer of scope item 9 is implemented and validated, the append and the dispatch decision are performed under the declared interim contract, which `tasks/blocked/TASK-013-task-record-lifecycle-and-gate-closure.md` records as a limitation rather than as the durable predicate. This task must not, and need not, write anything under `tasks/`.
 
 ## Operational steps
 
-1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-028 -Role architect -Llm claude`.
-2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-028 -Role architect -Llm claude` before editing. The `architecture-docs` lock is a declared cross-task lock that no script enforces yet; confirm no other holder is claimed before starting.
+1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-028 -Role architect -Llm gpt -BaseRef human/reroute/task-028-gpt`.
+2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-028 -Role architect -Llm gpt` before editing. The `architecture-docs` lock is a declared cross-task lock that no script enforces yet; confirm no other holder is claimed before starting.
 3. Read `reports/code-review/TASK-024-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-2.md` at `aa38c7d2` in full, then `reports/code-review/TASK-016-ARCHITECTURE-AMENDMENT-REVIEW.md` and `reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md` for the earlier rounds, then `tasks/TASK-013-ACTIVATION-LOG.md` model correction `MC-006` for the approved `HUMAN-002` decision. Amend from `c2ee3eb`.
-4. Before handoff, resolve the immutable branch point with `git merge-base HEAD agent/claude/orchestrator/task-013` and run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef <that value>`. Do not pass a review-diff base, `c2ee3eb`, `8d0c570`, `c325275`, or `origin/main`; findings F-403 and A-209 each recorded why. Record the resolved value in the handoff.
-5. Commit, publish the task branch and open or update a pull request when a remote and credentials are available — otherwise record `publication: local-only` with the reason — and run `scripts/orchestration/release-task.ps1 -TaskId TASK-028 -Role architect -Llm claude`.
+4. Before handoff, resolve the immutable branch point with `git merge-base HEAD human/reroute/task-028-gpt` and run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef <that value>`. Do not pass a review-diff base, `c2ee3eb`, `8d0c570`, `c325275`, or `origin/main`; findings F-403 and A-209 each recorded why. Record the resolved value in the handoff.
+5. Commit, publish the task branch and open or update a pull request when a remote and credentials are available — otherwise record `publication: local-only` with the reason — and run `scripts/orchestration/release-task.ps1 -TaskId TASK-028 -Role architect -Llm gpt`.
 
 Do not move this record between lifecycle directories and do not edit its `status` field. `tasks/**` is outside the architect role's configured write scope. Record the handoff in the commit message and the pull request description; the Orchestrator performs the transition under TASK-013.
 

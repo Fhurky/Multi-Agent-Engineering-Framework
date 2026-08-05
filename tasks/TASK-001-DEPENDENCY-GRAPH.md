@@ -223,9 +223,13 @@ TASK-005 owns enforcement: it implements ready-task selection over these edge ty
 | TASK-025 | Independent review of the second architecture amendment | reviewer | gpt | TASK-024 `review_ready` | done, `changes-required` |
 | TASK-026 | Durable ingress inbox and activation cursor store | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 4)`; TASK-003, TASK-018 `integrated` | blocked |
 | TASK-027 | Independent re-review of the corrected decomposition, round 6 | reviewer | gpt | TASK-001 `review_ready` | done, `changes-required` |
-| TASK-028 | Third architecture amendment: round-3 blocking findings and the approved pre-dispatch observer | architect | claude | TASK-025 `gate_recorded` | ready |
+| TASK-028 | Third architecture amendment: round-3 blocking findings and the approved pre-dispatch observer | architect | gpt | TASK-025 `gate_recorded` | ready |
 | TASK-029 | Independent review of the third architecture amendment | reviewer | gpt | TASK-028 `review_ready` | blocked |
 | TASK-030 | Independent re-review of the corrected decomposition, round 7 | reviewer | gpt | TASK-001 `review_ready` | ready |
+
+### `HUMAN-003` — TASK-028 execution-provider reroute
+
+On **2026-08-05** the user explicitly rerouted TASK-028 from `claude` to `gpt` after the managed control environment prohibited external transfer of repository, reviewer, and unpushed draft content to Claude. The stopped Claude process tree had no survivors; its matching session released the task lock normally; and its 43 uncommitted, in-scope paths remain a preserved draft with no commit or push. TASK-028 now branches from `human/reroute/task-028-gpt`; the GPT architect may import the draft as source material but owns the complete resulting delta. This decision changes assignment and provenance only. TASK-028's owner role, scope, dependencies, acceptance criteria, gates, and lineage are unchanged. TASK-029 remains a separate execution context and the TASK-028 author context is prohibited from executing it.
 
 `HUMAN-001` is resolved. Commit `fb9f45c`, `chore: assign runtime toolchain ownership to devops`, adopted option A and added `package.json`, `package-lock.json`, `tsconfig.json`, and `scripts/quality/**` to `assignments.devops.write_scope`.
 
