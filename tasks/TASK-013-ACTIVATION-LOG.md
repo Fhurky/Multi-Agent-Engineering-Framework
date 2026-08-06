@@ -2107,7 +2107,7 @@ No high or critical **security** finding exists. A-501 … A-505 are High archit
 ### Effects commit for ACT-016
 
 - One commit on `agent/claude/orchestrator/task-013`, base `4dc37f1a5d83a88f6f0b6beb6f2784d9071ee9db`, carrying the ledger row for `seq` 24, the cursor advance to 24, and every lifecycle effect together.
-- **This activation creates that commit and deliberately does not create the follow-up hash-binding commit**, so no hash is asserted here. The surrounding operator validates, binds, and releases.
+- The effects commit is **`e59eb6a`**, full `e59eb6ae09968f8a12ef0e84dfa72a9862fb4dc9`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
 - **Publication: `local-only`.** No push, pull request, or merge.
 
 ## Activation ACT-014
