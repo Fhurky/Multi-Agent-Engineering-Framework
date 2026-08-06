@@ -1972,7 +1972,7 @@ No high or critical **security** finding exists. A-501 … A-505 are High archit
 ### Effects commit for ACT-013
 
 - The effects commit is a **single** commit on `agent/claude/orchestrator/task-013`, base `080433b1d4ab53d5ee83a0a85895f6b0f04164e1`, carrying the ledger row for `seq` 21, the cursor advance to 21, and every lifecycle effect together.
-- **The commit had not been created when this section was written, so no hash is asserted here.** One follow-up commit records it and carries no effect, no ledger row, and no cursor change.
+- The effects commit is **`9dcd771`**, full `9dcd7718853bf318d7ae2ef6a4a46ef3bd6689b0`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
 - **It is not pinned as any round's review target.** TASK-031's round-8 target stays `f14bdde` and TASK-037's target is `970b081`, an architecture commit on another branch. This is the sixth consecutive activation whose effects commit is not bound to an open review round.
 - **Publication: `local-only`. Reason: public remote egress approval is pending.**
 - This activation did **not** alter TASK-031's review target, any earlier round's durable verdict, the architecture edge floor, any source clause, or the A-506 review obligation, and it merged no architecture branch anywhere.
