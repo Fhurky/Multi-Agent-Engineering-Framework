@@ -1833,7 +1833,7 @@ No high or critical **security** finding exists. A-501 … A-505 are High archit
 ### Effects commit for ACT-012
 
 - The effects commit is a **single** commit on `agent/claude/orchestrator/task-013`, base `327481524fb0ace60ca150667a180eb2408b10a0`, carrying the ledger row for `seq` 20, the cursor advance to 20, the A-506 remediation, and every lifecycle effect together.
-- **The commit had not been created when this section was written, so no hash is asserted here.** One follow-up commit records it and carries no effect, no ledger row, and no cursor change.
+- The effects commit is **`21955df`**, full `21955dfd5fece7fe7e5d1db0cfd3333fb2a0a662`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
 - **It is not pinned as any round's review target by this activation.** TASK-031's round-8 target stays `f14bdde`. The round that reviews these effects is decomposition round 9, which does not exist yet — see the pending coverage obligation above. This is the fifth consecutive activation whose effects commit is not bound to an open review round, and the first where that gap carries a routed finding.
 - **Publication: `local-only`. Reason: public remote egress approval is pending.**
 - This activation did **not** alter TASK-031's review target, any earlier round's durable verdict, or any bound target other than TASK-037's newly declared base, and it merged no architecture branch anywhere.
