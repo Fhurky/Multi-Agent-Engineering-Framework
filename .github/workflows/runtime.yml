@@ -1,0 +1,74 @@
+name: Runtime
+
+# Type-checks, tests, and lints the TypeScript runtime on the platform ADR-0001 targets.
+# The baseline CI and security workflows are human-controlled and are not modified by
+# this workflow; this one owns the runtime toolchain only.
+
+on:
+  push:
+    branches:
+      - integration/autonomous-runtime
+      - 'agent/**'
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/ci/**'
+      - 'scripts/quality/**'
+      - '.github/workflows/runtime.yml'
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'src/**'
+      - 'tests/**'
+      - 'scripts/ci/**'
+      - 'scripts/quality/**'
+      - '.github/workflows/runtime.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  runtime:
+    name: Runtime toolchain
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check the runtime
+        run: ./scripts/ci/runtime-checks.ps1 -Stage typecheck
+
+      - name: Lint the runtime
+        run: ./scripts/ci/runtime-checks.ps1 -Stage lint
+
+      - name: Check formatting
+        run: ./scripts/ci/runtime-checks.ps1 -Stage format
+
+      - name: Run the runtime tests
+        run: ./scripts/ci/runtime-checks.ps1 -Stage test
+
+      - name: Verify the toolchain compiles, tests, and rejects defects
+        run: ./scripts/ci/runtime-checks.ps1 -Stage smoke
