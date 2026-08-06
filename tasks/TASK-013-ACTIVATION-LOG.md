@@ -2484,6 +2484,7 @@ The four graph passages `ACT-018` corrected were separately re-checked against t
 
 ### Effects commit for ACT-019
 
+- **Effects binding:** the effects commit is **`acf9f9a`**, full `acf9f9aa6677f9268c9c45ca793415c56c0fa038`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder below.
 - One commit on `agent/claude/orchestrator/task-013`, base `7075c986cd50023fc221ce27e823cac528b5bbd4`, carrying the ledger row for `seq` 27, the cursor advance to 27, the TASK-040 transition and scope expansion, the TASK-041 scope expansion, the `HUMAN-004` transcription, and revision 20 of the dependency graph — all together, as rule 8 requires.
 - **This activation creates that commit and deliberately does not create the follow-up hash-binding commit**, so no hash is asserted here; a reader who finds none is reading that state rather than a lost value. The surrounding operator binds it.
 - **Publication: `local-only`.** No push, pull request, or merge was performed or attempted.
