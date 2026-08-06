@@ -19,16 +19,35 @@ gate_for:
     round: 1
     verdict: changes-required
     verdict_recorded_at: 8632469
+    remediated_by: TASK-016
+    revalidated_by: TASK-020
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 1
 parent_task: TASK-001
 rounds_completed: 1
+publication_class: bootstrap
 published_commit: 8632469
 published_branch: agent/gpt/reviewer/task-015
 publication: local-only
 publication_reason: The executing session recorded that no push or merge was part of this review.
 superseded_by: TASK-020
+review_target_branch: agent/claude/architect/task-002
+review_target_commit: 9576fc96d0fa5ec8460c0208995bd2fe2295523c
+review_target_base: 657b83ae4ac6f5a3e2ac0beaa08abd34dd7de8a8
+review_target_applicability: applicable and resolved
+review_target_note: The original execution recorded its diff as git diff agent/claude/orchestrator/task-001..9576fc9, and the head of that branch is 657b83a. That ref, resolved to its commit, is the review-diff base this round used, and the reviewed target is TASK-002 at 9576fc9. This task's own report commit is 8632469 and is not its target.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: fb9f45c08dee2002d634f1e310017dc125ab67e7
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Resolved by activation ACT-006 from the repository rather than asserted. This branch has one authored commit, 8632469, whose parent fb9f45c is an ancestor of integration/autonomous-runtime. git diff --name-only fb9f45c...8632469 returns exactly one path, reports/code-review/TASK-002-ARCHITECTURE-REVIEW.md, which is this task's whole declared write scope.
 ---
 
 # TASK-015: Independent architecture review of the autonomous runtime architecture, round 1
+
+> **Historical record.** This task is `done` and its verdict is durable. Sections below describe the state of the graph at the time it ran. Under the single-source rule a pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are normative only in the pair's own frontmatter and in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; where this body names such a value it is quarantined history and is superseded by those sources. This is the correction finding F-402 required.
+
 
 ## Objective
 
@@ -50,7 +69,9 @@ TASK-002 declares `required_gates: [review]` and every runtime implementation ta
 
 This record previously declared a `rounds` block making the task re-entrant: round 1 against TASK-002 and round 2 against the TASK-016 amendment. Finding F-102 in `reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md` recorded the defect. The task gated two targets across two rounds while its only dependency was TASK-002; nothing required TASK-016 to publish before round 2 could start, the `rounds` metadata was not machine-readable as a dependency, and the claimed topological order placed TASK-015 before TASK-016.
 
-TASK-013 activation `ACT-001` removed the `rounds` block, reduced `gate_for` to TASK-002 round 1, and created **TASK-020** to review the TASK-016 amendment with an explicit `review_ready(TASK-016)` dependency. TASK-020 also carries TASK-002's review gate at round 2, because TASK-016 is the remediation for this task's verdict and the verdict on that remediation is what closes TASK-002's gate.
+TASK-013 activation `ACT-001` removed the `rounds` block, reduced `gate_for` to TASK-002 round 1, and created **TASK-020** to review the TASK-016 amendment with an explicit `review_ready(TASK-016)` dependency. TASK-020 also carries TASK-002's review gate at round 2, because TASK-016 is the remediation for this task's verdict and the verdict on that remediation is what closes TASK-002's gate. TASK-020 records **exactly one verdict**, applied atomically to both relations it carries; activation `ACT-002` fixed the contradictory cardinality wording under finding F-205.
+
+This task's `gate_for` entry names `remediated_by: TASK-016` and `revalidated_by: TASK-020`, as the gate-round rule requires of every `changes-required` round. Activation `ACT-002` completed that metadata on this side of the pair; TASK-002's `gate_tasks` already carried it.
 
 The verdict recorded here is durable. A later round supersedes it; nothing rewrites it.
 

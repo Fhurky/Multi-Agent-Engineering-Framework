@@ -1,9 +1,17 @@
 # Runtime Component Diagram
 
-Source diagram for the autonomous runtime component decomposition. Produced under TASK-002.
+Source diagram for the autonomous runtime component decomposition. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, and TASK-036.
 
 - Specification: [COMPONENT-BOUNDARIES.md](../../docs/architecture/runtime/COMPONENT-BOUNDARIES.md)
-- Decision: [ADR-0002](../../docs/adr/0002-runtime-component-boundaries-and-module-ownership.md)
+- Decisions: [ADR-0002](../../docs/adr/0002-runtime-component-boundaries-and-module-ownership.md), superseded in part by [ADR-0011](../../docs/adr/0011-agent-workspace-lifecycle-module.md) and [ADR-0021](../../docs/adr/0021-durable-ingress-module-and-the-eight-module-map.md); [ADR-0014](../../docs/adr/0014-live-run-control-and-process-tree-ownership.md); [ADR-0019](../../docs/adr/0019-durable-intent-receipts-for-side-effects.md), amended by [ADR-0028](../../docs/adr/0028-nominal-store-issued-durable-append-receipts.md); [ADR-0029](../../docs/adr/0029-ingress-delivery-ownership.md); [ADR-0031](../../docs/adr/0031-pre-dispatch-ingress-observer-and-collector.md)
+
+Amended by TASK-016: the seventh module `workspace/` is added with TASK-017 as its owner; the control inbox is added as the live-run control transport owned by TASK-007; the owned process tree is added under TASK-004.
+
+Amended by TASK-024: the **eighth** module `ingress/` is added with TASK-026 as its owner, holding the durable ingress inbox that the scheduler's observer reads. In response to finding **A-105**, the workspace module's repository access is shown as it is contracted — delegated to the human-controlled scripts for hooks, worktree, branch, lock, and scope validation, and **direct** for commit, push, and pull-request operations. TASK-025 later rejected the TASK-024 publication; this useful correction remains while TASK-028 supersedes the defects that remained.
+
+Amended by TASK-028: TASK-026 owns external-fact validation, pre-dispatch collection, authorization, deduplication, and append-through-store. TASK-005 alone owns high-water signalling, observation, delivery, and scheduling policy. TASK-006 composes collect → signal → observe → select → deliver, and carries the immutable delivery into `AgentInvocation`. The state root alone declares nominal receipts; the independent agent root receives an opaque value and a supervisor-supplied verifier narrowed to process registration.
+
+Amended by TASK-036: the collector's append/deduplicate outcome is total and returns identity plus a committed mark without reading an activation range. The nominal receipt rule gains a cross-root conformance check: one state-root declaration, no agent-root copy, and an `unknown` plus verifier crossing.
 
 Each box names its owning task. No module has two owners. Arrows are permitted import or call directions; any edge not shown is a boundary violation.
 
@@ -13,51 +21,81 @@ flowchart TB
 
   subgraph edge["Edge — TASK-007"]
     cli["bin/ CLI entry point"]
-    lifecycle["lifecycle/<br/>bootstrap, drain, pause,<br/>resume, signals, exit codes"]
+    lifecycle["lifecycle/<br/>bootstrap, live-run control,<br/>drain, pause, resume,<br/>signals, exit codes"]
   end
 
   subgraph core["Core"]
-    supervisor["supervisor/ — TASK-006<br/>transition function, run loop,<br/>result aggregation, completion"]
-    scheduling["scheduling/ — TASK-005<br/>selection, limits, scope exclusion,<br/>leases, fencing tokens"]
-    recovery["recovery/ — TASK-008<br/>crash recovery, watchdog,<br/>retry policy, effect ledger rules"]
+    supervisor["supervisor/ — TASK-006<br/>transition function, run loop,<br/>result aggregation, completion,<br/>control-request consumption"]
+    scheduling["scheduling/ — TASK-005<br/>task-record projection, typed edges and gates,<br/>graph validation, limits and locks,<br/>ingress signal, observation, delivery,<br/>activation, leases, fencing tokens"]
+    recovery["recovery/ — TASK-008<br/>single-decision reconciliation,<br/>orphan fencing, watchdog,<br/>retry policy, effect ledger rules"]
+  end
+
+  subgraph ws["Workspace — TASK-017"]
+    workspace["workspace/<br/>plan+execute prepare, finalize, abandon;<br/>reconcile. hooks, worktree, branch, lock,<br/>scope validation, publication, PR"]
+  end
+
+  subgraph ing["Ingress — TASK-026"]
+    ingress["ingress/<br/>append-only inbox, one-time seq,<br/>validator + pre-dispatch collector,<br/>authorized append, factId dedup,<br/>class precedence, self-exclusion, epochs"]
+    inboxStore[("runDir/ingress/<br/>inbox.ndjson, epochs.ndjson")]
   end
 
   subgraph durable["Durability — TASK-003"]
-    store["state/<br/>journal, checkpoints, CAS append,<br/>restore, writer lock"]
-    scontracts["state/contracts/<br/>records, states, events,<br/>StateStore, Scheduler, Retry,<br/>Recovery, RunController"]
+    store["state/<br/>journal with batch commit records,<br/>checkpoints, CAS append, restore,<br/>writer lock, nominal subject-bearing<br/>append receipts + verifier"]
+    scontracts["state/contracts/<br/>records, states, events, journal lines,<br/>typed edges, gates, gate lineages,<br/>publication classes, ingress inbox,<br/>StateStore, Scheduler, Retry, Recovery,<br/>RunController, ControlChannel,<br/>WorkspaceLifecycle"]
   end
 
   subgraph provider["Providers — TASK-004"]
-    worker["agents/<br/>AgentWorker, adapter registry,<br/>invocation assembly, classification"]
-    acontracts["agents/contracts/<br/>ProviderAdapter, AdapterOutcome,<br/>FailureClass, WorkerResult"]
+    worker["agents/<br/>AgentWorker, adapter registry,<br/>invocation with read-only ingress,<br/>classification, process-tree ownership"]
+    acontracts["agents/contracts/<br/>ProviderAdapter, AdapterOutcome,<br/>FailureClass, WorkerResult,<br/>ProcessTreeController,<br/>narrowed receipt-verifier view"]
     claude["claude adapter"]
     gpt["gpt adapter"]
     gemini["gemini adapter"]
+    tree[["Owned process tree<br/>Windows job object /<br/>POSIX process group"]]
   end
 
-  runDir[("Run directory<br/>journal.ndjson, checkpoints/,<br/>writer.lock, tasks/, artifacts/")]
+  runDir[("Run directory<br/>journal.ndjson, checkpoints/,<br/>control/, writer.lock,<br/>tasks/, artifacts/")]
+  repo[("Repository<br/>worktrees, agent branches,<br/>task locks, remote, pull requests")]
+  scripts[/"scripts/orchestration/*.ps1<br/>scripts/setup/install-git-hooks.ps1<br/>human-controlled, invoked never edited"/]
 
   operator --> cli
+  operator -. "pause / stop request" .-> runDir
   cli --> lifecycle
   lifecycle --> supervisor
-  supervisor --> scheduling
-  supervisor --> worker
+  lifecycle -- "control inbox" --> runDir
+  supervisor -- "signal, observe, select,<br/>deliver exact activation range" --> scheduling
+  supervisor -- "collect external fact before selection;<br/>returns disposition + factId + committed mark" --> ingress
+  supervisor --> workspace
+  supervisor -- "AgentInvocation.ingress + opaque receipt;<br/>inject narrowed verifier" --> worker
   supervisor --> store
   recovery --> supervisor
+  recovery --> workspace
   recovery --> store
   store --> runDir
+  scheduling -- "highWaterMark + exact range read;<br/>never append" --> ingress
+  ingress --> inboxStore
+  ingress -- "adapters read published facts" --> repo
+
+  workspace -- "hooks, worktree, branch,<br/>lock, scope validation" --> scripts
+  scripts --> repo
+  workspace -- "add, commit, push one derived ref,<br/>look-up-then-create PR" --> repo
 
   worker --> claude
   worker --> gpt
   worker --> gemini
+  worker --> tree
+  lifecycle -- "drain: cancel tree" --> tree
+  recovery -- "recover: fence or terminate" --> tree
 
   scheduling -.imports.-> scontracts
   supervisor -.imports.-> scontracts
   lifecycle -.imports.-> scontracts
   recovery -.imports.-> scontracts
   store -.imports.-> scontracts
+  workspace -.imports.-> scontracts
+  ingress -.imports.-> scontracts
   supervisor -.imports.-> acontracts
   scheduling -.imports.-> acontracts
+  lifecycle -.imports.-> acontracts
   recovery -.imports.-> acontracts
   worker -.imports.-> acontracts
 ```
@@ -67,15 +105,38 @@ flowchart TB
 | Colour-free label | Owner task | Write scope |
 |---|---|---|
 | `state/`, `state/contracts/` | TASK-003 | `src/orchestrator/state/**` |
-| `agents/`, `agents/contracts/`, adapters | TASK-004 | `src/agents/**` |
+| `agents/`, `agents/contracts/`, adapters, process trees | TASK-004 | `src/agents/**` |
 | `scheduling/` | TASK-005 | `src/orchestrator/scheduling/**` |
 | `supervisor/` | TASK-006 | `src/orchestrator/supervisor/**` |
-| `lifecycle/`, `bin/` | TASK-007 | `src/orchestrator/lifecycle/**`, `bin/**` |
+| `lifecycle/`, `bin/`, control inbox | TASK-007 | `src/orchestrator/lifecycle/**`, `bin/**` |
 | `recovery/` | TASK-008 | `src/orchestrator/recovery/**` |
+| `workspace/` | TASK-017 | `src/orchestrator/workspace/**` |
+| `ingress/`, the inbox store | TASK-026 | `src/orchestrator/ingress/**` |
+
+Eight rows, eight owner tasks, eight source paths. `scripts/orchestration/**` and `scripts/setup/install-git-hooks.ps1` are human-controlled and appear here as an invoked boundary. No module's write scope includes them.
+
+## Repository access paths
+
+Stated here because the previous version of this diagram contradicted the workspace contract, which is finding A-105. The normative statement is [WORKSPACE-LIFECYCLE.md](../../docs/architecture/runtime/WORKSPACE-LIFECYCLE.md#repository-access-paths); this table says the same thing.
+
+| Module | Reaches the repository through | For |
+|---|---|---|
+| `workspace/` | The human-controlled scripts | Hook verification and installation, worktree and branch creation, task-lock claim, write-scope validation, task-lock release |
+| `workspace/` | **Direct Git and the pull-request API** | `git add --` with the declared scope patterns, `git commit`, `git push` of exactly one derived refspec, and look-up-then-create-or-update of the pull request |
+| `ingress/` | **Read-only** Git | Its adapters read facts other owners already published. They never write a ref, a commit, or a working tree |
+
+No other module reaches the repository at all.
 
 ## Invariants visible in this diagram
 
-1. Only `supervisor` and `store` write durable state. `scheduling` and `recovery` produce event envelopes and hand them to the supervisor's append path.
+1. Only `supervisor` and `store` write durable **run** state. `scheduling`, `recovery`, `workspace`, and `ingress` produce event envelopes and hand them to the supervisor's append path. `ingress` additionally owns the inbox store, which holds no run state and is never folded into a `RunRecord`.
 2. Nothing in `src/orchestrator/**` reaches a provider adapter. The only path is `supervisor -> worker -> adapter`.
-3. Both contract roots are sinks. Neither imports the other, which is what makes TASK-003 and TASK-004 genuinely parallel.
-4. `lifecycle` touches only `supervisor` and `state/contracts`. It contains no scheduling, provider, or retry logic.
+3. Both contract roots are sinks. Neither imports the other, which is what makes TASK-003 and TASK-004 genuinely parallel. Adding `ingress` adds one edge, `ingress -> state/contracts`, and no edge between the roots.
+4. `lifecycle` touches `supervisor`, the control inbox, and the two contract roots. It contains no scheduling, provider, retry, workspace, or ingress logic.
+5. `workspace` is the only module that **writes** the repository. It delegates every operation the human-controlled scripts define and performs commit, push, and pull-request operations directly, under the structural prohibitions in the contract. It imports one contract root and no module.
+6. `lifecycle` and `recovery` reach the process tree only through `ProcessTreeController`. TASK-004 owns the mechanism; neither of them holds an implementation.
+7. `ingress` is the only module that validates and appends external facts; `scheduling` is the only module that signals, observes, and delivers an activation range. The supervisor composes the calls before selection and carries the delivery into the invocation. The activation holds neither an inbox nor an append capability.
+8. The nominal receipt brand exists only in `state/contracts`. The supervisor supplies TASK-004 with an `AgentReceiptVerifier` that exposes only a verified process-registration subject; the agent root neither imports the state root nor redeclares its brand.
+9. Every arrow points from a higher level to a lower one — contract roots at level 0; `state`, `agents`, `workspace`, and `ingress` at level 1; `scheduling` at 2; `supervisor` at 3; `lifecycle` and `recovery` at 4 — so the module graph is acyclic and the two contract roots remain independent.
+
+The receipt invariant is checked by enumerating semantic declarations: exactly one `DURABLE_RECEIPT_BRAND` and one `ProcessGroupRegistrationReceipt`, both in the state root; zero of either declaration in the agent root; `receipt: unknown` on both agent-side side-effect boundaries; and one `AgentReceiptVerifier` narrowing surface. The collector invariant is checked by the append-committed/signal-absent retry fixture; only TASK-005's later `deliver` call may read the activation range.

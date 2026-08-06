@@ -10,9 +10,10 @@ write_scope:
   - src/orchestrator/workspace/**
   - tests/unit/orchestrator/workspace/**
 dependencies:
-  - task: TASK-016
+  - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
+    lineage_round: 8
   - task: TASK-003
     edge: integrated
   - task: TASK-018
@@ -27,22 +28,42 @@ gate_tasks:
     gate: review
     round: 1
     verdict: pending
+    gate_class: aggregate
+    retrospective: true
+    gate_lineage: LIN-RUNTIME-REVIEW
+    lineage_round: 1
   - task: TASK-010
     gate: security
     round: 1
     verdict: pending
+    gate_class: aggregate
+    retrospective: true
+    gate_lineage: LIN-RUNTIME-SECURITY
+    lineage_round: 1
   - task: TASK-011
     gate: qa
     round: 1
     verdict: pending
+    gate_class: aggregate
+    retrospective: true
+    gate_lineage: LIN-RUNTIME-QA
+    lineage_round: 1
 parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, by 468b37b, by 6d145eb, by 970b081, and by the TASK-038 commit that TASK-039 approves. None of 9576fc9, 8d0c570, c2ee3eb, fe0374c, 468b37b, 6d145eb, and 970b081 is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, 4, 5, 6, and 7, the round-7 verdict at 9bb75d9 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 8 or later, which TASK-039 owns. A record that cites any of the seven as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
 remediates:
   - finding: F-001
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
   - finding: F-105
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md
-blocked_reason: The workspace lifecycle contract does not exist yet, and neither the durable state store nor the toolchain is integrated.
-exit_condition: TASK-020 records a passing verdict on TASK-016, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
+blocked_reason: The workspace lifecycle contract is published but not approved — TASK-020 recorded A-103, that workspace intent cannot be made durable before its side effects — and neither the durable state store nor the toolchain is integrated. LIN-ARCH-REVIEW has since recorded changes-required at round 5 on the TASK-032 amendment 468b37b at 3660cc2, at round 6 on the TASK-034 amendment 6d145eb at afed101, and at round 7 on the TASK-036 amendment 970b081 at 9bb75d9, so the authoritative round is 7 and it failed. Round 7 resolved A-501 through A-505, satisfied every inherited obligation, and met every declared acceptance criterion, and still blocked on one fresh High finding A-601 - the normative integration order replays a non-ancestral rejected predecessor immediately after the cumulative target and conflicts in 19 files. The remediation is TASK-038 and the revalidation is TASK-039 at round 8. This task is exactly as far from dispatch as it was before round 7.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 8 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
+review_target_base: not applicable until this task publishes
+review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+scope_validation_note: Branch from integration/autonomous-runtime at or after the commit where this task's dependencies merged, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-017: Implement automated agent workspace lifecycle and crash-safe cleanup
@@ -98,6 +119,9 @@ The mandatory handoff in `AGENTS.md` includes pushing the task branch and openin
 - [ ] When the remote is unreachable, credentials are absent, or pull-request creation is unauthorized, `finalize` returns an explicit `blocked` outcome with a typed failure class and a recorded reason. A test asserts that no `succeeded` outcome is produced for a local-only commit and that no alternative push target is attempted.
 - [ ] Every constructed push command vector is asserted to target only `refs/heads/agent/<llm>/<role>/<task-id>`. A test feeds a task record whose fields would produce another ref and asserts the dispatch is refused before any process is spawned.
 - [ ] A crash after publication and before lock release leaves the branch, commit, and pull-request identity readable by `reconcile`, which does not republish or reopen.
+- [ ] `publication_class: runtime` is enforced in behavior, not only declared: a local-only commit never satisfies `review_ready` for a task the runtime dispatches. A test asserts that the recorded outcome for an unreachable remote is `blocked`, never `local-only` and never `succeeded`. The `bootstrap` publication class in `tasks/TASK-001-DEPENDENCY-GRAPH.md` applies only to human-launched sessions and is not reachable from this module.
+
+These implementation criteria resolve the implementation half of finding F-105. They do **not** satisfy the graph's independent-validation claim: that is discharged by TASK-009 `V9-F105`, TASK-010 `V10-F105`, and TASK-011 `V11-F105`, which finding F-202 required.
 
 ### Crash safety
 
@@ -126,7 +150,7 @@ The mandatory handoff in `AGENTS.md` includes pushing the task branch and openin
 
 ## Dependency notes
 
-- `gate_passed(TASK-016, review)` supplies the workspace lifecycle contract, the publication and pull-request contract, and the crash-safe cleanup specification. Implementation cannot start before the module is part of the approved architecture. That gate is owned by TASK-020.
+- `gate_passed(TASK-016, review)` supplies the workspace lifecycle contract, the publication and pull-request contract, and the crash-safe cleanup specification. The normative source is `9576fc9` **as amended by the TASK-016 commit that TASK-020 approves**; the workspace lifecycle module does not exist in the rejected baseline at all, so there is nothing for this task to implement from it. Implementation cannot start before the module is part of the approved architecture. That gate is owned by TASK-020.
 - `integrated(TASK-003)` supplies the durable state store and the intent-then-commit substrate used for replayable workspace operations. It is `integrated` and not `review_ready` because this is a compile-time import.
 - `integrated(TASK-018)` supplies the toolchain.
 - May execute in parallel with TASK-005; `src/orchestrator/workspace/**` and `src/orchestrator/scheduling/**` do not overlap.

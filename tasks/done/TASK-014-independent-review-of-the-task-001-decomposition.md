@@ -19,21 +19,46 @@ gate_for:
     round: 1
     verdict: changes-required
     verdict_recorded_at: 8ac0dbd
+    remediated_by: TASK-001 revision 2
+    revalidated_by: TASK-014 round 2
+    gate_class: point
+    retrospective: true
+    gate_lineage: LIN-DECOMP-REVIEW
+    lineage_round: 1
   - task: TASK-001
     gate: review
     round: 2
     verdict: changes-required
     verdict_recorded_at: abb85d9
+    remediated_by: TASK-013 activation ACT-001
+    revalidated_by: TASK-021
+    gate_class: point
+    retrospective: true
+    gate_lineage: LIN-DECOMP-REVIEW
+    lineage_round: 2
 parent_task: TASK-001
 rounds_completed: 2
+publication_class: bootstrap
 published_commit: abb85d9
 published_branch: agent/gpt/reviewer/task-014
 publication: local-only
 publication_reason: The executing session recorded that no push or merge was part of TASK-014.
 superseded_by: TASK-021
+review_target_branch: agent/claude/orchestrator/task-001
+review_target_commit: 657b83a
+review_target_base: not recorded by the original execution
+review_target_applicability: applicable, but never recorded. This record's body names the round 2 target as agent/claude/orchestrator/task-001 revision 2 at 657b83a with integration ref fb9f45c, and names no review-diff base for either round. Activation ACT-006 does not reconstruct one: both rounds are closed, their verdicts are durable, and inventing a base after the fact would misrepresent what the reviewer diffed. The omission is recorded rather than filled.
+branch_point_of: agent/claude/orchestrator/task-001
+scope_validation_base: 321c0c3898781f38e02dcb3e5a30948c11caa4af
+scope_validation_applicability: applicable and resolved, with a stated exception to the acceptance command
+scope_validation_acceptance_base: fb9f45c08dee2002d634f1e310017dc125ab67e7
+scope_validation_note: Resolved by activation ACT-006 from the repository. The branch's first authored commit 8ac0dbd has parent 321c0c3 on agent/claude/orchestrator/task-001, so 321c0c3 is the true branch point. It is not the acceptance base, because the human governance commit fb9f45c landed on this branch between the two rounds and changed config/agents/settings.yaml, a path no agent role may write; validating from 321c0c3 attributes that human-authored change to the reviewer and reports 50 paths. The reproducible acceptance base for the round 2 authored delta is fb9f45c, from which git diff --name-only fb9f45c...abb85d9 returns exactly one path, reports/code-review/TASK-001-DECOMPOSITION-REVIEW.md, which is this task's whole declared write scope. Both values are recorded because they answer different questions, and neither is a review-diff base.
 ---
 
 # TASK-014: Independent review of the TASK-001 decomposition
+
+> **Historical record.** This task is `done` and its verdict is durable. Sections below describe the state of the graph at the time it ran. Under the single-source rule a pair's `gate_class`, `retrospective`, `gate_lineage`, and `lineage_round` are normative only in the pair's own frontmatter and in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; where this body names such a value it is quarantined history and is superseded by those sources. This is the correction finding F-402 required.
+
 
 ## Objective
 
@@ -48,7 +73,9 @@ Perform the independent review gate required by TASK-001 on the decomposition ar
 | 1 | `agent/claude/orchestrator/task-001` revision 1 | `changes-required` | `8ac0dbd` | F-001 … F-007 |
 | 2 | `agent/claude/orchestrator/task-001` revision 2 at `657b83a`, integration ref `fb9f45c` | `changes-required` | `abb85d9`, merged at `b6fe228` | F-101 … F-105 |
 
-Round 3 is **TASK-021**, a separate reviewer task with its own explicit dependency and its own report file. The re-entrancy described below applied to rounds 1 and 2 and is retained as history; it is not the model the graph uses any longer. Making a gate task re-entrant is what finding F-102 recorded as a defect for TASK-015, and TASK-013 activation `ACT-001` applied the same correction here.
+Round 3 was **TASK-021**, which recorded `changes-required` at `adfb982` and is `done`; round 4 is **TASK-022**. Each is a separate reviewer task with its own explicit dependency and its own report file. The re-entrancy described below applied to rounds 1 and 2 and is retained as history; it is not the model the graph uses any longer. Making a gate task re-entrant is what finding F-102 recorded as a defect for TASK-015, and TASK-013 activation `ACT-001` applied the same correction here.
+
+Both of this task's `gate_for` entries name a `remediated_by` and a `revalidated_by`, as the gate-round rule requires of every `changes-required` round. Finding F-205 recorded that metadata as missing on the round 1 pair; activation `ACT-002` completed it on both sides.
 
 ## Round model as executed
 

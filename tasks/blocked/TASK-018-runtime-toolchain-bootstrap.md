@@ -14,9 +14,10 @@ write_scope:
   - scripts/ci/**
   - .github/workflows/**
 dependencies:
-  - task: TASK-016
+  - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
+    lineage_round: 8
 required_gates:
   - review
   - security
@@ -27,12 +28,22 @@ gate_tasks:
     gate: review
     round: 1
     verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-TOOLCHAIN-REVIEW
+    lineage_round: 1
   - task: TASK-010
     gate: security
     round: 1
     verdict: pending
+    gate_class: aggregate
     retrospective: true
+    gate_lineage: LIN-TOOLCHAIN-SECURITY
+    lineage_round: 1
+gate_scheduling: The security gate is aggregate and retrospective. Its reason and its recorded risk are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, row "TASK-010 / security / TASK-018". It has the longest exposure window in the graph but it is not the only retrospective gate; every runtime assembly gate is retrospective as well.
 parent_task: TASK-001
+publication_class: runtime
+normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, by 468b37b, by 6d145eb, by 970b081, and by the TASK-038 commit that TASK-039 approves. None of 9576fc9, 8d0c570, c2ee3eb, fe0374c, 468b37b, 6d145eb, and 970b081 is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, 4, 5, 6, and 7, the round-7 verdict at 9bb75d9 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 8 or later, which TASK-039 owns. A record that cites any of the seven as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
 human_decisions:
   - id: HUMAN-001
     status: resolved
@@ -40,8 +51,14 @@ human_decisions:
     decided_at: fb9f45c
     decided_on: 2026-08-04
     effect: package.json, package-lock.json, tsconfig.json, and scripts/quality/** were added to assignments.devops.write_scope in config/agents/settings.yaml.
-blocked_reason: The amended runtime architecture has not passed its independent review gate. Landing a toolchain before the platform decision is reviewed risks landing the wrong one.
-exit_condition: TASK-020 records a passing verdict on the TASK-016 amendment, which satisfies gate_passed(TASK-016, review).
+blocked_reason: The amended runtime architecture has not passed its independent review gate. TASK-020 returned changes-required on the first amendment with findings A-101 through A-105, so a second amendment, TASK-024, must be authored and approved first. Landing a toolchain before the platform decision is reviewed risks landing the wrong one. LIN-ARCH-REVIEW has since recorded changes-required at round 5 on the TASK-032 amendment 468b37b at 3660cc2, at round 6 on the TASK-034 amendment 6d145eb at afed101, and at round 7 on the TASK-036 amendment 970b081 at 9bb75d9, so the authoritative round is 7 and it failed. Round 7 resolved A-501 through A-505, satisfied every inherited obligation, and met every declared acceptance criterion, and still blocked on one fresh High finding A-601 - the normative integration order replays a non-ancestral rejected predecessor immediately after the cumulative target and conflicts in 19 files. The remediation is TASK-038 and the revalidation is TASK-039 at round 8. This task is exactly as far from dispatch as it was before round 7.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 8 or higher, which satisfies gate_passed(LIN-ARCH-REVIEW, review, 8).
+review_target_base: not applicable until this task publishes
+review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
+branch_point_of: integration/autonomous-runtime
+scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+scope_validation_note: Branch from integration/autonomous-runtime at or after the commit where this task's dependencies merged, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-018: Bootstrap the runtime TypeScript and Node.js toolchain
@@ -98,7 +115,7 @@ Once unblocked:
 - [ ] No human-controlled governance path is modified, including `.github/workflows/ci.yml`, `.github/workflows/security.yml`, and `config/agents/settings.yaml`.
 - [ ] `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree` reports a valid result.
 - [ ] All changed files remain inside this task's declared write scope.
-- [ ] The task branch is published and a pull request is opened or updated, or the publication failure is recorded explicitly as `publication: local-only` with its reason, so the Orchestrator can transcribe the outcome accurately.
+- [ ] The task branch is published and a pull request is opened or updated. This task declares `publication_class: runtime`, so an unavailable remote or an unauthorized pull request is an explicit `blocked` outcome with its reason recorded — **not** a `local-only` success. The `bootstrap` class in `tasks/TASK-001-DEPENDENCY-GRAPH.md` does not apply to this task.
 
 ## Expected artifacts
 
@@ -119,7 +136,9 @@ This task declares `pre_merge_gates: [review]`. Its review gate is owned by **TA
 
 The gate is deliberately not owned by TASK-009: TASK-009 runs at Wave 7 and reviews runtime source, so assigning this gate to it would leave an unreviewed toolchain integrated for five waves with three tasks compiling against it.
 
-The security gate is owned by TASK-010 and is an **assembly gate, retrospective**: this task integrates at Wave 2, while TASK-010 threat-models the whole runtime at Wave 7. This task therefore reaches `integrated` long before it reaches `done`, which the edge vocabulary in `tasks/TASK-001-DEPENDENCY-GRAPH.md` distinguishes. The consequence is accepted because there is no code to threat-model before a toolchain exists; the mitigations are ADR-0001's zero-third-party-runtime-dependency rule, the dependency inventory TASK-019 must produce, and the repository's baseline security CI workflow running on the pull request.
+The security gate is owned by TASK-010. Its scheduling class, its ordering against integration, its lineage, and its lineage round are declared on both sides of the pair in the frontmatter above and summarized in the aggregate and retrospective gate register in `tasks/TASK-001-DEPENDENCY-GRAPH.md`, row "TASK-010 / security / TASK-018"; those are the only normative statements of those values, and this body names the register rather than restating them. The register records why the delay is accepted — there is no code to threat-model before a toolchain exists — and the mitigations: ADR-0001's zero-third-party-runtime-dependency rule, the dependency inventory TASK-019 must produce as a pre-merge gate, and the repository's baseline security CI workflow running on the pull request. This task therefore reaches `integrated` before it reaches `done`, which the edge vocabulary in `tasks/TASK-001-DEPENDENCY-GRAPH.md` distinguishes. The independent assessment obligation is TASK-010 `V10-TOOLCHAIN`.
+
+Finding F-203 recorded that revision 3 called this the graph's only delayed gate; the register now lists every one of them. Finding F-402 recorded that this body still restated values it may only reference.
 
 ## Task-record lifecycle
 
