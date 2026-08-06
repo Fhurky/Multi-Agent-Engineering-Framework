@@ -1,6 +1,6 @@
 # ADR-0041: The cumulative architecture lineage is one content integration unit
 
-- Status: Proposed under TASK-038; independent TASK-039 review pending
+- Status: Accepted by independent TASK-039 at review commit `734bdbc`; extended by proposed [ADR-0042](0042-conditionally-authorized-post-gate-merge-executors.md) only with conditional execution and result-ingress ownership
 - Date: 2026-08-06
 - Deciders: Solution Architect under TASK-038
 - Affects: Orchestrator integration, TASK-003 and TASK-005 typed-edge evaluation, TASK-006 event application, every member and consumer of `LIN-ARCH-REVIEW`

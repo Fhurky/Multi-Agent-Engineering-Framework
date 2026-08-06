@@ -1,6 +1,16 @@
 # Runtime Component Boundaries
 
-Normative component decomposition for the autonomous multi-agent runtime. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, and TASK-036. Related decisions: [ADR-0002](../../adr/0002-runtime-component-boundaries-and-module-ownership.md) as superseded in part by [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md) and [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md), plus [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md), TASK-028 ADRs [0024](../../adr/0024-task-record-projection-contract.md), [0028](../../adr/0028-nominal-store-issued-durable-append-receipts.md), [0029](../../adr/0029-ingress-delivery-ownership.md), and [0031](../../adr/0031-pre-dispatch-ingress-observer-and-collector.md), TASK-032 ADRs [0032](../../adr/0032-lossless-task-record-source-and-projection.md), [0033](../../adr/0033-unique-committed-result-effect-recovery.md), and [0034](../../adr/0034-spawn-owned-registration-proof-refusal.md), and TASK-036 ADRs [0038](../../adr/0038-total-pre-dispatch-ingress-append-dispositions.md) and [0039](../../adr/0039-single-nominal-receipt-authority-and-cross-root-conformance.md).
+Normative component decomposition for the autonomous multi-agent runtime and its release control plane. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-036, and TASK-040. Related decisions: [ADR-0002](../../adr/0002-runtime-component-boundaries-and-module-ownership.md) as superseded in part by [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md) and [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md), plus [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md), TASK-028 ADRs [0024](../../adr/0024-task-record-projection-contract.md), [0028](../../adr/0028-nominal-store-issued-durable-append-receipts.md), [0029](../../adr/0029-ingress-delivery-ownership.md), and [0031](../../adr/0031-pre-dispatch-ingress-observer-and-collector.md), TASK-032 ADRs [0032](../../adr/0032-lossless-task-record-source-and-projection.md), [0033](../../adr/0033-unique-committed-result-effect-recovery.md), and [0034](../../adr/0034-spawn-owned-registration-proof-refusal.md), TASK-036 ADRs [0038](../../adr/0038-total-pre-dispatch-ingress-append-dispositions.md) and [0039](../../adr/0039-single-nominal-receipt-authority-and-cross-root-conformance.md), and TASK-040 [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md).
+
+## Amendment register — TASK-040
+
+HUMAN-004 at `7dc07488a5b1cac8b1327ebd63bf747adbe03c68` conditionally authorizes two executors with different owners. This amendment adds both without assigning either authority to workspace, ingress, scheduling, or the Orchestrator. It records no approval and creates no implementation task.
+
+| Previous boundary | Amended boundary | Decision |
+|---|---|---|
+| Eight modules; no component owns a GitHub merge | Ten modules: a runtime-owned task integration executor and a DevOps-owned release merge executor | [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md) |
+| Operator executes every integration and release merge | The operator remains only on legacy evidence; conditionally activated executors own the two exact post-gate effects | [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md) |
+| `branch_integrated` anticipated a runtime integration producer but had no result-adapter boundary | Executors publish durable results; TASK-026's authorized adapter alone appends the corresponding ingress fact | [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md) |
 
 ## Amendment register — TASK-036
 
@@ -50,13 +60,13 @@ The eight modules, eight owners, eight source paths, two independent contract ro
 
 The runtime is a single-command supervisor that starts a project run, dispatches role-scoped agent work to LLM providers, persists every state change durably, and drives the run to a terminal state across pauses, crashes, and retries.
 
-This document partitions that runtime into modules such that each module has exactly one implementation task owner, and no two tasks write the same module.
+This document partitions the runtime and release merge control plane into modules such that each module has exactly one owner. Existing implementation modules retain their task owners; TASK-040 assigns each proposed executor one owner role and deliberately leaves task creation to the post-review Orchestrator.
 
 ## Module map
 
-Each row is owned end to end by exactly one task. No module appears twice, and no responsibility below is unassigned.
+Each row is owned end to end by exactly one task or, for the two not-yet-created implementations, one declared role. No module appears twice, and no responsibility below is unassigned.
 
-| Module | Source path | Owner task | Responsibility |
+| Module | Source path | Sole owner | Responsibility |
 |---|---|---|---|
 | Durable state store | `src/orchestrator/state/` | TASK-003 | Run and task record persistence, event journal, batch commit records, atomic checkpoints, compare-and-set append, restore, writer lock |
 | Provider adapters and agent workers | `src/agents/` | TASK-004 | Provider adapter interface and registry, invocation assembly, provider call execution, failure classification, worker timeout signalling, **OS process-tree ownership, cancellation, escalation, and verified termination** |
@@ -65,9 +75,11 @@ Each row is owned end to end by exactly one task. No module appears twice, and n
 | Lifecycle control and entry point | `src/orchestrator/lifecycle/`, `bin/` | TASK-007 | One-input bootstrap, command surface, **live-run control protocol**, graceful drain, pause, resume, signal handling, completion reporting, exit codes |
 | Recovery, timeouts, retries | `src/orchestrator/recovery/` | TASK-008 | Crash recovery, single-decision reconciliation, orphan fencing and termination through the process-tree interface, timeout watchdog, retry policy, backoff, idempotency ledger enforcement, retry exhaustion |
 | **Agent workspace lifecycle** | `src/orchestrator/workspace/` | **TASK-017** | Hook verification, branch and worktree creation, task-lock claim and release, write-scope validation, commit and handoff persistence, branch publication and idempotent pull-request identity, crash-safe workspace reconciliation |
-| **Durable ingress inbox** | `src/orchestrator/ingress/` | **TASK-026** | The append-only ingress store, one-time `seq` assignment, identity and deduplication, ingress adapters and epochs, **external-fact validation, the pre-dispatch collector, append authorization, and append-through-store** |
+| **Durable ingress inbox** | `src/orchestrator/ingress/` | **TASK-026** | The append-only ingress store, one-time `seq` assignment, identity and deduplication, ingress adapters and epochs, **external-fact validation, the pre-dispatch collector, merge-result adapter, append authorization, and append-through-store** |
+| **Post-gate task integration executor** | `src/orchestrator/integration/` | **`runtime` role; implementation task not yet created** | Pure task admission, immutable plan, durable intent/result evidence, bounded GitHub squash merge into the configured integration branch, result verification, recovery/retry, and remediation publication |
+| **Integration release merge executor** | `scripts/release/integration-merge/` | **`devops` role; implementation task not yet created** | Pure release admission, aggregate release-gate validation, durable intent/result evidence, bounded protected PR merge from integration into `main`, result verification, recovery/retry, and remediation publication |
 
-Eight rows, eight distinct owner tasks, eight distinct source paths. No module appears twice and no responsibility above is unassigned.
+Ten rows and ten distinct source paths. The eight existing rows retain their distinct owner tasks; each new row has one distinct owner role and awaits a separately owned implementation task after TASK-041 passes. No module appears twice, the two new modules are not one parameterized component, and no responsibility above is unassigned.
 
 ### Responsibility assignment added under TASK-024 and amended under TASK-028
 
@@ -94,14 +106,14 @@ TASK-007 and TASK-008 act on process trees and own none of the mechanism. That i
 
 ## Contract roots
 
-Cross-module types are a shared surface, and a shared surface with no single owner is the most likely source of conflict between the eight parallel implementation tasks. The runtime therefore has exactly two contract roots, each inside an existing task's write scope.
+Cross-module types are a shared surface, and a shared surface with no single owner is the most likely source of conflict between parallel implementation tasks. The runtime retains exactly two contract roots, each inside an existing task's write scope.
 
 | Contract root | Owner task | Declares |
 |---|---|---|
-| `src/orchestrator/state/contracts/` | TASK-003 | Identifiers, lossless task-record source and exact projection interfaces, runtime records and states, journal and event unions, store interface, typed graph contracts, ingress contracts, **nominal durable append receipts and verifier**, control channel, workspace lifecycle |
+| `src/orchestrator/state/contracts/` | TASK-003 | Identifiers, lossless task-record source and exact projection interfaces, runtime records and states, journal and event unions, store interface, typed graph contracts, ingress contracts including the merge-result append principal, **nominal durable append receipts and verifier**, control channel, workspace lifecycle |
 | `src/agents/contracts/` | TASK-004 | Provider adapter interface, invocation including read-only ingress delivery, adapter outcome, failure taxonomy, worker result, secret provider, process-tree controller, three-phase worker handshake, and a read-only receipt-verifier view accepting `unknown` |
 
-The two roots remain independent of each other: neither imports the other, which is what keeps TASK-003 and TASK-004 genuinely parallel. TASK-026 imports `state/contracts` and nothing else, so adding the eighth module adds no edge between the roots.
+The two roots remain independent of each other: neither imports the other. TASK-026 and the task integration executor import `state/contracts` and not `agents/contracts`. The release executor is self-contained under `scripts/release/integration-merge/` and imports neither root. Its executor-specific types are not re-declarations of state-root types. Adding the two modules therefore adds no root-to-root edge and creates no third contract root.
 
 `src/shared/` is deliberately not used by the runtime. It is outside every runtime task's write scope, so a module placed there would have no owner.
 
@@ -116,7 +128,7 @@ TASK-002 recorded one, and stated it was the only one. TASK-016 adds a second un
 | `RunId`, `TaskId`, `Sha256Hex`, `IsoTimestamp`, `FencingToken`, `TaskProposal`, and — under TASK-016 — `InvocationId`, `WorkspaceId`, `InvocationRecord`, `ProcessTreeOutcome`, and — under TASK-028 — `AgentProcessRegistrationSubject` plus `AgentReceiptVerifier`, and — under TASK-036 — agent-root `TreeCloseOutcome` plus state-root `RecoveryOrphanOutcome` | Both roots, with the state snapshot named separately | Narrowed structural views needed at composition | Lets TASK-003 and TASK-004 compile in parallel with no import edge; the supervisor adapter narrows verifier evidence and maps the Phase-5 tree-close value, while the nominal brand is neither copied nor made falsely interchangeable |
 | `WorkspaceFailureClass` | `state/contracts` | `FailureClass` in `agents/contracts` | The workspace module must classify a script failure into the same closed taxonomy the recovery layer acts on, and it imports `state/contracts` only. An import edge to `agents/contracts` would give the workspace module two contract roots and couple TASK-017 to TASK-004's authoring order for no behavioral gain |
 
-There are still exactly **two permitted duplication families**. TASK-028 adds the narrowed process-registration subject and verifier view to the first structural-alias family while removing every duplicated receipt type. TASK-036 adds the differently named `TreeCloseOutcome`/`RecoveryOrphanOutcome` Phase-5 composition pair to that same structural-alias family. Neither amendment opens a third family. A duplication is a pair of roots holding the same structural shape, and the nominal receipt deliberately has no second declaration.
+There are still exactly **two permitted duplication families**. TASK-028 adds the narrowed process-registration subject and verifier view to the first structural-alias family while removing every duplicated receipt type. TASK-036 adds the differently named `TreeCloseOutcome`/`RecoveryOrphanOutcome` Phase-5 composition pair to that same structural-alias family. TASK-040 adds no duplication: executor-specific records stay inside their owning modules, and equivalence is tested against the canonical JSON protocol rather than copied between roots. A duplication is a pair of roots holding the same structural shape, and the nominal receipt deliberately has no second declaration.
 
 The primitive, verifier, and Phase-5 outcome views are structurally identical across their declared pair, but the nominal receipt itself is declared only once. Independently declaring the same `unique symbol` in both roots would create different nominal types and make them non-interchangeable; TASK-028 explicitly prohibits that duplication. The verifier accepts `unknown` and returns a structural subject, so a state-issued receipt crosses into TASK-004 without a cast while a synthesized object still fails store verification. Neither permitted duplication family is compiler-checked, so both remain review obligations. A third family requires a new ADR.
 
@@ -134,6 +146,7 @@ state/contracts   <-  lifecycle
 state/contracts   <-  recovery
 state/contracts   <-  workspace
 state/contracts   <-  ingress
+state/contracts   <-  integration
 
 agents/contracts  <-  agents
 agents/contracts  <-  scheduling
@@ -148,34 +161,40 @@ supervisor        <-  lifecycle
 supervisor        <-  recovery
 workspace         <-  supervisor
 workspace         <-  recovery
+integration       <-  supervisor
 agents            <-  (nobody; reached only through the AgentWorker and ProcessTreeController interfaces)
+release-integration-merge <- (nobody; self-contained release control-plane module)
 ```
 
-`lifecycle -> agents/contracts` is added because drain must wait on `ProcessTreeController`. It is an interface import, not an implementation import, so it introduces no new coupling to TASK-004's code. `ingress -> state/contracts` is added under TASK-024 for the same reason: the ingress module declares no types of its own and imports one contract root.
+`lifecycle -> agents/contracts` is present because drain must wait on `ProcessTreeController`. It is an interface import, not an implementation import. `ingress -> state/contracts` was added under TASK-024. TASK-040 adds `integration -> state/contracts` for read-only task/gate/ingress views and `supervisor -> integration` for constructor-injected execution. The DevOps release module is invoked by the release control plane and imports no runtime source.
 
-**The module graph remains acyclic.** Reading the edges as a partial order:
+**The target-tree graph has 12 nodes and 19 directed import edges.** The nodes are the ten module rows plus the two contract roots. The 17 earlier edges are enumerated above; TASK-040 adds exactly two, `integration -> state/contracts` and `supervisor -> integration`. The self-contained release module adds a node and no import edge. Reading all 19 edges as a partial order gives this complete level witness:
 
 ```text
-level 0   state/contracts, agents/contracts        leaves; import nothing
-level 1   state, agents, workspace, ingress        import contract roots only
-level 2   scheduling                               imports contract roots
-level 3   supervisor                               imports scheduling, workspace, contract roots
-level 4   lifecycle, recovery                      import supervisor, workspace, contract roots
+level 0   state/contracts, agents/contracts, release-integration-merge
+level 1   state, agents, workspace, ingress, integration
+level 2   scheduling
+level 3   supervisor
+level 4   lifecycle, recovery
 ```
 
-Every declared edge points from a higher level to a lower one, so no cycle exists. `workspace` and `ingress` sit at level 1 alongside `state` and `agents`: each consumes the state contract root and no module. `workspace` is consumed by `supervisor` and `recovery`; `ingress` is consumed by `scheduling`, through the `IngressInbox` interface by constructor injection. Neither imports `state`, `scheduling`, `supervisor`, `recovery`, or `agents`, and none of those may import either implementation.
+Every declared edge points from a higher level to a lower one, so a directed cycle is impossible. All 12 nodes occur exactly once in the witness. `workspace`, `ingress`, and `integration` sit at level 1 alongside `state` and `agents`: each consumes the state contract root and no concrete module. `workspace` is consumed by `supervisor` and `recovery`; `ingress` is consumed by `scheduling`, through the `IngressInbox` interface; `integration` is consumed by `supervisor` through its narrow executor interface. None imports `state`, `scheduling`, `supervisor`, `recovery`, or `agents`.
 
 `ingress` is deliberately at level 1 and not below `scheduling`: the scheduler depends on the inbox, collector, and validator interfaces, never the reverse. TASK-026 returns data and a high-water mark; TASK-005 supplies the signal/observer implementation. The supervisor composes them without introducing a reverse import, so TASK-026 and TASK-017 remain parallel.
+
+`release-integration-merge` is a level-0 implementation leaf, not a contract root. It owns its local release types and receives repository observations, credential access, and durable evidence adapters through its own entry point. It cannot be imported by the runtime, and it imports neither runtime root. Exactly two nodes are contract roots—`state/contracts` and `agents/contracts`—and there is no path in either direction between them. The two-independent-contract-roots property therefore still holds.
 
 Derived rules:
 
 1. Neither contract root imports anything. They are leaves of the dependency graph.
 2. Concrete implementations are never imported across module boundaries. A consumer depends on the interface declared in a contract root and receives the implementation by constructor injection. This is what allows TASK-005, TASK-006, TASK-007, TASK-008, and TASK-017 to be unit tested with fakes before their dependencies exist.
-3. There are no cycles. The graph is a strict partial order matching the TASK-001 wave order.
-4. `supervisor` is the only module that applies events to durable state. `scheduling`, `recovery`, `workspace`, and `ingress` produce events and hand them to the supervisor's append path; they never call `StateStore.append` with their own transition logic. `ingress` additionally owns a store of its own, the inbox, which holds no run state and is never folded into a `RunRecord`; the journal observes its high-water mark and nothing more.
+3. There are no cycles. The graph is a strict partial order. Future implementation-task waves are not invented by this amendment; only the Orchestrator may create them after TASK-041 passes.
+4. `supervisor` is the only module that applies events to durable run state. `scheduling`, `recovery`, `workspace`, `ingress`, and `integration` hand results to composition boundaries; they never call `StateStore.append` with their own transition logic. `ingress` additionally owns a store of its own, the inbox, which holds no run state and is never folded into a `RunRecord`; the journal observes its high-water mark and nothing more. Merge executors use separate append-only merge-evidence stores and never write the run journal.
 5. `agents` never touches durable state, never sees a fencing token as an authority, and never decides whether to retry. It classifies and returns. It does own the OS process tree of every process it spawns, which is a resource concern rather than a state concern.
 6. `lifecycle` never contains scheduling, state, provider, or retry logic. It composes the object graph, translates operator intent into run events, owns the control transport, and owns process signals and exit codes.
 7. `workspace` never invokes a provider, never decides scheduling or retry policy, and never modifies a human-controlled governance path. It invokes the tracked orchestration scripts and reimplements none of them.
+8. `integration` can invoke only the task pull-request merge port after typed admission and durable intent. It cannot append ingress, write a gate, mutate task ownership, release a lock, push a ref, or target `main`.
+9. `release-integration-merge` can invoke only the integration pull-request merge port after typed release admission and durable intent. It cannot import runtime implementations, push `main`, set `ALLOW_MAIN_PUSH`, mutate a gate or policy, or name any base except `main`.
 
 ## Boundary rationale per module
 
@@ -223,7 +242,19 @@ It is separate from `workspace` because the workspace module acts on the reposit
 
 Its full contract is section 2b of [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md), and the model it implements is normative in [STATE-MACHINE.md](STATE-MACHINE.md#ingress-model-for-event-triggered-recurring-work).
 
-## Cross-cutting rules binding all eight tasks
+### Post-gate task integration executor (`runtime`)
+
+Added under TASK-040. It is separate from `workspace` because publishing an agent branch and exercising post-gate GitHub merge authority have different credentials, admission predicates, recovery evidence, and prohibited capabilities. It is separate from `supervisor` because the supervisor composes a successful outcome but does not own GitHub authorization. It publishes a durable result for TASK-026's adapter and never appends its own trigger.
+
+Its source is `src/orchestrator/integration/`; its tests are `tests/unit/orchestrator/integration/`. Both fit the existing runtime write scope. Its implementation task does not exist and cannot be created before TASK-041 passes. Its complete contract is [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md).
+
+### Integration release merge executor (`devops`)
+
+Added under TASK-040. It is separate from the runtime executor because release admission has seven aggregate gate domains, a different immutable manifest, a different GitHub identity, and authority over a different protected base. It is a release control-plane module, not runtime business logic and not a generic Git helper.
+
+Its source and nested tests are under `scripts/release/integration-merge/`, within the existing DevOps write scope. Its implementation task does not exist and cannot be created before TASK-041 passes. Its complete contract is [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md).
+
+## Cross-cutting rules binding all ten modules
 
 1. No module writes credentials, tokens, or provider payload secrets to state, checkpoints, journals, logs, run events, or test fixtures.
 2. Every module receives its `Clock`; no module reads wall-clock time directly. This is required for the fake-clock unit tests named in TASK-005, TASK-007, and TASK-008.
@@ -233,14 +264,18 @@ Its full contract is section 2b of [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.
 6. An implementation task that believes a contract in this document set is wrong must stop and route the change through the Orchestrator back to the architect as an ADR amendment. It must not change the contract locally. See [INTEGRATION-STRATEGY.md](INTEGRATION-STRATEGY.md).
 7. No module modifies a human-controlled governance path: the root agent adapters, `.agents/`, `config/agents/settings.yaml`, `scripts/orchestration/**`, the baseline CI and security workflows, `.githooks/**`, `scripts/setup/install-git-hooks.ps1`, `CODEOWNERS`, or the Git policy files. The workspace module invokes those scripts and reimplements none of them.
 8. Every process a module spawns — a provider invocation or an orchestration script — runs inside an owned process group or job object and has a durable outcome recorded before the writer lock is released.
+9. A merge executor holds no generic Git command or GitHub administration capability. Its only mutation is its executor-specific protected pull-request merge endpoint after durable intent.
+10. A merge result reaches scheduling only through TASK-026's authorized adapter, TASK-005's signal/observer, and the ordinary supervisor transition. Neither executor can create its own trigger.
 
 ## Traceability to acceptance criteria
 
 | Acceptance criterion | Satisfied by |
 |---|---|
-| Every component boundary maps to exactly one implementation task, with no shared module ownership | Module map and contract roots above |
+| Every existing component maps to one implementation task, and each proposed executor maps to one future owner role without shared ownership | Module map and contract roots above; task creation is expressly deferred until TASK-041 passes |
 | Interface contracts consumed across implementation tasks are documented before implementation starts | [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md) |
 | Live-run control has one owning module and process-tree lifecycle has one owning module; neither is unassigned and neither has two owners (A-003) | [Responsibility assignments added under TASK-016](#responsibility-assignments-added-under-task-016) |
 | The durable ingress inbox has one owning module and one owner task (A-101, F-301) | [Responsibility assignment added under TASK-024 and amended under TASK-028](#responsibility-assignment-added-under-task-024-and-amended-under-task-028) |
-| The module map contains exactly **eight** modules, each with exactly one owner task, and no module appears twice | Module map above; eight rows, eight distinct owner tasks, eight distinct source paths |
-| The allowed import directions are stated, the module dependency graph is shown to remain acyclic, and the two contract roots stay independent of each other | [Allowed dependency directions](#allowed-dependency-directions), with the level assignment that exhibits the partial order |
+| Both HUMAN-004 executors are separate and each has one path and owner role | Module map and the two TASK-040 boundary rationales above |
+| Every natural source/test path is inside its current owner role's declared write scope | `src/orchestrator/integration/` plus `tests/unit/orchestrator/integration/` are runtime-scoped; `scripts/release/integration-merge/` and its nested tests are DevOps-scoped |
+| The module map contains exactly **ten** modules and no module appears twice | Module map above; ten rows and ten distinct source paths; eight existing owner tasks plus two distinct future owner roles |
+| The dependency graph is acyclic and the two roots stay independent | [Allowed dependency directions](#allowed-dependency-directions): 12 nodes, 19 edges, complete five-level witness, exactly two contract roots with no path between them |

@@ -1,8 +1,8 @@
 # Runtime Sequence Diagrams
 
-Source diagrams for the nine sequences that carry the runtime's guarantees. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, and TASK-038.
+Source diagrams for the ten sequences that carry the runtime and release-control guarantees. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, TASK-038, and TASK-040.
 
-Specifications: [LEASES-AND-SCHEDULING.md](../../docs/architecture/runtime/LEASES-AND-SCHEDULING.md), [CRASH-RECOVERY.md](../../docs/architecture/runtime/CRASH-RECOVERY.md), [LIFECYCLE-AND-BOOTSTRAP.md](../../docs/architecture/runtime/LIFECYCLE-AND-BOOTSTRAP.md), [WORKSPACE-LIFECYCLE.md](../../docs/architecture/runtime/WORKSPACE-LIFECYCLE.md), [PROVIDER-ADAPTERS.md](../../docs/architecture/runtime/PROVIDER-ADAPTERS.md), [DURABLE-STATE-AND-CHECKPOINTS.md](../../docs/architecture/runtime/DURABLE-STATE-AND-CHECKPOINTS.md), [STATE-MACHINE.md](../../docs/architecture/runtime/STATE-MACHINE.md).
+Specifications: [LEASES-AND-SCHEDULING.md](../../docs/architecture/runtime/LEASES-AND-SCHEDULING.md), [CRASH-RECOVERY.md](../../docs/architecture/runtime/CRASH-RECOVERY.md), [LIFECYCLE-AND-BOOTSTRAP.md](../../docs/architecture/runtime/LIFECYCLE-AND-BOOTSTRAP.md), [WORKSPACE-LIFECYCLE.md](../../docs/architecture/runtime/WORKSPACE-LIFECYCLE.md), [PROVIDER-ADAPTERS.md](../../docs/architecture/runtime/PROVIDER-ADAPTERS.md), [DURABLE-STATE-AND-CHECKPOINTS.md](../../docs/architecture/runtime/DURABLE-STATE-AND-CHECKPOINTS.md), [STATE-MACHINE.md](../../docs/architecture/runtime/STATE-MACHINE.md), [POST-GATE-MERGE-EXECUTORS.md](../../docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md).
 
 Amended by TASK-016: every append is shown as a framed batch with a commit record (A-001); the recovery sequence is rebuilt around one decision per task (A-002); three sequences are added for live-run control, process-tree termination, and the workspace lifecycle (A-003 and the workspace module gap).
 
@@ -45,6 +45,11 @@ Amended by TASK-036 (architecture amendment only; independent TASK-037 owns the 
 Amended by TASK-038 (architecture amendment only; independent TASK-039 owns the verdict):
 
 - Sequence 9 shows the single cumulative architecture content merge and the atomic direct/subsumed lifecycle-evidence batch. Superseded predecessor branches never reach Git after the cumulative target.
+
+Amended by TASK-040 (architecture amendment only; independent TASK-041 owns the verdict):
+
+- Sequence 9 replaces the Orchestrator's Git operation with durable plan/execute by the runtime executor, TASK-026 result append, and ordinary TASK-005 scheduler wake-up. ADR-0041's one content unit and exact direct/subsumed state batch are unchanged.
+- Sequence 10 shows the separate DevOps release executor checking all seven aggregate domains, persisting intent, merging only the protected integration PR into `main`, reconciling an ambiguous result, and publishing through the same authorized ingress path.
 
 ## 1. Bootstrap — one input to a running run
 
@@ -488,22 +493,70 @@ New under TASK-038 for A-601. This is the only content-bearing sequence for `LIN
 ```mermaid
 sequenceDiagram
   participant Review as Current lineage gate task
-  participant Orch as Orchestrator
+  participant Exec as Runtime integration executor
+  participant Evidence as External merge evidence store
   participant Repo as Git integration branch
+  participant Adapter as TASK-026 merge-result adapter
+  participant Sched as TASK-005 observer/scheduler
+  participant Sup as Supervisor
   participant Store as StateStore
   participant Consumers as Architecture consumers
 
   Review->>Store: GateVerdictRecorded{all current relations,<br/>one authoritative passing verdict}
-  Store-->>Orch: complete cohort and round closed atomically
-  Orch->>Orch: derive cohort, round, unique gate owner,<br/>and latest cumulative target T from target tree
-  Orch->>Repo: squash T only into integration/autonomous-runtime
-  Repo-->>Orch: mergedCommit and result tree
-  Orch->>Orch: require result tree == T publication tree
-  Note over Orch,Repo: no content-import commit and no predecessor<br/>branch/tree is an integration input
-  Orch->>Store: append ONE batch:<br/>BranchIntegrated{T, content-merged},<br/>then one lineage-subsumed record<br/>per predecessor in cohort order
+  Store-->>Exec: immutable target/gate snapshot is eligible for admission
+  Exec->>Exec: derive cohort, round, unique gate owner,<br/>latest cumulative target T, head/base OIDs,<br/>security, order, policy, expected tree
+  Exec->>Evidence: recordIntent(canonical plan)
+  Evidence-->>Exec: store-verifiable durable receipt
+  Exec->>Repo: mergePullRequest(PR, exact head OID, squash)
+  Repo-->>Exec: mergedCommit and result tree
+  Exec->>Exec: require result tree == T publication tree
+  Note over Exec,Repo: no content-import commit and no predecessor<br/>branch/tree is an integration input
+  Exec->>Evidence: recordOutcome(verified merged)
+  Adapter->>Evidence: validate immutable terminal evidence
+  Adapter->>Adapter: append one branch_integrated fact through IngressInbox
+  Adapter-->>Sched: high-water mark
+  Sched->>Sched: signal, observe, deliver before selection
+  Sched-->>Sup: immutable ingress delivery
+  Sup->>Store: append ONE batch:<br/>BranchIntegrated{T, content-merged},<br/>then one lineage-subsumed record<br/>per predecessor in cohort order
   Store->>Store: require identical branch, merge, source T,<br/>publication, lineage, round, and timestamp;<br/>reject incomplete or stale evidence atomically
-  Store-->>Orch: integrated(T) directly;<br/>integrated(predecessors) by subsumption
-  Orch-->>Consumers: target-derived LIN-ARCH-REVIEW floor released
+  Store-->>Sup: integrated(T) directly;<br/>integrated(predecessors) by subsumption
+  Sup-->>Consumers: ordinary selection sees released floor
 ```
 
 The one merge contains the cumulative artifact reviewed by the authoritative verdict. The subsequent events perform no Git operation and do not reinterpret any predecessor's `changes-required` verdict; they let closed predecessor task lifecycles reach `done` by proving that their responsibility is contained in the same reviewed tree.
+
+## 10. Aggregate release admission, protected main merge, and reconciliation
+
+New under TASK-040. The executor is not the runtime task executor and does not share its credential or code.
+
+```mermaid
+sequenceDiagram
+  participant Release as DevOps release executor
+  participant Evidence as Release merge evidence store
+  participant GitHub as Protected GitHub PR
+  participant Adapter as TASK-026 merge-result adapter
+  participant Sched as TASK-005 observer/scheduler
+
+  Release->>Release: load immutable release-gates/v1 manifest
+  Release->>Release: require review + security + QA + performance<br/>+ documentation + deployment + rollback aggregate gates
+  Release->>Release: verify complete ordered integration evidence,<br/>exact integration head/main base OIDs,<br/>checks, security, policy, expected tree
+  Release->>Evidence: recordIntent(canonical release plan)
+  Evidence-->>Release: store-verifiable durable receipt
+  Release->>GitHub: mergePullRequest(integration PR, exact head OID, merge)
+  alt authoritative merged response
+    GitHub-->>Release: merged commit
+  else response lost or ambiguous
+    GitHub--xRelease: no authoritative result
+    Release->>Evidence: retain pending intent; no blind retry
+    Release->>GitHub: read PR, base, merged commit, tree
+    GitHub-->>Release: authoritative observation
+  end
+  Release->>Release: require merged tree == pinned integration tree
+  Release->>Evidence: recordOutcome(merged or recovered_merged)
+  Adapter->>Evidence: validate terminal result and digest
+  Adapter->>Adapter: append one branch_integrated fact
+  Adapter-->>Sched: signal committed high-water mark
+  Sched->>Sched: observe, deliver, then ordinary selection
+```
+
+A conflict, stale OID, missing/non-success check, policy mismatch, incomplete aggregate domain, or unverifiable result follows no merge arrow. It writes refusal/remediation evidence. Only retryable transport/rate/5xx failures can re-enter after reconciliation, within three total mutation attempts and 120 seconds. No branch produces a routine human merge request.

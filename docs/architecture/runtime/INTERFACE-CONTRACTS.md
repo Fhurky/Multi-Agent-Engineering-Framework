@@ -1,10 +1,14 @@
 # Runtime Interface Contracts
 
+## Amendment register - TASK-040
+
+TASK-040 adds no generic merge function and no shared executor implementation. It adds the merge-result append principal below and records the executor-local typed protocol in section 10b. The full authority/refusal/evidence contract is [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md), decided by [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md). This is Architect-authored contract text, not TASK-041 approval.
+
 Normative cross-module contracts for the autonomous runtime. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, and TASK-038. This document exists so that TASK-003 through TASK-008, TASK-017, and TASK-026 never negotiate an interface during execution.
 
 ## Amendment register - TASK-038
 
-TASK-037 recorded `changes-required` for TASK-036 solely because of A-601. TASK-038 changes the existing integration evidence shape so one reviewed cumulative architecture target can close its superseded lineage cohort without replaying predecessor content. It adds no runtime-event member and changes no recovery, ingress, receipt, or provider contract judged sound at round 7. [ADR-0041](../../adr/0041-cumulative-architecture-lineage-integration-unit.md) is the decision authority; TASK-039 alone owns the verdict.
+TASK-037 recorded `changes-required` for TASK-036 solely because of A-601. TASK-038 changed the existing integration evidence shape so one reviewed cumulative architecture target can close its superseded lineage cohort without replaying predecessor content. It added no runtime-event member and changed no recovery, ingress, receipt, or provider contract judged sound at round 7. [ADR-0041](../../adr/0041-cumulative-architecture-lineage-integration-unit.md) is the decision authority; TASK-039 later approved it at review commit `734bdbc`.
 
 ## Amendment register - TASK-036
 
@@ -599,7 +603,12 @@ export type BootstrapDispatchContract =
  *  operator, Orchestrator, or supervisor. */
 export type IngressAppendPrincipal =
   | { kind: 'ingress_adapter'; eventType: IngressEventType; adapterId: string }
-  | { kind: 'pre_dispatch_collector'; collectorId: 'runtime-pre-dispatch-ingress' };
+  | { kind: 'pre_dispatch_collector'; collectorId: 'runtime-pre-dispatch-ingress' }
+  | {
+      kind: 'merge_result_adapter';
+      executor: 'task_integration' | 'release_main';
+      adapterId: 'runtime-merge-result-ingress';
+    };
 
 export interface IngressAppendContext {
   phase: 'bootstrap' | 'runtime';
@@ -818,6 +827,34 @@ export type PreDispatchCollectResult =
   | { ok: true; disposition: 'deduplicated'; factId: FactId; highWaterMark: IngressSeq }
   | { ok: false; stage: 'validation' | 'append'; code: string; detail: string };
 
+// TASK-040 — owned by TASK-026. Executors publish evidence and never receive this capability.
+export interface ExternalMergeResultFact {
+  executor: 'task_integration' | 'release_main';
+  evidenceRef: string;
+  evidenceDigest: Sha256Hex;
+  producerTask: TaskId;
+  producerRole: 'runtime' | 'devops';
+  sourceCommit: string;
+  sourcePath: string;
+  contentHash: Sha256Hex;
+  headOid: string;
+  baseOid: string;
+  mergedCommitOid: string;
+  resultingTreeOid: string;
+  terminalOutcome: 'merged' | 'recovered_merged';
+}
+
+export interface MergeResultIngressAdapter {
+  /** Validates a terminal evidence record, then appends exactly one branch_integrated candidate
+   * through IngressInbox under its own principal. It never accepts a planned, retry, unknown,
+   * refused, or unverifiable outcome. */
+  collect(fact: ExternalMergeResultFact): Promise<MergeResultCollectResult>;
+}
+
+export type MergeResultCollectResult =
+  | { ok: true; disposition: 'appended' | 'deduplicated'; factId: FactId; highWaterMark: IngressSeq }
+  | { ok: false; error: 'EvidenceInvalid' | 'OutcomeNotTerminal' | 'UnauthorizedExecutor' | 'AppendFailed'; detail: string };
+
 // TASK-028 (ADR-0029/0031) — signalling, observation, and delivery, owned by TASK-005.
 export interface IngressHighWaterSignal {
   signal(highWaterMark: IngressSeq): Promise<{ ok: true } | { ok: false; error: 'SignalRegressed' }>;
@@ -866,7 +903,7 @@ export type IngressDeliveryResult =
 7. **The cursor.** `ingressSeq = max(seq)`, or 0 when empty. **Dispatchable:** `ingressSeq > activation.lastConsumedEventSeq`. **Quiescent:** equal. **Invalid:** `lastConsumedEventSeq > ingressSeq`, rejected at load.
 8. **Exactly-once consumption.** An activation consumes `(lastConsumedEventSeq, ingressSeq]`. The effects, the ledger rows for the consumed range, and the cursor advance are applied in **one batch**. If the batch does not land, the cursor is unchanged, no ledger row exists, and the same range is consumed again by the next activation with identical effects, because every transition a control-plane activation performs is idempotent.
 9. **Epochs.** A new epoch is declared only by a numbered model correction, takes `seqBase` from the previous epoch's high-water mark, and never re-derives, renumbers, reclassifies, or edits a prior epoch's entries.
-10. **Append authorization.** Runtime accepts only an `ingress_adapter` matching the entry class. Bootstrap under `durable-bootstrap-append` accepts only `pre_dispatch_collector`; bootstrap under `interim-operator-authorized` accepts no append principal at all. Every other combination returns `UnauthorizedPrincipal`.
+10. **Append authorization.** Runtime accepts an `ingress_adapter` matching the entry class, or `merge_result_adapter` only for a verified `branch_integrated` terminal merge result. Bootstrap under `durable-bootstrap-append` accepts only `pre_dispatch_collector`; bootstrap under `interim-operator-authorized` accepts no append principal at all. An executor, activation, recurring task, Orchestrator, supervisor, scheduler, and operator remain outside the union. Every other combination returns `UnauthorizedPrincipal`.
 11. **Pre-selection durability.** Under `durable-bootstrap-append`, validation, identity-keyed append, high-water signalling, and successful observation occur before `Scheduler.activatableTasks`. A failure returns `BootstrapContractUnsatisfied`; no fallback may claim that the durable predicate authorized the dispatch.
 12. **One read, two consumers.** TASK-005 alone reads the activation range through `IngressObserver.deliver`. The same `IngressDelivery` enters `AgentInvocation.ingress` and is projected into `IngressRangeConsumed.rows`; the activation holds no inbox capability and never re-reads.
 
@@ -2447,19 +2484,36 @@ The recovery layer reads `run.pendingResults[taskId]` to build the `WorkerSuccee
 
 The fate of `proposedTasks` is stated once, here, and nowhere contradicted: they are recorded verbatim before the result effect is committed, they are adopted with the result, and they are admitted by the same `TaskCreated` guards an uninterrupted run would apply. They are never digested, never truncated, and never silently dropped. When a task's current attempt has a `committed` result effect and **no** matching `pendingResults` entry, the decision is `escalate` with reason `unreconstructable_result:<effectId>`, not `adopt` with a partial event — because a terminal task graph missing a proposal is a worse outcome than a blocked task naming the defect.
 
+## 10b. Post-gate merge protocol — executor-local contracts under TASK-040
+
+The task executor declares its types under `src/orchestrator/integration/`; the release executor declares its different release types under `scripts/release/integration-merge/`. They do not add a contract root or import one another. Their canonical JSON shapes and result discriminants are fixed by [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md):
+
+- `MergeExecutorActivationRecord` proves the four operational prerequisites.
+- `TaskIntegrationAdmissionInput` and `ReleaseGateManifest` provide the two different closed input domains. The release manifest contains exactly seven aggregate domains: review, security, QA, performance, documentation, deployment, and rollback.
+- `MergeAdmissionResult` is exactly `admitted`, `refused`, or `human_exception_required`; there is no unchecked plan constructor.
+- `MergePlan` pins repository, PR, head/base OIDs, literal base and method, expected tree, order, gate/security/policy digests, and canonical idempotency key.
+- `MergeEvidenceStore.recordIntent` precedes the one API mutation and returns an opaque receipt verified by `execute`; terminal result evidence follows result-tree verification.
+- `HumanExceptionKind` has exactly three members and unknown classification can only refuse.
+
+The task executor may read existing task/gate views from `state/contracts`, but it cannot append run state. The release executor is a self-contained consumer of immutable release artifacts and GitHub observations. The sole cross-module result boundary is `ExternalMergeResultFact` above: TASK-026 validates it and appends; TASK-005 observes and delivers; the ordinary transition function alone applies `BranchIntegrated`.
+
+No `GitHubMergePort` exposes a ref update. The runtime-local port fixes base `integration/autonomous-runtime` and method `squash`; the DevOps-local port fixes base `main` and method `merge`. Both accept a PR number and exact head OID. Neither accepts an environment map, a force/admin flag, a gate mutation, a task mutation, a lock operation, or a generic target ref.
+
 ## 11. Contract ownership summary
 
 | Section | Contract root | Owner task | Consumed by |
 |---|---|---|---|
-| 1–4, 9 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005, TASK-006, TASK-007, TASK-008, TASK-017, TASK-026 |
+| 1–4, 9 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005, TASK-006, TASK-007, TASK-008, TASK-017, TASK-026, and the runtime task integration executor |
 | 2a, 2d | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005, TASK-006, TASK-008, TASK-017 |
-| 2b | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005 and TASK-026; TASK-006 applies the ingress events |
+| 2b | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005 and TASK-026; TASK-006 applies ingress events; merge executors have no append capability |
 | 3a | `src/orchestrator/state/contracts/` | TASK-003 | TASK-003 only; no other module reads a journal line |
 | 5 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-005, TASK-006 |
 | 6 | `src/agents/contracts/` | TASK-004 | TASK-005, TASK-006, TASK-007, TASK-008 |
 | 7 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-008 |
 | 8 | `src/orchestrator/state/contracts/` | TASK-003 | TASK-007 |
 | 10, 10a | `src/orchestrator/state/contracts/` | TASK-003 | TASK-006, TASK-008, TASK-017 |
+| 10b task executor | `src/orchestrator/integration/` | Future `runtime` implementation task, only after TASK-041 passes | TASK-006 composition; TASK-026 consumes only the published result artifact |
+| 10b release executor | `scripts/release/integration-merge/` | Future `devops` implementation task, only after TASK-041 passes | Release control plane; TASK-026 consumes only the published result artifact |
 
 TASK-003 owns more contract surface than it implements. That is intentional: the contract root must exist before Wave 3 begins, and TASK-003 is the earliest module every later task depends on. TASK-003 implements only the `StateStore`; it declares the `Scheduler`, `RetryPolicy`, `TimeoutWatchdog`, `RecoveryCoordinator`, `RunController`, `ControlChannel`, `WorkspaceLifecycle`, and — added under TASK-024 — `IngressInbox` interfaces without implementing them.
 

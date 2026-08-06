@@ -1,12 +1,16 @@
 # Integration and Branch Aggregation Strategy
 
-Normative integration strategy for the runtime task graph. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, and TASK-038. Related decisions: [ADR-0010](../../adr/0010-integration-and-branch-aggregation-strategy.md) as superseded in part by [ADR-0016](../../adr/0016-integration-branch-and-typed-merge-order.md), [ADR-0015](../../adr/0015-typed-scheduling-gate-and-activation-contracts.md), [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md), [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md), TASK-028 ADRs [0027](../../adr/0027-finalize-split-around-the-publication-append.md) and [0028](../../adr/0028-nominal-store-issued-durable-append-receipts.md), [ADR-0036](../../adr/0036-target-tree-derived-architecture-fixtures-and-lineage-integration.md), and [ADR-0041](../../adr/0041-cumulative-architecture-lineage-integration-unit.md).
+Normative integration strategy for the runtime task graph and final release merge. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, TASK-038, and TASK-040. Related decisions: [ADR-0010](../../adr/0010-integration-and-branch-aggregation-strategy.md) as superseded in part by [ADR-0016](../../adr/0016-integration-branch-and-typed-merge-order.md), [ADR-0015](../../adr/0015-typed-scheduling-gate-and-activation-contracts.md), [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md), [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md), TASK-028 ADRs [0027](../../adr/0027-finalize-split-around-the-publication-append.md) and [0028](../../adr/0028-nominal-store-issued-durable-append-receipts.md), [ADR-0036](../../adr/0036-target-tree-derived-architecture-fixtures-and-lineage-integration.md), [ADR-0041](../../adr/0041-cumulative-architecture-lineage-integration-unit.md), and [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md).
 
 **Eight** implementation tasks — TASK-003 through TASK-008, TASK-017, and TASK-026 — run in waves across isolated worktrees and separate agent branches, behind a toolchain task and the complete architecture-amendment lineage. This document defines how their branches converge without contract drift and without a merge conflict any agent has to resolve.
 
+## Amendment register — TASK-040
+
+TASK-040 adds the two conditional executors authorized by HUMAN-004 at `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`. ADR-0042 supersedes only the operator-execution clauses: all typed order, squash, cumulative-unit, tree-equality, and contract-change rules remain. The complete authority contract is [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md). This amendment records no approval; TASK-041 owns that verdict.
+
 ## Amendment register — TASK-038
 
-TASK-037 recorded `changes-required` for TASK-036 at lineage round 7. It recorded A-501 through A-505 and every inherited obligation satisfied, but opened A-601 because the old order replayed rejected, non-ancestral predecessor trees after the cumulative target. TASK-038 changes only that integration procedure; TASK-039 alone may record round 8.
+TASK-037 recorded `changes-required` for TASK-036 at lineage round 7. It recorded A-501 through A-505 and every inherited obligation satisfied, but opened A-601 because the old order replayed rejected, non-ancestral predecessor trees after the cumulative target. TASK-038 changed only that integration procedure; TASK-039 later recorded the passing round-8 verdict at `734bdbc`, and the approved target was integrated at `de3a8d6`.
 
 | Superseded integration claim | Superseded by | Finding | Decision |
 |---|---|---|---|
@@ -120,9 +124,9 @@ Rules:
 
 1. **Every task branches from `integration/autonomous-runtime`**, never from a sibling agent branch. A task created from a sibling would inherit unreviewed work and would make the sibling's review gate meaningless.
 2. **A task branches at or after the commit where its declared dependencies reached `integrated`.** Wave 4 worktrees are created after TASK-003 and TASK-004 are integrated; Wave 5 after TASK-017 and TASK-026; Wave 6 after TASK-005; Wave 7 after TASK-006.
-3. **No agent pushes to `main`, and no agent merges into `main`.** The tracked pre-push hook blocks the push, every branch integrates by pull request, and the runtime's workspace module has no code path that can construct a push to any ref but its own task branch ([WORKSPACE-LIFECYCLE.md](WORKSPACE-LIFECYCLE.md)).
+3. **No agent or executor pushes to `main`.** The tracked pre-push hook blocks the push, every branch integrates by pull request, and the runtime's workspace module has no code path that can construct a push to any ref but its own task branch ([WORKSPACE-LIFECYCLE.md](WORKSPACE-LIFECYCLE.md)). HUMAN-004 conditionally permits only the DevOps release executor to merge the protected integration pull request through the GitHub API. It cannot invoke `git push`, set `ALLOW_MAIN_PUSH`, bypass policy, or name another base.
 4. **No rebasing of a sibling's branch by anyone but its owner.** A branch that needs a newer integration branch is rebased or merged by its own owner, in its own worktree.
-5. **`main` receives the runtime as one human-reviewed pull request** from `integration/autonomous-runtime`, not as a stream of agent merges.
+5. **`main` receives the runtime as one independently gated pull request** from `integration/autonomous-runtime`, not as a stream of task merges. Its merge is performed by the DevOps executor only after conditional activation and release admission; until then, the current human-controlled flow remains and existing pull requests are unaffected.
 
 ## Integration order
 
@@ -140,24 +144,28 @@ Each row states what merging that task **releases**, in the typed vocabulary of 
 | 6 | 5 | TASK-005 | none | `integrated(TASK-005)` for TASK-006 |
 | 7 | 6 | TASK-006 | none | `integrated(TASK-006)` for TASK-007 and TASK-008 |
 | 8 | 7 | TASK-007 and TASK-008, in either order | none | `review_ready` for TASK-009 … TASK-012 |
-| 9 | — | `integration/autonomous-runtime` into `main` | every assembly gate closed | Release |
+| 9 | — | `integration/autonomous-runtime` into `main` | one immutable `release-gates/v1` manifest; authoritative aggregate review, security, QA, performance, documentation, deployment, and rollback lineage requirements all closed | Release |
 
 Within a wave, parallel tasks may merge in either order and require no coordination, because their scopes are disjoint and neither imports the other. TASK-017 and TASK-026 are the Wave 4 pair: `src/orchestrator/workspace/**` and `src/orchestrator/ingress/**` do not overlap, and neither imports the other's implementation. Both sit at level 1 of the module partial order, so neither can depend on the other even accidentally.
 
-Steps 1 and 2 are the only rows with a non-empty `pre_merge_gates`. Every gate task in those rows is dispatchable on `review_ready`, before its target merges, so no review gate waits on a merge that waits on that review.
+Steps 1 and 2 are the only task rows with a non-empty `pre_merge_gates`. Every gate task in those rows is dispatchable on `review_ready`, before its target merges, so no review gate waits on a merge that waits on that review. Step 9 is different and explicitly new: its seven aggregate domains are declared in `ReleaseGateManifest`, evaluated with the lineage form of `gate_passed`, and never inferred from a task owner form.
 
 **The architecture edge is the lineage form.** Consumers name `LIN-ARCH-REVIEW`, never an authoring task. The minimum acceptable floor is derived from the greatest contiguous round declared by the target's matching relation pairs. A passing or formally accepted verdict at that floor closes the edge. A `changes-required` verdict remains durable and causes the next activated amendment/reviewer pair to extend the register; no consumer edge is retargeted and no failed target is integrated.
 
 **Merge method: one squash commit per content integration unit.** For an ordinary task, the unit is that task and the message is prefixed `feat:` and names its task ID. For `LIN-ARCH-REVIEW`, the unit is the complete cumulative artifact represented by the latest target with the authoritative passing or formally accepted verdict; its one commit names that target and the lineage. Superseded cohort members receive lineage-subsumed integration evidence pointing to that same commit and receive no commit of their own. This preserves one-commit remediation identity without replaying rejected trees.
 
+**Executor and identity.** After its activation conditions hold, the runtime post-gate executor performs Steps 1 through 8 one admitted content unit at a time using `squash`. The DevOps release executor performs Step 9 using the protected PR `merge` method. Each plan pins the exact PR head and base OIDs and the next `IntegrationOrderKey`; a mutable branch name only selects a ref for an immediate equality check. A base change, stale head, wrong method, earlier missing unit, or order-key mismatch refuses before mutation.
+
+The integration lease serializes admitted local plans per protected base. GitHub rules require strict current-base checks and no bypass, so a concurrent protected-base update invalidates admission at the server rather than silently changing the content unit. After the API call, exact target-tree equality is mandatory. No result is integrated merely because GitHub reports the PR closed or merged.
+
 ### Cumulative architecture integration transaction
 
-The Orchestrator performs this transaction only after deriving and validating the lineage from the immutable target tree:
+The runtime post-gate executor performs the GitHub portion of this transaction only after deriving and validating the lineage from the immutable target tree. The Orchestrator neither merges nor appends the result:
 
 1. Derive the ordered `LIN-ARCH-REVIEW` cohort, the greatest contiguous round, its unique gate task, and that gate task's complete relation set. Let `T` be the last cohort member and require that the gate task's unique `review_ready` dependency names `T`.
 2. Require the authoritative verdict at that round to be passing or formally accepted, every relation in its atomic verdict batch to be closed, and `T` to be `review_ready`. A `changes-required` verdict integrates nothing.
 3. Squash only `T`'s published commit into `integration/autonomous-runtime`. Verify that the resulting tree equals the published tree of `T`. Neither an authoring content-import commit nor any superseded task branch is a merge input.
-4. Append one crash-atomic evidence batch. Its first `BranchIntegrated` records `content-merged` for `T`. The remaining events, in cohort order, record `lineage-subsumed` for each predecessor. Every record names the same integration branch, merged commit, source task `T`, source published commit, lineage, and authoritative round. A mismatch, duplicate record, non-current target, incomplete cohort, or predecessor content operation rejects the whole batch.
+4. Persist and publish the verified terminal merge result. TASK-026's authorized result adapter appends one `branch_integrated` fact. In the ordinary scheduling activation, the supervisor appends one crash-atomic state evidence batch. Its first `BranchIntegrated` records `content-merged` for `T`. The remaining events, in cohort order, record `lineage-subsumed` for each predecessor. Every record names the same integration branch, merged commit, source task `T`, source published commit, lineage, and authoritative round. A mismatch, duplicate record, non-current target, incomplete cohort, or predecessor content operation rejects the whole batch.
 5. Evaluate `integrated(X)` from those records. `T` is integrated directly; a predecessor is integrated only by the exact lineage-subsumption proof above. Because the same authoritative verdict has already closed every cohort relation, each predecessor may then satisfy `terminal` and reach lifecycle `done` without replaying its blobs.
 
 `lineage-subsumed` is lifecycle evidence, not a Git operation and not a claim that a rejected predecessor was approved in isolation. It says that the predecessor's historical responsibility is contained in the one reviewed cumulative tree. Each rejected verdict and publication remains durable.
@@ -167,6 +175,18 @@ The alternative named by A-601—integrating predecessors before the cumulative 
 ### Complete-order fixture
 
 [`fixtures/verify-integration-order.ps1`](fixtures/verify-integration-order.ps1) is the normative read-only Git fixture for the architecture portion of the prescribed order. Given an integration base and the cumulative published target, it executes the complete content-bearing sequence—exactly one merge-tree step—requires zero conflicts, and requires the result tree to equal the target tree. It then runs the historical two-row regression probe (`970b081` followed by rejected predecessor `6d145eb`) and requires the known 19-path conflict set. The set uses Git's actual path, `docs/adr/README.md`; the round-7 prose called that path `docs/architecture/README.md`, which does not exist in the target. A fixture that merely tests each old target independently against the base is invalid because it does not execute the sequence that caused A-601.
+
+### Release integration-evidence transaction
+
+The release executor may accept integration history produced by the activated runtime executor, the bounded legacy operator path, or a mixture. It never trusts producer identity alone. Before Step 9 it:
+
+1. Reads the immutable `ReleaseGateManifest`, requires exactly the seven aggregate gate domains, and proves each lineage requirement closed at or above its minimum round.
+2. Enumerates every content unit represented by the integration head and requires one verified integration record for each. Direct and ADR-0041 lineage-subsumed records retain their distinct meanings.
+3. Folds the records by `IntegrationOrderKey`, rejects missing/duplicate/reordered evidence, and requires the folded result tree to equal the pinned integration head tree.
+4. Requires the pinned `main` base to be an ancestor of the integration head, persists the release plan, and invokes the protected PR merge only after the durable receipt is verified.
+5. Verifies the release merge commit tree equals the integration head tree, persists the outcome, and publishes it for the same TASK-026/TASK-005 ingress path.
+
+An operator-produced task merge is therefore compatible only while it emits evidence identical in semantics to executor-produced evidence. A naked merge commit or mutable branch observation is never sufficient release lineage.
 
 ## Why an integration branch, reversing the TASK-002 decision
 
@@ -186,7 +206,7 @@ This is the mechanism that keeps eight parallel implementations compatible.
 
 **Rule.** During Waves 3 through 7, no implementation task may change a type, signature, field name, or string-literal union defined in [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md), even inside its own write scope.
 
-TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, and TASK-038 each apply the procedure below once. TASK-015, TASK-020, TASK-025, TASK-029, TASK-033, TASK-035, and TASK-037 independently rejected the preceding authoring baseline; the next architect execution amended it without rewriting the recorded verdict. TASK-039 alone may record the next verdict. No publication becomes approved by its authoring commit.
+TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, TASK-038, and TASK-040 each apply the procedure below once. TASK-015, TASK-020, TASK-025, TASK-029, TASK-033, TASK-035, and TASK-037 independently rejected preceding authoring baselines; TASK-039 approved TASK-038 at round 8. TASK-041 alone may judge the TASK-040 amendment. No publication becomes approved by its authoring commit.
 
 **Procedure when a contract is wrong.**
 
@@ -210,17 +230,19 @@ The rejected alternative stands as rejected: extending TASK-003's write scope to
 
 The parameters TASK-018 must satisfy remain those in [ADR-0001](../../adr/0001-runtime-platform-and-language.md).
 
-## Ownership gaps that remain
+## Ownership status and implementation gaps
 
-None. All three gaps recorded against this graph are closed.
+All three earlier gaps are closed. TASK-040 closes the architectural ownership gap for both merge effects, while their implementations and activation controls remain deliberately absent until TASK-041 passes.
 
 | Gap | Recorded by | Closed by |
 |---|---|---|
 | No task owned the root toolchain manifests or `scripts/quality/**` | TASK-002 | HUMAN-001 at `fb9f45c`; TASK-018 owns the toolchain |
 | No module owned the agent workspace lifecycle that `AgentInvocation.worktreePath` presupposed | TASK-002, narrowed by F-105 | ADR-0011 under TASK-016; TASK-017 owns it. TASK-024 makes its intents durable before their side effects (A-103) |
 | No module owned the durable ingress inbox the activation model requires | F-301, inherited by A-101 | ADR-0017 and ADR-0021 under TASK-024; TASK-026 owns it |
+| No module owned admitted task-to-integration merge | HUMAN-004 / TASK-040 | ADR-0042 assigns `src/orchestrator/integration/` to `runtime`; implementation task not yet created |
+| No module owned admitted integration-to-main release merge | HUMAN-004 / TASK-040 | ADR-0042 assigns `scripts/release/integration-merge/` to `devops`; implementation task not yet created |
 
-The module map now has **eight** modules, eight owners, and no unassigned runtime responsibility ([COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md)).
+The target-tree module map now has **ten** modules and ten distinct source paths, with no shared ownership ([COMPONENT-BOUNDARIES.md](COMPONENT-BOUNDARIES.md)). This assignment creates no task and no operational capability.
 
 ## Validation gates per branch
 
@@ -233,6 +255,8 @@ Before any runtime branch opens a pull request, its owner runs, from its own wor
 CI additionally runs the framework validator, the orchestration control tests, and the write-scope validator against the pull request head. A branch that touches a governance path or another role's scope fails before review.
 
 Review, security, QA, and performance gates then run as separate execution contexts per the TASK-001 graph. No author approves their own branch.
+
+For the two merge executors, ordinary branch validation is necessary but insufficient. Their immutable activation records additionally require independent implementation review, security validation, negative-capability and failure-injection evidence, live GitHub protection tests, and a human-issued GitHub control attestation. A missing or stale member refuses. TASK-040 supplies the contract only; TASK-041 reviews it, and the Orchestrator alone may create later work after a passing verdict.
 
 For work the **runtime** dispatches, these steps are performed by the workspace lifecycle module rather than by a human: it verifies hooks, creates the branch and worktree, claims the lock, and runs the scope validator. Finalization is three-phase: `executeFinalize` commits, pushes, and creates or updates the pull request while returning `lockReleased:false`; the supervisor appends `ArtifactPublished`; `completeFinalize` accepts the store-issued publication receipt and only then releases the task lock. A failed append or verification leaves the lock held for recovery. See [WORKSPACE-LIFECYCLE.md](WORKSPACE-LIFECYCLE.md). The manual procedure remains in force for human-launched CLI sessions that build the runtime itself.
 

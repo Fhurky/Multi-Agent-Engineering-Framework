@@ -26,14 +26,17 @@ Operator ──► bin/ CLI ──► lifecycle ──► supervisor ──► s
                                             │                          │
                                             │                          └──► owned process tree
                                             │                               (job object / pgid)
+                                            ├──► task integration executor ──► protected integration PR merge
                                             └──► durable state ──► run directory
                                                      ▲
                                           recovery ──┘
+
+Release control plane ──► release merge executor ──► protected integration-to-main PR merge
 ```
 
-Eight modules, each owned end to end by exactly one implementation task, with no shared module ownership:
+Ten modules with no shared ownership. The eight implemented-task assignments remain; TASK-040 adds two separately owned executor roles whose implementation tasks do not yet exist:
 
-| Module | Path | Owner task |
+| Module | Path | Sole owner |
 |---|---|---|
 | Durable state store | `src/orchestrator/state/` | TASK-003 |
 | Provider adapters, agent workers, process trees | `src/agents/` | TASK-004 |
@@ -43,10 +46,12 @@ Eight modules, each owned end to end by exactly one implementation task, with no
 | Recovery, timeouts, retries | `src/orchestrator/recovery/` | TASK-008 |
 | Agent workspace lifecycle | `src/orchestrator/workspace/` | TASK-017 |
 | Durable ingress inbox and its adapters | `src/orchestrator/ingress/` | TASK-026 |
+| Post-gate task integration executor | `src/orchestrator/integration/` | `runtime` role; implementation task may be created only after TASK-041 passes |
+| Integration release merge executor | `scripts/release/integration-merge/` | `devops` role; implementation task may be created only after TASK-041 passes |
 
 ### Load-bearing decisions
 
-Everything else follows from twenty-eight choices. The first six were authored under TASK-002; choices 7 through 10 under TASK-016; choices 11 and 12 under TASK-024; and choices 13 through 21 under TASK-028. TASK-032 refined choices 14, 15, and 18 through ADR-0032, ADR-0033, and ADR-0034; TASK-034 added choices 22 and 23 through ADR-0035 and ADR-0036. TASK-036 added choices 24 through 27 through ADR-0037 through ADR-0040 without changing module topology. TASK-038 adds choice 28 through ADR-0041. All seven earlier architecture publications are rejected authoring baselines: LIN-ARCH-REVIEW rounds 1 through 7 recorded `changes-required`. TASK-038 is a reviewable Architect-authored amendment, not review approval; only independent TASK-039 may record the lineage-round-8 verdict.
+Everything else follows from twenty-nine choices. The first six were authored under TASK-002; choices 7 through 10 under TASK-016; choices 11 and 12 under TASK-024; and choices 13 through 21 under TASK-028. TASK-032 refined choices 14, 15, and 18 through ADR-0032, ADR-0033, and ADR-0034; TASK-034 added choices 22 and 23 through ADR-0035 and ADR-0036. TASK-036 added choices 24 through 27 through ADR-0037 through ADR-0040 without changing module topology. TASK-038 adds choice 28 through ADR-0041. TASK-040 adds choice 29 through ADR-0042 under HUMAN-004. The approved baseline is the TASK-038 target reviewed by TASK-039 and integrated at `de3a8d6`; TASK-040 amends it and records no approval. Only independent TASK-041 may decide this amendment.
 
 1. **State is the fold of an append-only event journal.** A `RunRecord` is never authored directly; it is computed by replaying events through one pure transition function. Checkpoints are materialized folds written atomically, never a second source of truth. This is what makes crash recovery a replay rather than a repair.
 
@@ -103,6 +108,20 @@ Everything else follows from twenty-eight choices. The first six were authored u
 27. **Provider planning returns a typed classified result.** Unknown family resolution produces the exact `UNKNOWN_PROVIDER_FAMILY` failure before registration or spawn. Plan, begin, and complete have phase-accurate observables, while preparation failure remains at the upstream workspace/assignment boundary that can actually receive it.
 
 28. **A cumulative architecture lineage is one content integration unit.** Only its latest target with an authoritative passing or formally accepted verdict is squashed into the integration branch. One atomic evidence batch records that direct merge for the target and lineage subsumption for every predecessor, so their lifecycles close without replaying rejected blobs. Content import remains authoring provenance, never integration. ADR-0041 is the sole authority for this exception to ordinary per-task squash.
+
+29. **Post-gate GitHub merge authority is split, conditional, and evidence-first.** A runtime module may squash only an admitted task PR into the integration branch; a separate DevOps module may merge only an admitted integration PR into `main`. Each requires immutable head/base identity, authoritative typed gates and security evidence, durable intent before the API effect, verified target-tree evidence, bounded reconciliation, a least-privilege non-bypass identity, and TASK-026/TASK-005 result ingress. The human exception union has exactly the three HUMAN-004 members. ADR-0042 is the sole authority for the two executor boundaries; [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md) is the normative contract.
+
+### TASK-040 amendment register
+
+HUMAN-004 is read directly at immutable commit `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`. It conditionally grants both merge effects and no other authority. This register authors their architecture and does not satisfy any activation condition, implement a component, approve itself, or alter an existing pull request.
+
+| Decision boundary | Authored contract | Decision |
+|---|---|---|
+| Two separate owners and paths | Runtime `src/orchestrator/integration/`; DevOps `scripts/release/integration-merge/`; both already inside current role scopes | [ADR-0042](../adr/0042-conditionally-authorized-post-gate-merge-executors.md) |
+| Typed admission/refusal and finite exception set | Pure total results over authoritative task/release records; exactly three detectable human exception kinds; unknown classification refuses | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md) |
+| Evidence, identity, retry, and recovery | Immutable head/base, canonical idempotency key, durable plan receipt before merge, exact result-tree verification, reconcile-before-retry, three-attempt/120-second bound | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#plan-durable-intent-execute-and-recovery) |
+| Ingress and HUMAN-002 | TASK-026-owned result adapter appends; TASK-005 wakes ordinary scheduling; implementations remain `dormant-before-durable-merge-ingress` until that path exists | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#ingress-scheduling-and-human-002) |
+| Human-controlled follow-up | Exact required `AGENTS.md`, GitHub protection/check, App, credential, and policy changes are returned, not edited | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#github-identity-and-human-controlled-policy) |
 
 ### TASK-038 amendment register
 
@@ -233,6 +252,9 @@ TASK-015 round 1 returned `changes-required` on the TASK-002 architecture at com
 | Every dispatched task runs in its own worktree, on its own branch, behind its own lock | [Workspace lifecycle](runtime/WORKSPACE-LIFECYCLE.md) |
 | Publication identity is durable and verified before the task lock is released | [Workspace lifecycle](runtime/WORKSPACE-LIFECYCLE.md), [Integration strategy](runtime/INTEGRATION-STRATEGY.md) |
 | The runtime cannot push `main`, bypass the pre-push hook, or write a governance path | [Workspace lifecycle](runtime/WORKSPACE-LIFECYCLE.md) |
+| A merge executor cannot perform a GitHub mutation before immutable typed admission and a durable plan receipt, and cannot blindly repeat an ambiguous mutation | [Post-gate merge executors](runtime/POST-GATE-MERGE-EXECUTORS.md) |
+| The runtime task executor cannot target `main`; the DevOps release executor can merge a protected PR into `main` but cannot push it, set `ALLOW_MAIN_PUSH`, or bypass policy | [Post-gate merge executors](runtime/POST-GATE-MERGE-EXECUTORS.md#structural-negative-capabilities) |
+| A verified merge wakes ordinary scheduling only through the TASK-026 result adapter and TASK-005 observation; neither executor can append its own trigger | [Post-gate merge executors](runtime/POST-GATE-MERGE-EXECUTORS.md#ingress-scheduling-and-human-002) |
 | No credential is ever persisted, logged, checkpointed, or emitted | [Provider adapters](runtime/PROVIDER-ADAPTERS.md) |
 
 ### Quality attributes
@@ -263,10 +285,11 @@ Detailed specifications, all normative:
 | [CRASH-RECOVERY.md](runtime/CRASH-RECOVERY.md) | Failure model, recovery phases, twenty-three post-crash invariants, accepted risks |
 | [WORKSPACE-LIFECYCLE.md](runtime/WORKSPACE-LIFECYCLE.md) | Workspace handle, split-phase prepare/finalize/abandon and reconcile, script delegation and direct repository access paths, publication classes and pull-request identity, structural prohibitions |
 | [INTEGRATION-STRATEGY.md](runtime/INTEGRATION-STRATEGY.md) | Branch topology, integration order, contract change control |
+| [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md) | Conditional task and release merge authority, typed admission/refusal, durable evidence, recovery, credentials, ingress, and human exceptions |
 
 The ingress inbox contract is section 2b of [INTERFACE-CONTRACTS.md](runtime/INTERFACE-CONTRACTS.md); the model it implements is normative in [STATE-MACHINE.md](runtime/STATE-MACHINE.md#ingress-model-for-event-triggered-recurring-work); its module boundary is in [COMPONENT-BOUNDARIES.md](runtime/COMPONENT-BOUNDARIES.md#durable-ingress-inbox-task-026); and its on-disk shape is in [DURABLE-STATE-AND-CHECKPOINTS.md](runtime/DURABLE-STATE-AND-CHECKPOINTS.md#run-directory-layout).
 
-Decisions: [`docs/adr/`](../adr/README.md), ADR-0001 through ADR-0041.
+Decisions: [`docs/adr/`](../adr/README.md), ADR-0001 through ADR-0042.
 
 Diagrams: [components](../../diagrams/architecture/runtime-components.md), [state machines](../../diagrams/architecture/runtime-state-machine.md), [sequences](../../diagrams/architecture/runtime-sequences.md).
 
@@ -281,16 +304,20 @@ Diagrams: [components](../../diagrams/architecture/runtime-components.md), [stat
 7. Every process a module spawns runs inside an owned job object or process group, and has a durable outcome before the writer lock is released.
 8. No module performs a process, worktree, branch, lock, commit, or publication side effect before the intent for it is durable. Receipts are identity-bearing, nominal, and store-verifiable. Publication is durably appended before `completeFinalize` may release a task lock.
 9. No implementation task may leave `blocked` until `LIN-ARCH-REVIEW` records a passing or formally accepted verdict at the target-derived current floor. The complete authoring chain is `9576fc9`, amended by `8d0c570`, `c2ee3eb`, `fe0374c45aaa51e589525cee978c8ff244837163`, rejected TASK-032 target `468b37b2649d031074eba64aca47f4561a0c41a3`, rejected TASK-034 target `6d145eb81033986361aba6454d10f52e5773f950`, rejected TASK-036 target `970b08125eaf6e5bfb7b24ec2a55238161b16eac`, and the TASK-038 final branch-head commit named in its execution handoff. Enumeration of this publication target derives the current floor and owner; this amendment's snapshot is lineage round 8 owned by TASK-039, and later targets recompute rather than copy it. Branch points and content-import commits are provenance, not replacement review or integration targets. No commit in the chain is called approved on publication alone.
+10. Neither merge executor may become operational unless its immutable activation record proves every HUMAN-004 condition and the durable merge-result ingress path exists. Presence of code, a token, or a passing pull-request check is not activation.
 
 ### Known gaps requiring Orchestrator routing
 
-No ownership gap remains in the architecture. The runtime capabilities remain implementation work and stay blocked behind independent Reviewer TASK-039; this section assigns owners without claiming that their code exists.
+The original runtime ownership gaps are closed. The two newly assigned executor modules remain proposed implementation work and stay blocked behind independent Reviewer TASK-041; this section names future routing without creating a task or claiming a capability exists.
 
 | Gap | Resolution |
 |---|---|
 | No task owned the root toolchain manifests or `scripts/quality/**` | Human governance decision HUMAN-001 at commit `fb9f45c` added them to the devops role's write scope; TASK-018 owns the toolchain and is gated by TASK-019 |
 | No module owned the agent workspace lifecycle that `AgentInvocation.worktreePath` presupposes | The TASK-016 amendment added the seventh module; TASK-017 owns it. TASK-024 makes its prepare, finalize, and abandon intents durable before their side effects |
-| No module owned the durable ingress inbox or HUMAN-002 pre-dispatch producer | The eight-module map assigns inbox, validation, collection, authorization, and append to TASK-026; signal, observation, and delivery to TASK-005; TASK-006 only composes them |
+| No module owned the durable ingress inbox or HUMAN-002 pre-dispatch producer | The ingress module assigns inbox, validation, collection, authorization, and append to TASK-026; signal, observation, and delivery to TASK-005; TASK-006 only composes them |
+| No module owned post-gate task integration | TASK-040 assigns `src/orchestrator/integration/` to `runtime`. After TASK-041 passes, the Orchestrator may create its separately owned implementation and validation work |
+| No module owned protected integration-to-main release merge | TASK-040 assigns `scripts/release/integration-merge/` to `devops`. After TASK-041 passes, the Orchestrator may create its separate implementation and validation work |
+| HUMAN-004 result ingress is not implemented | TASK-026 owns the merge-result adapter and TASK-005 owns signal/observation. Until implemented and validated, both executors are dormant and refuse every merge |
 
 ### TASK-032 Architect output
 
