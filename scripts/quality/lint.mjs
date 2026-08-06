@@ -38,9 +38,10 @@ const overrides = rootOverrides(process.argv.slice(2));
 const roots = overrides.length > 0 ? overrides : config.runtime.sourceRoots;
 const { maxLineLength, allowedBareImportPrefixes, relativeImportExtension } = config.lint;
 
-const staticSpecifier = /^\s*(?:import|export)\b[^'"]*?from\s*['"]([^'"]+)['"]/;
-const bareImport = /^\s*import\s*['"]([^'"]+)['"]/;
-const dynamicImport = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/;
+// Matches the specifier of a static import or export, a side-effect import, and a
+// dynamic import. The scan runs over the whole file so that a specifier on the closing
+// line of a multi-line import statement is still checked.
+const specifierPattern = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)['"]([^'"\n]+)['"]/g;
 const commonJsUsage = /\b(?:require\s*\(|module\.exports|exports\.[A-Za-z_$]|__dirname|__filename)/;
 const commentLine = /^\s*(?:\/\/|\/\*|\*)/;
 
@@ -50,13 +51,33 @@ function report(file, lineNumber, rule, message) {
   findings.push(`${file}:${lineNumber} [${rule}] ${message}`);
 }
 
-function specifiersOf(line) {
+/** Maps a character offset in the file to its one-based line number. */
+function lineNumberAt(lineStartOffsets, offset) {
+  let line = 1;
+  while (line < lineStartOffsets.length && lineStartOffsets[line] <= offset) {
+    line += 1;
+  }
+  return line;
+}
+
+/** Yields every module specifier in the file with the line it appears on. */
+function specifiersOf(content) {
+  const rawLines = content.split('\n');
+  const lineStartOffsets = [0];
+  for (const rawLine of rawLines) {
+    lineStartOffsets.push(lineStartOffsets[lineStartOffsets.length - 1] + rawLine.length + 1);
+  }
+
   const specifiers = [];
-  for (const pattern of [staticSpecifier, bareImport, dynamicImport]) {
-    const match = pattern.exec(line);
-    if (match !== null) {
-      specifiers.push(match[1]);
+  specifierPattern.lastIndex = 0;
+  let match = specifierPattern.exec(content);
+  while (match !== null) {
+    const lineNumber = lineNumberAt(lineStartOffsets, match.index);
+    const lineText = rawLines[lineNumber - 1] ?? '';
+    if (!commentLine.test(lineText)) {
+      specifiers.push({ specifier: match[1], lineNumber });
     }
+    match = specifierPattern.exec(content);
   }
   return specifiers;
 }
@@ -96,37 +117,28 @@ const files = listFiles({
 });
 
 for (const file of files) {
-  const lines = readFileSync(join(repositoryRoot, file), 'utf8').split('\n');
+  const content = readFileSync(join(repositoryRoot, file), 'utf8');
+  const lines = content.split('\n').map((line) => line.replace(/\r$/, ''));
+
   lines.forEach((line, index) => {
     const lineNumber = index + 1;
-    const withoutCarriageReturn = line.replace(/\r$/, '');
 
-    if (withoutCarriageReturn.length > maxLineLength) {
-      report(
-        file,
-        lineNumber,
-        'MAX-LINE-LENGTH',
-        `line is ${withoutCarriageReturn.length} characters; the limit is ${maxLineLength}.`,
-      );
+    if (line.length > maxLineLength) {
+      report(file, lineNumber, 'MAX-LINE-LENGTH', `line is ${line.length} characters; the limit is ${maxLineLength}.`);
     }
 
-    if (commentLine.test(withoutCarriageReturn)) {
+    if (commentLine.test(line)) {
       return;
     }
 
-    for (const specifier of specifiersOf(withoutCarriageReturn)) {
-      checkSpecifier(file, lineNumber, specifier);
-    }
-
-    if (commonJsUsage.test(withoutCarriageReturn)) {
-      report(
-        file,
-        lineNumber,
-        'NO-COMMONJS',
-        'CommonJS constructs are not allowed; the runtime is ESM (ADR-0001).',
-      );
+    if (commonJsUsage.test(line)) {
+      report(file, lineNumber, 'NO-COMMONJS', 'CommonJS constructs are not allowed; the runtime is ESM (ADR-0001).');
     }
   });
+
+  for (const { specifier, lineNumber } of specifiersOf(content)) {
+    checkSpecifier(file, lineNumber, specifier);
+  }
 }
 
 if (findings.length > 0) {

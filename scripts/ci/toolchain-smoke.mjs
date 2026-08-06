@@ -82,6 +82,10 @@ function scaffold() {
       '  return checkpoints.at(-1);',
       '}',
       '',
+      'export function sequences(checkpoints: readonly Checkpoint[]): readonly number[] {',
+      '  return checkpoints.map((checkpoint) => checkpoint.sequence);',
+      '}',
+      '',
     ].join('\n'),
   );
 
@@ -91,7 +95,14 @@ function scaffold() {
       "import assert from 'node:assert/strict';",
       "import { test } from 'node:test';",
       '',
-      "import { latest } from '../src/checkpoint.js';",
+      'import {',
+      '  latest,',
+      '  sequences,',
+      "} from '../src/checkpoint.js';",
+      '',
+      "test('reads the recorded sequences', () => {",
+      '  assert.deepEqual(sequences([{ sequence: 1 }, { sequence: 2 }]), [1, 2]);',
+      '});',
       '',
       "test('returns the last checkpoint', () => {",
       "  assert.deepEqual(latest([{ sequence: 1 }, { sequence: 2, label: 'second' }]), {",
@@ -189,6 +200,35 @@ function runNegativeCases() {
     runNodeCaptured(['scripts/quality/lint.mjs', '--root', `${fixtureRelativeRoot}/src`]),
   );
   removeFixtureFile('src/lint-violation.ts');
+
+  writeFixtureFile(
+    'src/multiline-violation.ts',
+    [
+      'import {',
+      '  latest,',
+      "} from './checkpoint';",
+      '',
+      'export const marker = [latest];',
+      '',
+    ].join('\n'),
+  );
+  record(
+    'a multi-line import without the .js extension fails the linter',
+    'fails',
+    runNodeCaptured(['scripts/quality/lint.mjs', '--root', `${fixtureRelativeRoot}/src`]),
+  );
+  removeFixtureFile('src/multiline-violation.ts');
+
+  writeFixtureFile(
+    'tests/loose-assert.test.ts',
+    ["import assert from 'node:assert';", '', 'export const marker = assert;', ''].join('\n'),
+  );
+  record(
+    'a non-strict node:assert import fails the linter',
+    'fails',
+    runNodeCaptured(['scripts/quality/lint.mjs', '--root', `${fixtureRelativeRoot}/tests`]),
+  );
+  removeFixtureFile('tests/loose-assert.test.ts');
 }
 
 try {
