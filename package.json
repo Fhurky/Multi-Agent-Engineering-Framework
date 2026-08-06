@@ -16,7 +16,8 @@
     "format": "node scripts/quality/format.mjs --write",
     "format:check": "node scripts/quality/format.mjs --check",
     "test": "node scripts/ci/runtime-test.mjs",
-    "test:coverage": "node scripts/ci/runtime-test.mjs --coverage"
+    "test:coverage": "node scripts/ci/runtime-test.mjs --coverage",
+    "toolchain:smoke": "node scripts/ci/toolchain-smoke.mjs"
   },
   "dependencies": {},
   "devDependencies": {
