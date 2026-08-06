@@ -1,7 +1,7 @@
 ---
 task_id: TASK-032
 title: Fourth architecture amendment for the round-4 blocking findings — task-record projection, result-effect recovery reduction, the spawn refusal boundary, and diagram conformance
-status: review
+status: done
 owner_role: architect
 llm: gpt
 branch: agent/gpt/architect/task-032
@@ -56,11 +56,27 @@ gate_tasks:
   - task: TASK-039
     gate: review
     round: 4
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 8
+integration_state: INTEGRATED. The review gate closed at 734bdbc when LIN-ARCH-REVIEW round 8 recorded approved, and the operator then integrated the approved cumulative target into integration/autonomous-runtime as squash commit de3a8d6ae74a0db423e07cfde5f7b251326d8249. This record's integrated() predicate is satisfied by the evidence recorded above, its review_ready predicate was already satisfied, and every gate in its pre_merge_gates is closed, so its complete lifecycle predicate holds and it is done.
+integration_evidence:
+  evidence_kind: lineage-subsumed
+  integration_branch: integration/autonomous-runtime
+  merge_commit: de3a8d6ae74a0db423e07cfde5f7b251326d8249
+  source_task: TASK-038
+  source_published_commit: 8ea5c32789ee01fd4a2cec4aff13905b120edae3
+  integrated_at: 2026-08-06T21:10:41+03:00
+  gate_lineage: LIN-ARCH-REVIEW
+  authoritative_round: 8
+  cohort_order: 5 of 7
+  no_git_merge_for_this_task: true. ADR-0041 - a subsumption record is not a Git merge and does not approve this task's own rejected publication in isolation. It proves only that this task's lifecycle responsibility is included in the one review-approved cumulative tree. This record's earlier publication and its recorded changes-required verdicts remain durable and unchanged.
+  recorded_by: TASK-013 activation ACT-017, consuming ingress entry seq 25
+  integration_performed_by: the operator, outside any agent role. ACT-017 records a completed integration and performed none.
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 468b37b2649d031074eba64aca47f4561a0c41a3

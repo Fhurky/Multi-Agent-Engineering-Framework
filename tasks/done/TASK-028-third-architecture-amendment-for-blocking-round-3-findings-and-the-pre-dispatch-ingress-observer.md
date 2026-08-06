@@ -1,7 +1,7 @@
 ---
 task_id: TASK-028
 title: Third architecture amendment for the round-3 blocking findings and the approved pre-dispatch ingress observer contract
-status: review
+status: done
 owner_role: architect
 llm: gpt
 branch: agent/gpt/architect/task-028
@@ -67,11 +67,27 @@ gate_tasks:
   - task: TASK-039
     gate: review
     round: 5
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 8
+integration_state: INTEGRATED. The review gate closed at 734bdbc when LIN-ARCH-REVIEW round 8 recorded approved, and the operator then integrated the approved cumulative target into integration/autonomous-runtime as squash commit de3a8d6ae74a0db423e07cfde5f7b251326d8249. This record's integrated() predicate is satisfied by the evidence recorded above, its review_ready predicate was already satisfied, and every gate in its pre_merge_gates is closed, so its complete lifecycle predicate holds and it is done.
+integration_evidence:
+  evidence_kind: lineage-subsumed
+  integration_branch: integration/autonomous-runtime
+  merge_commit: de3a8d6ae74a0db423e07cfde5f7b251326d8249
+  source_task: TASK-038
+  source_published_commit: 8ea5c32789ee01fd4a2cec4aff13905b120edae3
+  integrated_at: 2026-08-06T21:10:41+03:00
+  gate_lineage: LIN-ARCH-REVIEW
+  authoritative_round: 8
+  cohort_order: 4 of 7
+  no_git_merge_for_this_task: true. ADR-0041 - a subsumption record is not a Git merge and does not approve this task's own rejected publication in isolation. It proves only that this task's lifecycle responsibility is included in the one review-approved cumulative tree. This record's earlier publication and its recorded changes-required verdicts remain durable and unchanged.
+  recorded_by: TASK-013 activation ACT-017, consuming ingress entry seq 25
+  integration_performed_by: the operator, outside any agent role. ACT-017 records a completed integration and performed none.
 parent_task: TASK-001
 publication_class: bootstrap
 normative_architecture_source: 9576fc9 as amended by 8d0c570 and by c2ee3eb; this task produced the round-4 amendment in the same lineage. Neither 8d0c570 nor c2ee3eb is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 2 and 3 — so each is a superseded authoring baseline to amend, never an approved source to build on. This task's own commit fe0374c is now a third such baseline: LIN-ARCH-REVIEW recorded changes-required on it at round 4, at 3df261fa. The next amendment is TASK-032's.
@@ -121,7 +137,7 @@ published_branch: agent/gpt/architect/task-028
 published_remote_ref: refs/heads/agent/gpt/architect/task-028
 pull_request: 15
 publication: published
-integration_state: not integrable, and now for a recorded reason rather than a pending one. LIN-ARCH-REVIEW round 4 recorded changes-required on this amendment at 3df261fa, so the review gate in pre_merge_gates is open with a durable failing verdict and the amendment may not be merged. Pull request 15 additionally remains open and CONFLICTING against main; TASK-029's read-only local merge-tree simulation found 15 content conflicts and its report states that resolving them "would not change this semantic result". Neither the conflict nor the pull request was queried, changed, resolved, or merged by activation ACT-008.
+integration_state_history: superseded by the integration_state field above, and retained because it records what was true through rounds 4 to 7. LIN-ARCH-REVIEW round 4 recorded changes-required on this amendment at 3df261fa, so the review gate in pre_merge_gates was open with a durable failing verdict and the amendment could not be merged. Pull request 15 additionally remains open and CONFLICTING against main; TASK-029's read-only local merge-tree simulation found 15 content conflicts and its report states that resolving them "would not change this semantic result". Neither the conflict nor the pull request was queried, changed, resolved, or merged by activation ACT-008.
 verdict_recorded_summary: changes-required at round 1 of this record's review gate, recorded by TASK-029 at 3df261fa and consumed as ingress entry seq 16 by activation ACT-008. Open findings carried forward to TASK-032 - A-202 high not resolved, A-203 high partially resolved, A-206 high partially resolved, A-105 medium partially resolved, A-301 low new. Recorded resolved - A-201, A-204, A-205, A-207, A-208, A-002, A-003, A-103. Recorded as inherited views with no separate remediation obligation - A-004, A-101, A-102, A-104. Acceptance criteria 1, 6, 7, 10, and 17 recorded not met; the other 15 met. All six HUMAN-002 contract checks recorded satisfied, which the reviewer states does not cure A-202.
 ---
 

@@ -37,12 +37,14 @@ The event rows below are the entries this log promises never to edit. This expla
 
 | `MC-011` | `ACT-010` | **Defined how an architecture fixture over `tasks/**` stays current, because nothing in the model said, and the gap has now cost two rounds.** The architecture must state counts, cardinalities, and a graph proof over the committed task records — A-202 and A-402 are both failures to do so correctly. But `tasks/**` is this role's exclusive write scope and **changes at every activation**, while the architect cannot write it and cannot stop it moving. So a fixture that is exactly right when an amendment is authored is stale as soon as the next activation lands, through no fault of the architect. **How it actually failed.** TASK-029 told TASK-032 to "recount both against the target tree rather than inheriting the numbers", and `ACT-009` repeated the instruction on TASK-033's record. TASK-032 nevertheless carried round 4's numbers — 30 records, 92 relation documents, 24 enriched — into an amendment whose own tree held 33, 104, and 34. Round 5 recorded that as the surviving half of A-202 and as half of A-402. **Two instructions to recount produced two inherited counts, so the instruction was not the fix.** The rule this correction adds, in three parts. **First**, every count, cardinality, and graph proof over `tasks/**` is derived by **enumeration over the amendment's own published target tree at publication time**, and inherited from no report, no earlier amendment, and no task record. **Second**, and this is the part the earlier instructions omitted: **a task record that routes such an obligation states no count of its own.** TASK-034's record deliberately contains none. Naming the expected value is how the defect propagates — an architect that sees a number in its own instructions copies it, which is the likeliest reading of what happened at round 5, and this role would then have supplied the stale value itself. **Third**, where the contract permits it, a **derivation rule is preferred over a literal count**, because a rule does not go stale when this role performs an activation. Whether the architecture should embed live counts at all, or should name the register as the source of truth and assert only invariants, is the deeper question and is **routed to the next `LIN-DECOMP-REVIEW` round** rather than decided here — it is a question about what the architecture must contain, which is not this role's to answer. **What this correction does not do.** It changes no verdict, no edge, no gate, no round, no lineage, and no scope, and it is not a finding against any architect. It does not touch `MC-010`, which stands as written, and it does not claim A-202 or A-402 is thereby resolved — both are routed to TASK-034 and judged by TASK-035 |
 
+| `MC-012` | `ACT-017` | **Defined `source_path` and `producer_task` for a `branch_integrated` fact**, closing the last epoch-2 schema gap, exactly as `MC-007` did for `human_decision_recorded`. The entry schema requires both fields on every entry and the canonical identity tuple hashes both, but **no epoch-2 `branch_integrated` entry had ever existed** — `seq` 4 is epoch 1, whose entries carry none of the schema fields. An integration has **no producing task** in the ordinary sense: it is an operator action on an integration branch, and its content is a whole tree rather than one artifact. Improvising the two values silently is the class of defect F-301 and F-401 each recorded, so the rule is stated. **The rule.** `producer_task` carries the **approved cumulative source task** the integration lands — here `TASK-038`, which ADR-0041 calls `T`. `producer_role` is `operator`. `source_path` is **that source task's declared entry-point artifact**, evaluated at the integration commit — the same deterministic choice the `artifact_published` rule already makes for a multi-file publication, and for the same reason: it makes `content_hash` and therefore `fact_id` reproducible for a commit that touches many files, without inventing an ordering or aggregation rule. **A property worth recording rather than leaving implicit.** Because ADR-0041 requires the integration tree to equal the source publication tree exactly, the `content_hash` of a `branch_integrated` entry **equals** the `content_hash` of the `artifact_published` entry it lands. Row 25's `87ee3519…` is byte-identical to row 23's, and that equality is an independent check on tree equality that costs nothing to compute. It is a consequence of the integration contract, not a coincidence, and a future integration whose hashes differ is a finding. **What this correction does not do.** No epoch is declared, no existing row is edited, and no position, identity, or observation rule changes; only the domain of two fields is defined for one class that had never been exercised. It records nothing about whether the integration was correct, which is not this role's judgment |
+
 ## Ingress epochs
 
 | Epoch | Model | Entries | Status |
 |---|---|---|---|
 | 1 | Scan reachable refs, order by committer timestamp then SHA, `ingress_seq` = the count | `seq` 1 … 6 | **Sealed** by `MC-003` at `ACT-004`. Retained as durable provenance; not reproducible under its own rule, which is why the boundary exists |
-| 2 | Durable append-only ingress inbox; `ingress_seq = max(seq)`; identity by `fact_id`; positions assigned once at append | `seq_base = 6`, entries from `seq` 7; currently `seq` 7 … 22 | **Active** |
+| 2 | Durable append-only ingress inbox; `ingress_seq = max(seq)`; identity by `fact_id`; positions assigned once at append | `seq_base = 6`, entries from `seq` 7; currently `seq` 7 … 25 | **Active** |
 
 ## Event log
 
@@ -94,7 +96,16 @@ Epoch-2 rows additionally record `fact_id` and `content_hash`, which are the ent
 
 | 22 | `gate_verdict_recorded` | commit `9bb75d9705533e52e150cafb6fa87a382496c90c` `docs(TASK-037): record round-7 architecture review` on `agent/gpt/reviewer/task-037`, parent `3dc20ebfaba3ee9cbf583b87c9658189693305db`, the `ACT-013` follow-up commit and this branch's head at the time; **not published to any remote** — `git branch -a --contains 9bb75d9` returns only that branch, with no remote tracking ref and no pull request; artifact `reports/code-review/TASK-036-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-6.md`, 311 lines. Epoch 2. `fact_id` `9349b25cfc3f6a46e4ec1849972083254f45bd6dd478817bd50ef3b1d68912e1`; `content_hash` `8eebd4638c81491ce4d9dd4970d695c9d33f1ba5e267c1b3e2b08846c537d821` | TASK-037 recorded **one** verdict, `changes-required`, applied atomically to `(TASK-036, review, round 1)`, `(TASK-034, review, round 2)`, `(TASK-032, review, round 3)`, `(TASK-028, review, round 4)`, `(TASK-024, review, round 5)`, `(TASK-016, review, round 6)`, and `(TASK-002, review, round 7)`, producing seven durable gate-verdict facts that "all remain open together". **A-501, A-502, A-503, A-504, and A-505 are all `resolved`**, every required inherited and regression obligation is satisfied, and **every declared TASK-036 acceptance criterion is met** — the second consecutive round to clear its entire routed set, and the first to meet every acceptance criterion. **One fresh High finding, A-601**, blocks regardless: the normative integration order at `INTEGRATION-STRATEGY.md:121-127` integrates the cumulative TASK-036 target first and then requires its **non-ancestral rejected predecessor** TASK-034, which a read-only `git merge-tree --write-tree 970b0812… 6d145eb8…` reproduces as **19 conflicting files** at the immediately following step. The reviewer notes the target alone merges cleanly into every integration base tested, so the defect is in the prescribed **order**, not in the target's content, and that replaying the rejected predecessor after the cumulative target risks regressing the repairs this very round verified. The reviewer's own independent target-tree enumeration reports 39 tracked files, 37 task records, 2 support documents, and 65 `gate_tasks` declarations. **A-506 is explicitly left outside this task's scope**, as an Orchestrator-owned matter for `LIN-DECOMP-REVIEW`. The report states TASK-036 **may not be integrated** and that TASK-003 … TASK-008, TASK-017, TASK-018, and TASK-026 **must remain `blocked`**. It records `publication: local-only` and, at report-authoring time, its task lock as pending release | ACT-014 |
 
-`ingress_seq = 22`. `activation.last_consumed_event_seq = 22`. TASK-013 is quiescent.
+
+| 23 | `artifact_published` | commit `8ea5c32789ee01fd4a2cec4aff13905b120edae3` `docs(TASK-038): reconcile final provenance metrics` on `agent/gpt/architect/task-038`, parent `b408ee0`, branch point `b5d32c9f043ea9dc739dbf1748d84b86378049ef`; **not published to any remote** — `git branch -a --contains 8ea5c32` returns only that branch, with no remote tracking ref and no pull request; entry-point artifact `docs/architecture/ARCHITECTURE.md`. Epoch 2. `fact_id` `2f94aa9b5b9a306af184fe6bb212009bc33f74aafa8e318d81ddb55aa4452129`; `content_hash` `87ee351932300532479ccbb8ac021c32087d9a9be04a6ebe026d78605de96bb7` | TASK-038 published the seventh runtime architecture amendment across **five** commits — `726f285` imports the rejected `970b081` baseline (41 paths, 2790 insertions, 364 deletions), then `ce2ecfc`, `8b90bdf`, `b408ee0`, and the head `8ea5c32` carry the amendment and its handoff evidence. Authored delta against the branch point: 46 paths, 3171 insertions, 382 deletions, all inside the architect's declared write scope with zero residue. Cumulative architecture diff against `970b081` restricted to `docs` and `diagrams`: **16 paths, 425 insertions, 62 deletions**. `publication_class: bootstrap` with the remote step **not** performed, so `publication: local-only` — and `review_ready(TASK-038)` is satisfied under publication-classes rule 1. Owner-recorded verification: scope-validation base `b5d32c9`; the three provenance sets stated as 46, 16, and 41 paths and explicitly not treated as ancestry, approval, or one another; the new complete-order fixture at `docs/architecture/runtime/fixtures/verify-integration-order.ps1` reports **one content step, zero conflicts, exact result/target tree equality at `8fbf7e62b12ec36ea3d4ea9db544d6fe804de700`, and the retained legacy 19-conflict regression exiting 1**; and target-alone merge trees against `main`, `origin/main`, `integration/autonomous-runtime`, its remote, the branch point, and the Orchestrator head each producing zero conflicts. **`970b081` is not an ancestor of this commit**; the baseline again arrives by content import. **No verdict on this amendment exists**; its `review` gate, owned by TASK-039 at `LIN-ARCH-REVIEW` lineage round 8, is open, and **no A-601 disposition is claimed or recorded by this activation** | ACT-015 |
+
+
+| 24 | `gate_verdict_recorded` | commit `734bdbc5d9541daa78fd570057317152247d1f87` `docs(TASK-039): record round-8 architecture review` on `agent/gpt/reviewer/task-039`, parent `4dc37f1a5d83a88f6f0b6beb6f2784d9071ee9db`, the `ACT-015` follow-up commit and this branch's head at the time; **not published to any remote**; artifact `reports/code-review/TASK-038-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-7.md`, 273 lines. Epoch 2. `fact_id` `8952e76ee90ad80307a552945f9f540abed6a6c9de157656265b37687c4226c9`; `content_hash` `eaf7cfcc4cb5397a793ed7bf8380a9eef3af747d86e9f31c0e6371fe9e204ee7` | **TASK-039 recorded `approved` — the first passing verdict any gate lineage in this graph has produced, at the eighth attempt of `LIN-ARCH-REVIEW`.** One verdict applied atomically to `(TASK-038, r1)`, `(TASK-036, r2)`, `(TASK-034, r3)`, `(TASK-032, r4)`, `(TASK-028, r5)`, `(TASK-024, r6)`, `(TASK-016, r7)`, and `(TASK-002, r8)`, producing eight durable gate-verdict facts; the report states "All eight close together; a split outcome is not representable." **A-601 `resolved`** — the amendment "replaces the conflicting predecessor replay with one coherent cumulative content integration unit, makes the latest passing cumulative target the only Git content input, and closes predecessor lifecycle state through one atomic direct/subsumed evidence batch without replaying predecessor blobs", and the prescribed order was executed independently with zero conflicts and exact final-tree equality. **No new finding; A-701 is not opened.** The report states TASK-038 may integrate after the Orchestrator closes the relation set, and that the Orchestrator "may release each consumer according to its complete typed dependency set". `publication: local-only`; no push, pull request, merge, or remote query | ACT-016 |
+
+
+| 25 | `branch_integrated` | commit `de3a8d6ae74a0db423e07cfde5f7b251326d8249` `feat(TASK-038): integrate LIN-ARCH-REVIEW round 8` on `integration/autonomous-runtime`, parent `e8edbcdd2e2fcf777cc790bc11b1cc79c100114e`; committed `2026-08-06T21:10:41+03:00`; **local-only** — the branch is ahead of its remote tracking ref by one and no remote state was queried or changed; `source_path` `docs/architecture/ARCHITECTURE.md` under the rule `MC-012` states. Epoch 2. `fact_id` `ee06175587f60a4149b1d2fca8f1a62813368afb6f8664e22d1cd42ffe51bc3b`; `content_hash` `87ee351932300532479ccbb8ac021c32087d9a9be04a6ebe026d78605de96bb7` | **The operator integrated the approved architecture.** One squash commit with **exactly one parent**, whose tree `8b11b66ae4d86e6b2812dcc51f7b6218776ab992` is **byte-identical** to the tree of the approved source publication `8ea5c32`, and whose `docs/architecture/ARCHITECTURE.md` blob hashes to the same value row 23 recorded — three independent confirmations of the exact-target-tree equality ADR-0041 requires. The integration worktree is clean. Under ADR-0041 this one commit is the **whole** integration of the cumulative lineage: `TASK-038` receives **content-merged** evidence and the seven predecessors `TASK-002`, `TASK-016`, `TASK-024`, `TASK-028`, `TASK-032`, `TASK-034`, and `TASK-036` receive **lineage-subsumed** evidence in cohort order, all naming the same branch, merge commit, source task, source published commit, lineage, round, and timestamp. **No predecessor Git merge occurred and none was performed by this activation.** All eight records move to `done`. This is the **first `branch_integrated` fact of epoch 2** and the first integration of any kind since `seq` 4. TASK-018 stays `ready`; the runtime consumers stay `blocked` on their own unsatisfied `integrated()` edges | ACT-017 |
+
+`ingress_seq = 25`. `activation.last_consumed_event_seq = 25`. TASK-013 is quiescent.
 
 **Batch order for the `ACT-004` append.** Both entries were appended in one batch. Under the epoch-2 rule they are ordered by ascending `source_commit` identifier: `4874a9d5…` precedes `e8eb23db…`, so TASK-020's verdict took `seq` 7 and TASK-022's took `seq` 8. Committer timestamps were **not** consulted; had they been, the order would have been the reverse, which is precisely the instability F-301 recorded.
 
@@ -241,6 +252,39 @@ No commit reachable at activation time matches a declared class and was omitted.
 | The `HUMAN-002` approval | Not a commit; no durable content to hash, under `MC-007` |
 
 **No merge commit was evaluated, for the sixth consecutive activation.** `origin/main` is still `fd7ce90` and `integration/autonomous-runtime` still `e8edbcd`. No commit reachable at activation time matches a declared class and was omitted.
+
+**Batch order for the `ACT-015` append.** One entry, so the ordering rule is not exercised. `seq` 23 is the next free position after 22, assigned once at append.
+
+**Which of the five TASK-038 commits is the fact.** The branch carries `726f285`, `ce2ecfc`, `8b90bdf`, `b408ee0`, and the head `8ea5c32`. `artifact_published` covers the commit **the owner's own record names**, and TASK-038's handoff identifies the branch head as the commit the Orchestrator binds, noting that the final head is re-run after its evidence commit. `8ea5c32` is therefore the published commit and the other four are authoring ancestry. This is the **largest commit count** any publication in this graph has used; the binding rule is unchanged and the head is bound for the same reason as at `ACT-013` — it is the commit at which the declared entry-point artifact is complete. One entry was appended, not five.
+
+**Why no other reachable commit is an entry at `ACT-015`.**
+
+| Commit | Why it is not an entry |
+|---|---|
+| `726f285`, `ce2ecfc`, `8b90bdf`, `b408ee0` | Authoring ancestry of the named publication, not the commit TASK-038's record names. Treating any as a separate entry would create multiple `fact_id` values for one publication that identity-keyed deduplication could not collapse. Same rule that excluded `e594e72` at `ACT-011` and `b894e7f` and `65d624d` at `ACT-013` |
+| The `ACT-014` effects and follow-up commits | Rule 6, self-exclusion. The follow-up `b5d32c9` is additionally TASK-038's branch point, which changes nothing: rule 6 governs authorship, not what later branches from it |
+| Local `main` at `3fe84d8` | Still behind `origin/main`; a stale pointer matching no class |
+| The `HUMAN-002` approval | Not a commit; no durable content to hash, under `MC-007` |
+
+**No merge commit was evaluated, for the seventh consecutive activation.** No commit reachable at activation time matches a declared class and was omitted.
+
+**Batch order for the `ACT-016` append.** One entry. `seq` 24 is the next free position after 23.
+
+**Class precedence for `seq` 24.** `734bdbc` matches `gate_verdict_recorded` and would also match `artifact_published`; rule 5 selects the higher-precedence class. One entry was appended.
+
+**Why no other reachable commit is an entry at `ACT-016`.** The `ACT-015` effects and follow-up commits are self-excluded under rule 6; local `main` remains a stale pointer matching no class; the `HUMAN-002` approval is not a commit. No commit reachable at activation time matches a declared class and was omitted, and **no merge commit was evaluated for the eighth consecutive activation** — which is itself the point this round turns on: the architecture is approved and still unintegrated.
+
+**Batch order for the `ACT-017` append.** One entry. `seq` 25 is the next free position after 24.
+
+**Class precedence for `seq` 25.** `de3a8d6` is a merge-in-substance onto `integration/autonomous-runtime` and matches `branch_integrated`, the second-highest class. It matches no higher class: it records no governance decision. One entry was appended. **This is the first commit in epoch 2 to take this class**, which is why `MC-012` was needed.
+
+**Why no other reachable commit is an entry at `ACT-017`.** The `ACT-016` effects and follow-up commits are self-excluded under rule 6. Local `main` remains a stale pointer. The `HUMAN-002` approval is not a commit. The eight architecture branch heads were each already consumed as their own `artifact_published` facts and are not re-consumed by being integrated — the integration commit is a distinct fact with its own identity, which is precisely the rule 5 point that `e8edbcd` and `c325275` were two facts rather than one. No commit reachable at activation time matches a declared class and was omitted.
+
+**Append-only audit, `ACT-017`.** Rows 1 … 24 are byte-identical to their state at `4243532`, verified by diff. Row 25 is an append. No row was renumbered or reclassified, no `consumed_by` was mutated, and **no epoch was declared**. `MC-012` defines two field domains for a class that had never been exercised and touches no recorded row.
+
+**Append-only audit, `ACT-016`.** Rows 1 … 23 are byte-identical to their state at `4dc37f1`, verified by diff. Row 24 is an append. No row was renumbered or reclassified, no `consumed_by` was mutated, and **no epoch and no model correction were declared**.
+
+**Append-only audit, `ACT-015`.** Rows 1 … 22 are byte-identical to their state at `b5d32c9`, verified by diff rather than asserted. Row 23 is an append. No row was renumbered, reclassified, or moved across the epoch boundary, no `consumed_by` was mutated, and **no epoch and no model correction were declared**. Exact `--numstat` figures are in the `ACT-015` verification section.
 
 **Append-only audit, `ACT-014`.** Rows 1 … 21 are byte-identical to their state at `3dc20eb`, verified by diff rather than asserted. Row 22 is an append. No row was renumbered, reclassified, or moved across the epoch boundary, no `consumed_by` was mutated, and **no epoch and no model correction were declared** — A-601 is architect-owned and routed, and no statement this role authored was found contradicted. Exact `--numstat` figures are in the `ACT-014` verification section.
 
@@ -1996,6 +2040,152 @@ No high or critical **security** finding exists. A-501 … A-505 are High archit
 - **Publication: `local-only`. Reason: public remote egress approval is pending.**
 - This activation did **not** alter TASK-031's review target, any earlier round's durable verdict, the architecture edge floor, any source clause, or the A-506 review obligation, and it merged no architecture branch anywhere.
 
+## Activation ACT-016
+
+- Activation ID: `ACT-016`
+- Date: 2026-08-06
+- Branch: `agent/claude/orchestrator/task-013`
+- Scope-validation base: `4dc37f1a5d83a88f6f0b6beb6f2784d9071ee9db` — the `ACT-015` follow-up commit and the immutable branch point of this branch at the start of the activation.
+- Events consumed: `(23, 24]` — `seq` 24, epoch 2. Cursor before `23`, after `24`.
+- **Bootstrap dispatch contract in force: `interim-operator-authorized`**, unchanged. Round 8 approved the contract representation of the `HUMAN-002` collector for the first time, but the collector is still not implemented and nothing appends before dispatch, so F-401's bootstrap half stays open. **An approved contract is not an implemented collector** — the distinction this log has recorded since `MC-006` still holds, and this is the round where a careless reader would most likely drop it.
+- Concurrency: `task-records` held by the surrounding operator session; the shared lock directory holds exactly one entry, `task-013.json`, and **no `task-039.json`**.
+- Publication: **`local-only`.**
+- Tooling limitation, unchanged: this profile blocks the repository's PowerShell validators, so none was run here. Every fact came from read-only `git` and filesystem inspection.
+
+### The verdict, and precisely what it does and does not do
+
+**`LIN-ARCH-REVIEW` recorded `approved` at round 8. All eight relations are CLOSED.** This is the first passing verdict any gate lineage in this graph has recorded, after seven consecutive `changes-required` rounds spanning `9576fc9`, `8d0c570`, `c2ee3eb`, `fe0374c`, `468b37b`, `6d145eb`, and `970b081`.
+
+**What closure does.** `gate_passed(LIN-ARCH-REVIEW, review, 8)` is satisfied for every consumer that declares it. `8ea5c32789ee01fd4a2cec4aff13905b120edae3` becomes **the first approved architecture source this graph has had**, and every consumer's `normative_architecture_source` now names it instead of a chain of rejected baselines. **TASK-018 becomes `ready`** — the only consumer whose complete typed dependency set is satisfied, and the first implementation task in this graph ever to become dispatchable.
+
+**What closure does not do, stated because the temptation to overclaim is at its highest here.**
+
+- **It does not integrate anything.** No architecture branch has been merged into `integration/autonomous-runtime` or anywhere else. No `branch_integrated` fact exists, no content has been merged, and no predecessor has been subsumed. `TASK-038` and its seven predecessors stay in `review` and are **not** `done`. Integration is a separate, externally visible operation that follows this durable closure and produces its own ingress fact for a later activation. This activation performed none of it and simulated none of it.
+- **It does not release the other eight consumers.** Each retains at least one `integrated()` edge that no branch integration has satisfied. Their `blocked_reason` fields were rewritten to say exactly that, replacing text that had described the architecture gate as the blocker.
+- **It does not make the collector operative.** See the bootstrap-contract note above.
+- **It does not touch the decomposition lineage.** TASK-031, its immutable target `f14bdde`, A-506, and the pending `LIN-DECOMP-REVIEW` round-9 obligation are unchanged; only that obligation's accumulated coverage now extends through `ACT-016`.
+
+### Finding dispositions — TASK-039 round 8
+
+| Finding | Disposition | Owner | Where it lives now |
+|---|---|---|---|
+| A-601 | **`resolved`** | — | Closed **by the reviewer**. Nothing further |
+| A-701 | **not opened** | — | The report states no new finding was identified |
+| A-506 | unchanged, out of this lineage's scope | orchestrator | Pending `LIN-DECOMP-REVIEW` round 9, still uncreatable until round 8 of that lineage records a verdict |
+
+**No finding was resolved by this role.** The dispositions above were recorded by the gate owner and transcribed.
+
+### Lifecycle transitions performed
+
+| Task | From | To | Justification |
+|---|---|---|---|
+| TASK-039 | `tasks/ready/`, `ready` | `tasks/done/`, `done` | Its single declared round recorded a durable verdict; artifact published at `734bdbc`; resolved scope base `4dc37f1` confirmed |
+| TASK-038, TASK-036, TASK-034, TASK-032, TASK-028, TASK-024, TASK-016, TASK-002 | `tasks/review/` | `tasks/review/`, **status unchanged** | Their review gates are **closed** and each carries an `integration_state` field saying so explicitly — and saying equally explicitly that nothing has been integrated, no `BranchIntegrated` fact exists, no content is merged, and no predecessor is subsumed. They stay in `review` and are not `done` |
+| **TASK-018** | `tasks/blocked/`, `blocked` | `tasks/ready/`, `ready` | Its **only** declared dependency, `gate_passed(LIN-ARCH-REVIEW, review, 8)`, is satisfied at `734bdbc`. Verified from its complete typed dependency set rather than from the reviewer's summary |
+| TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, TASK-008, TASK-017, TASK-026 | `tasks/blocked/` | `tasks/blocked/`, unchanged | Each retains at least one unsatisfied `integrated()` edge. `dependencies_satisfied` now records the architecture edge as met; `blocked_reason` and `exit_condition` were rewritten to name only the remaining integration edges. **No dependency was invented, removed, or retyped** |
+| TASK-031 | `tasks/ready/` | `tasks/ready/`, unchanged | Untouched apart from extending its accumulated activation coverage to include `ACT-016` |
+| TASK-013 | `tasks/blocked/` | `tasks/blocked/`, `quiescent` | Cursor reached `ingress_seq` after consuming `seq` 24 |
+| TASK-001 | `tasks/review/` | `tasks/review/`, unchanged | Revision 17 applies this activation's consequences |
+
+### Verification performed by this activation
+
+- **The ingress fact was verified against Git.** `734bdbc5d9541daa78fd570057317152247d1f87` is the head of `agent/gpt/reviewer/task-039`; its parent is `4dc37f1`, this branch's head; it adds exactly one file, the reviewer's declared report, touching nothing under `tasks/`. `git branch -a --contains` returns only that branch — no remote tracking ref.
+- **The `fact_id` and `content_hash` in row 24 were computed after reproducing row 23's `fact_id` byte for byte.**
+- **Verdict value and cardinality were checked against the report's own eight-relation list and its statement that all eight close together.** Eight durable facts were recorded and all eight are closed; no subset was closed and no verdict was authored by this role.
+- **Each of the nine consumers was re-evaluated from its complete typed dependency set read out of its own frontmatter**, not from the reviewer's prose summary. The report says TASK-003, TASK-004, TASK-017, TASK-018, and TASK-026 "can be evaluated at the architecture floor" — which is a statement that the architecture gate no longer blocks them, not that their dependency sets are satisfied. Reading the records shows **TASK-018 alone** has no `integrated()` edge; TASK-003 and TASK-004 require `integrated(TASK-018)`, TASK-017 and TASK-026 require `integrated(TASK-003)` and `integrated(TASK-018)`, and TASK-005 … TASK-008 require further upstream integrations. Only TASK-018 was released.
+- **The F-601 coupling was exercised in its terminal form.** The floor stays at `lineage_round: 8` — a passing verdict at the floor does not raise it — while every `normative_architecture_source` clause moved together in the same commit to name the approved `8ea5c32`. This is the first time the coupling has been exercised by an approval rather than a rejection, and the floor deliberately does **not** move because there is no superseding round to move it to.
+- **A duplicate `integration_state` key was created on TASK-028 by this activation's own edit and was corrected before commit.** That record already carried an `integration_state` field from `ACT-008`; the older one is retained as `integration_state_history` because it records what was true through rounds 4 to 7, and the live field states the current closed-gate, not-integrated position. This is a defect this activation introduced and repaired within itself, and it is recorded rather than quietly fixed.
+- Rows 1 … 23 unchanged; row 24 is an append. `last_consumed_event_seq = 24 = ingress_seq`. `git diff --numstat` against `4dc37f1` reports this file at **96 additions and 2 deletions**, the two being exactly the epoch-2 `Entries` cell and the trailing cursor line, both enumerated. **Twenty-three paths change, all under `tasks/**`** - the graph, this log, TASK-013 record, TASK-001 record, the eight architecture targets, the eight still-blocked consumers, TASK-031 at 1/1, plus TASK-039 renamed to `tasks/done/` and TASK-018 renamed to `tasks/ready/`.
+- Every `status` field was compared with its lifecycle directory and both graph tables, in both directions, for all 39 records.
+- All 73 `gate_for` / `gate_tasks` pairs were compared in both directions. **The count is unchanged**; the eight round-8 relations moved from `pending` to `approved` with `gate_closed: true` on both sides of each pair.
+- **No edge was added, removed, retyped, or refloored, and no dependency was invented.**
+- The shared lock directory was read directly: one entry, `task-013.json`, no `task-039.json`.
+- **No architecture was merged or simulated, no gate was passed by this role, no verdict was authored, no publication or approval was treated as an integration, and no remote state was queried or changed.**
+
+### Remaining blockers and next owners
+
+| Item | Owner | Why it is open |
+|---|---|---|
+| **Integrate the approved architecture** | user / operator, as an externally visible branch operation | **This is the immediate next step and it is not an Orchestrator action.** The gate is closed and `8ea5c32` is approved; integration follows the procedure TASK-038's own `INTEGRATION-STRATEGY.md` now defines, and produces a `branch_integrated` ingress fact for a later activation |
+| Runtime toolchain bootstrap | devops / claude, **TASK-018** | **Ready and dispatchable now — the first implementation task in this graph ever to reach that state.** Its only dependency is satisfied |
+| Independent re-review of the corrected decomposition, round 8 | reviewer / gpt, **TASK-031** | **Ready and dispatchable now, in parallel**, unchanged |
+| Independent review of the A-506 correction and the `ACT-008` … `ACT-016` effects | reviewer / gpt, `LIN-DECOMP-REVIEW` **round 9, not yet created** | Unchanged. Invariant 8 forbids creating it before round 8 records a verdict. Coverage now extends through `ACT-016` |
+| The eight other implementation consumers | runtime / claude | Each retains an unsatisfied `integrated()` edge. They unblock as integrations land, starting with TASK-018 |
+| Independent review of the toolchain | reviewer / gpt, TASK-019 | `blocked` on `review_ready(TASK-018)`, which is now genuinely reachable |
+| The durable pre-dispatch ingress collector | runtime / claude, TASK-026, with TASK-005 | **Contract approved at last**, implementation still absent. TASK-013 runs under `interim-operator-authorized` and F-401 is not resolved |
+| A durable governance commit for `HUMAN-002` | user | Still absent |
+| Remote publication of `ACT-009` … `ACT-016` and TASK-032 … TASK-039 | user | All `local-only` |
+| Pull request 15 is `CONFLICTING` against `main` | user, with architect / gpt | Unchanged, and now subsumed in substance by the approved integration unit, which TASK-038 defines and which no longer replays predecessors |
+
+### Effects commit for ACT-016
+
+- One commit on `agent/claude/orchestrator/task-013`, base `4dc37f1a5d83a88f6f0b6beb6f2784d9071ee9db`, carrying the ledger row for `seq` 24, the cursor advance to 24, and every lifecycle effect together.
+- The effects commit is **`e59eb6a`**, full `e59eb6ae09968f8a12ef0e84dfa72a9862fb4dc9`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
+- **Publication: `local-only`.** No push, pull request, or merge.
+
+## Activation ACT-017
+
+- Activation ID: `ACT-017`
+- Date: 2026-08-06
+- Scope-validation base: `4243532551e4b7ee42838f3f9f15a780447c054b` — the `ACT-016` follow-up commit.
+- Events consumed: `(24, 25]` — `seq` 25, epoch 2. Cursor before `24`, after `25`.
+- **Bootstrap dispatch contract in force: `interim-operator-authorized`**, unchanged. The approved collector contract is now integrated as well as approved, and **the collector is still not implemented**. Integration moves a contract into the integration branch; it does not build anything. F-401's bootstrap half stays open and `ACT-017` itself ran under the interim contract.
+- Concurrency: the shared lock directory holds exactly one entry, `task-013.json`.
+- Publication: **`local-only`.** `integration/autonomous-runtime` is ahead of its remote tracking ref by one; no remote state was queried or changed.
+- Tooling limitation, unchanged: this profile blocks the repository's PowerShell validators; none was run here.
+
+### What this activation records, and what it did not do
+
+**It records a completed operator integration. It performed none.** No merge, rebase, cherry-pick, push, or pull-request operation of any kind was executed or simulated by this role, and the integration commit existed before the activation began.
+
+### Verification performed by this activation
+
+- **One-parent squash shape.** `git rev-list --parents -n1 de3a8d6` returns exactly two identifiers — the commit and the single parent `e8edbcdd2e2fcf777cc790bc11b1cc79c100114e`. A merge commit would have listed two parents. ADR-0010 and ADR-0016 require squash-per-unit and this is one.
+- **Exact target-tree equality, confirmed three independent ways.** `git rev-parse de3a8d6^{tree}` and `git rev-parse 8ea5c32^{tree}` both return `8b11b66ae4d86e6b2812dcc51f7b6218776ab992`; the two values the dispatch hint supplied match what the repository returns; and the `docs/architecture/ARCHITECTURE.md` blob at `de3a8d6` hashes to `87ee3519…`, byte-identical to what row 23 recorded at `8ea5c32`. That third check is the one `MC-012` makes a standing property rather than a one-off.
+- **Branch containment and locality.** `git branch --contains de3a8d6` returns only `integration/autonomous-runtime`. Its remote tracking ref is still at `e8edbcd`, so the branch is ahead by exactly one and the integration is local-only.
+- **Message and source identity.** The commit message is `feat(TASK-038): integrate LIN-ARCH-REVIEW round 8`, naming the source task and the lineage round the evidence records.
+- **The authoritative verdict was re-checked before recording any evidence.** ADR-0041 refuses the batch unless the passing verdict atomically closed every current relation and the source is the current cumulative target. `ACT-016` closed all eight round-8 relations together at `734bdbc` with `approved`; all eight `gate_closed: true` markers are present on both sides of every pair; and `TASK-038` is the last cohort member. Both preconditions hold.
+- **The clean integration worktree was taken as reported and not independently confirmed**, because that worktree is outside this execution's accessible paths. It is recorded as an operator-reported fact rather than an Orchestrator-verified one, which is the distinction this log keeps everywhere else.
+- **The `fact_id` and `content_hash` in row 25 were computed after reproducing row 24's `fact_id` byte for byte.**
+- Rows 1 … 24 unchanged; row 25 is an append. `last_consumed_event_seq = 25 = ingress_seq`.
+- **The evidence batch was written exactly as ADR-0041 defines it**: `TASK-038` content-merged; the seven predecessors lineage-subsumed **in cohort order** `TASK-002`, `TASK-016`, `TASK-024`, `TASK-028`, `TASK-032`, `TASK-034`, `TASK-036`; every record naming the same integration branch, merge commit, source task, source published commit, and timestamp, with the subsumed records additionally naming the lineage and authoritative round. Each subsumption record states explicitly that **no Git merge occurred for that task** and that it does not approve that task's own rejected publication in isolation.
+- **No historical verdict was rewritten.** Every `changes-required` verdict from rounds 1 … 7 stays exactly as recorded on all eight records.
+- **The nine consumers were re-evaluated from their complete typed dependency sets.** TASK-018 stays `ready`; the eight runtime consumers stay `blocked` because each still declares at least one unsatisfied `integrated()` edge, and **none of those edges names an architecture task** — they name TASK-018, TASK-003, TASK-004, TASK-005, TASK-006, TASK-017, and TASK-026. **No dependency was invented, removed, or retyped**, and no consumer's blocked reason changed, because the fact that unblocks them has not occurred.
+- Every `status` field was compared with its lifecycle directory and both graph tables, in both directions, for all 39 records.
+- **TASK-031, its immutable target `f14bdde`, A-506, the `LIN-DECOMP-REVIEW` round-9 coverage obligation, F-401's interim bootstrap status, and every unrelated gate were each verified unchanged.**
+- **No verdict was authored, no gate was closed by this role, no architecture or integration content was edited, and no remote state was queried or changed.**
+
+### Lifecycle transitions performed
+
+| Task | From | To | Justification |
+|---|---|---|---|
+| TASK-038 | `tasks/review/`, `review` | `tasks/done/`, `done` | `review_ready` satisfied at `8ea5c32`; every `pre_merge_gates` entry closed at `734bdbc`; `integrated` satisfied by **content-merged** evidence at `de3a8d6`. The complete lifecycle predicate holds |
+| TASK-002, TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036 | `tasks/review/`, `review` | `tasks/done/`, `done` | Same predicate, with `integrated` satisfied by **lineage-subsumed** evidence in cohort order. ADR-0041 makes subsumption evidence sufficient for `integrated(X)` provided `review_ready(X)` and X's pre-merge gates are closed, both of which hold. Their rejected publications and recorded `changes-required` verdicts stay durable and untouched |
+| TASK-018 | `tasks/ready/` | `tasks/ready/`, unchanged | Still `ready`. Its only dependency was satisfied at `ACT-016` and nothing in this activation touches it |
+| TASK-003 … TASK-008, TASK-017, TASK-026 | `tasks/blocked/` | `tasks/blocked/`, unchanged | Each retains an unsatisfied `integrated()` edge naming a runtime task, not an architecture one. This integration satisfies none of them |
+| TASK-031 | `tasks/ready/` | `tasks/ready/`, unchanged | Untouched apart from extending accumulated coverage through `ACT-017` |
+| TASK-013 | `tasks/blocked/` | `tasks/blocked/`, `quiescent` | Cursor reached `ingress_seq` after consuming `seq` 25 |
+| TASK-001 | `tasks/review/` | `tasks/review/`, unchanged | Revision 18 applies this activation's consequences. It stays in `review`; its own round-8 gate is still open with TASK-031 |
+
+### Remaining blockers and next owners
+
+| Item | Owner | Why it is open |
+|---|---|---|
+| Runtime toolchain bootstrap | devops / claude, **TASK-018** | **Ready and dispatchable — this is the next owner.** Its architecture dependency was satisfied at `ACT-016` and the approved architecture is now integrated as well, so it can branch from `integration/autonomous-runtime` at `de3a8d6` and find the approved contracts there |
+| Independent re-review of the corrected decomposition, round 8 | reviewer / gpt, **TASK-031** | **Ready and dispatchable in parallel**, unchanged |
+| The eight runtime consumers | runtime / claude | Each waits on an `integrated()` edge naming a runtime task. They unblock as those integrations land, beginning with TASK-018 |
+| Independent review of the A-506 correction and the `ACT-008` … `ACT-017` effects | reviewer / gpt, `LIN-DECOMP-REVIEW` **round 9, not yet created** | Unchanged. Invariant 8 forbids creating it before round 8 records a verdict. Coverage now extends through `ACT-017` |
+| The durable pre-dispatch ingress collector | runtime / claude, TASK-026, with TASK-005 | Contract approved **and now integrated**, implementation still absent. F-401 is not resolved and TASK-013 still runs under `interim-operator-authorized` |
+| A durable governance commit for `HUMAN-002` | user | Still absent |
+| Remote publication of `ACT-009` … `ACT-017`, TASK-032 … TASK-039, and the integration commit | user | All `local-only`. `integration/autonomous-runtime` is ahead of its remote by one |
+| Pull request 15 | user | Now moot in substance: TASK-028's lifecycle responsibility is included in the integrated cumulative tree by subsumption, and no predecessor merge is required or wanted. Closing it is an operator action |
+
+### Effects commit for ACT-017
+
+- One commit on `agent/claude/orchestrator/task-013`, base `4243532551e4b7ee42838f3f9f15a780447c054b`, carrying the ledger row for `seq` 25, `MC-012`, the cursor advance to 25, and every lifecycle effect together.
+- The effects commit is **`43718a1`**, full `43718a1d9dc229eda1800f6de82b13d70c5cffe0`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
+- **Publication: `local-only`.**
+
 ## Activation ACT-014
 
 - Activation ID: `ACT-014`
@@ -2130,3 +2320,124 @@ Verdicts from earlier rounds stay durable and are recorded in the `ACT-012` and 
 - **It is not pinned as any round's review target.** TASK-031's round-8 target stays `f14bdde`. This is the seventh consecutive activation whose effects commit is not bound to an open review round.
 - **Publication: `local-only`. Reason: public remote egress approval is pending.**
 - This activation did **not** alter TASK-031's review target, any earlier round's durable verdict, or the A-506 review obligation, and it merged no architecture branch anywhere.
+
+## Activation ACT-015
+
+- Activation ID: `ACT-015`
+- Date: 2026-08-06
+- Branch: `agent/claude/orchestrator/task-013`
+- Worktree: `C:/Users/furko/Desktop/multi-agent-worktrees/claude-orchestrator-task-013`
+- Scope-validation base: `b5d32c9f043ea9dc739dbf1748d84b86378049ef` — the immutable branch point of this branch at the start of the activation, and the `ACT-014` follow-up commit. Deliberately not the `ACT-014` effects commit and not a review-diff base. It is also TASK-038's branch point.
+- Events consumed: `(22, 23]` — `seq` 23, epoch 2
+- Cursor before: `22`. Cursor after: `23`.
+- Effects, the one new ledger row, and the cursor advance are recorded in one commit, which is what makes consumption exactly-once. **No model correction was recorded.**
+- **Bootstrap dispatch contract in force: `interim-operator-authorized`**, unchanged. TASK-038 has published a further contract representation and it is unjudged.
+- Concurrency: `task-records` held by the surrounding operator session for this execution; TASK-001 not claimed. The shared lock directory was read directly and holds exactly one entry, `task-013.json`, and **no `task-038.json`** — so `architecture-docs` is free and its registered holder set is unchanged at eight.
+- Publication: **`local-only`. Reason: public remote egress approval is pending.**
+- Tooling limitation, unchanged: this profile blocks repository PowerShell scripts. **No orchestration script was executed, emulated, or reimplemented**, and no lock was created, reproduced, or released. Every fact here came from read-only `git` and filesystem inspection.
+
+### Triggers and the transitions they justified
+
+| Trigger event | Trigger row in TASK-013's table | Transitions performed |
+|---|---|---|
+| `seq` 23, `artifact_published` | "Move that record to `review`, set `status`, record `published_commit`, `published_branch`, `publication_class`, and `publication`, and transcribe the owner's commit, verification, and risks into its Handoff section" | TASK-038 moved from `tasks/ready/` to `tasks/review/` with its publication facts recorded, `review_target_commit` **bound** to `8ea5c32789ee01fd4a2cec4aff13905b120edae3`, its resolved `scope_validation_base` `b5d32c9` pinned, and its owner's handoff transcribed. The satisfied `review_ready(TASK-038)` edge moved **TASK-039** from `tasks/blocked/` to `tasks/ready/` |
+
+Six consequences that did **not** follow:
+
+- **No gate is closed and no verdict exists.** Round 8 has recorded nothing. All eight relations TASK-039 carries stay `pending` and open together.
+- **No implementation task is released.** `gate_passed(LIN-ARCH-REVIEW, review, 8)` is unsatisfied, so the nine consumers stay `blocked`. **The floor did not move** and no source clause moved, because F-601 binds them together and neither moves without a verdict.
+- **No A-601 disposition is claimed.** It stays open at High. The architect's own statements — including its fixture results — are recorded as owner claims in the Handoff and appear in no register.
+- **TASK-031 is untouched**, including its immutable target `f14bdde` and its additive note.
+- **The A-506 and `LIN-DECOMP-REVIEW` round-9 obligations are unchanged.**
+- **No architecture was merged, no pull request touched, and no network operation performed.** In particular, the integration order A-601 concerns was neither executed nor simulated by this role.
+
+### Finding dispositions — none recorded at this activation
+
+This activation consumed an `artifact_published` fact, not a `gate_verdict_recorded` fact. **A-601 remains open at High**, exactly as `ACT-014` routed it, and every disposition at round 8 is TASK-039's to record. The findings round 7 resolved — A-501 … A-505 — stay resolved, and TASK-039 re-verifies them for regression.
+
+### Orchestrator-owned corrections recorded at this activation
+
+**None.** No statement this role authored was found contradicted by the repository. `MC-001` … `MC-011` stand as written.
+
+### Lifecycle transitions performed
+
+| Task | From | To | Trigger and justification | Source artifact |
+|---|---|---|---|---|
+| TASK-038 | `tasks/ready/`, `ready` | `tasks/review/`, `review` | Reached `review_ready` at the immutable published commit `8ea5c32`. `publication_class: bootstrap` with the remote step **not** performed, so `publication: local-only`, which satisfies `review_ready` under publication-classes rule 1. Target and branch point pinned, three provenance sets recorded separately, owner's handoff transcribed. **No finding of its own is marked resolved** | `docs/architecture/ARCHITECTURE.md` at `8ea5c32`, section "TASK-038 Architect output" |
+| TASK-039 | `tasks/blocked/`, `blocked` | `tasks/ready/`, `ready` | `{task: TASK-038, edge: review_ready}` satisfied at `8ea5c32`. `blocked_reason` and `exit_condition` removed, `dependencies_satisfied` recorded, target bound. Holds no resource lock; report path disjoint; dispatchable in parallel with TASK-031. **All eight relations stay `pending`** | This activation |
+| TASK-036, TASK-034, TASK-032, TASK-028, TASK-024, TASK-016, TASK-002 | `tasks/review/` | `tasks/review/`, unchanged | Their round-8 relations were already open and stay `pending`; their recorded round-7 verdicts are untouched | This activation |
+| TASK-003 … TASK-008, TASK-017, TASK-018, TASK-026 | `tasks/blocked/` | `tasks/blocked/`, unchanged | **No dependency became satisfied, no edge added, removed, retyped, or refloored, and no source clause moved.** Floor stays at `lineage_round: 8` | This activation |
+| TASK-031 | `tasks/ready/` | `tasks/ready/`, unchanged | Untouched | This activation |
+| TASK-013 | `tasks/blocked/` | `tasks/blocked/`, `quiescent` | Cursor reached `ingress_seq` after consuming `seq` 23 | This log |
+| TASK-001 | `tasks/review/` | `tasks/review/`, unchanged | Its own review gate is untouched; round 8 of `LIN-DECOMP-REVIEW` stays pending with TASK-031. Revision 16 applies this activation's consequences | This activation |
+
+### Gate closure register
+
+**No gate is closed by this activation, no verdict was recorded, and none was authored by this role.** The `LIN-ARCH-REVIEW` round-8 relations became **dispatchable**, which is not closure. Every row of the `ACT-014` register stands unchanged except that TASK-038 has now published:
+
+| Gated task | Gate | Owner and round | Recorded verdict | Lineage / round | Status |
+|---|---|---|---|---|---|
+| TASK-001 | review | TASK-031 r8 | none | `LIN-DECOMP-REVIEW` 8 | **open**, unchanged. Must still be followed by round 9 covering the `ACT-008` … `ACT-015` effects and the A-506 correction |
+| TASK-002 | review | TASK-039 r8 | none | `LIN-ARCH-REVIEW` 8 | **open, now dispatchable** |
+| TASK-016 | review | TASK-039 r7 | none | `LIN-ARCH-REVIEW` 8 | **open, now dispatchable** |
+| TASK-024 | review | TASK-039 r6 | none | `LIN-ARCH-REVIEW` 8 | **open, now dispatchable** |
+| TASK-028 | review | TASK-039 r5 | none | `LIN-ARCH-REVIEW` 8 | **open, now dispatchable** |
+| TASK-032 | review | TASK-039 r4 | none | `LIN-ARCH-REVIEW` 8 | **open, now dispatchable** |
+| TASK-034 | review | TASK-039 r3 | none | `LIN-ARCH-REVIEW` 8 | **open, now dispatchable** |
+| TASK-036 | review | TASK-039 r2 | none | `LIN-ARCH-REVIEW` 8 | **open, now dispatchable** |
+| TASK-038 | review | TASK-039 r1 | none | `LIN-ARCH-REVIEW` 8 | **open, now dispatchable**; TASK-038 published at `8ea5c32`, which satisfied the readiness edge and closed nothing |
+| TASK-018, TASK-003 … TASK-008, TASK-017, TASK-026, TASK-005/6/8 | review / security / qa / performance | TASK-009 … TASK-012, TASK-019 r1 | none | toolchain and runtime lineages 1 | **open**, unchanged |
+
+All recorded verdicts from rounds 1 … 7 of `LIN-ARCH-REVIEW` and 1 … 7 of `LIN-DECOMP-REVIEW` stay durable and are not restated here.
+
+No high or critical **security** finding exists. A-601 is a High architecture-review finding and not a security finding.
+
+### Verification performed by this activation
+
+- **The ingress fact was verified against Git rather than accepted from the dispatch hint.** `8ea5c32789ee01fd4a2cec4aff13905b120edae3` is the head of `agent/gpt/architect/task-038`; `git log b5d32c9..8ea5c32` returns exactly five commits — `726f285`, `ce2ecfc`, `8b90bdf`, `b408ee0`, `8ea5c32` — and `git merge-base` against this branch returns `b5d32c9f043ea9dc739dbf1748d84b86378049ef`. `git diff --name-only b5d32c9 8ea5c32` filtered against `docs/architecture/`, `docs/adr/`, and `diagrams/architecture/` leaves **zero** residue, so nothing under `tasks/`, `config/`, `scripts/`, `.github/`, or `.githooks/` was touched. `git branch -a --contains 8ea5c32` returns only that branch — **no remote tracking ref**, which independently confirms `local-only`.
+- **The shared lock directory was read directly**: exactly one entry, `task-013.json`, and **no `task-038.json`**, so the TASK-038 lock is free. The owner's own statement and this later durable fact are both recorded on TASK-038.
+- **The `fact_id` and `content_hash` in row 23 were computed after reproducing row 22's `fact_id` byte for byte.**
+- **The entry-point artifact was checked for completeness at the bound target.** `docs/architecture/ARCHITECTURE.md` at `8ea5c32` carries the owner's "TASK-038 Architect output" section with no `PENDING` placeholder.
+- **The provenance sets were measured separately and each reproduces the owner's figure**: authored delta against `b5d32c9` **46 paths / 3171 / 382**; cumulative architecture diff against `970b081` restricted to `docs` and `diagrams` **16 paths / 425 / 62**; import set `b5d32c9`→`726f285` **41 paths / 2790 / 364**.
+- **The ancestry was read rather than assumed**, the discipline `MC-010` enforces. `git merge-base --is-ancestor 970b081 8ea5c32` exits non-zero: the baseline arrives by content import, as TASK-038's record stated in advance. `git diff --diff-filter=D --name-only 970b081 8ea5c32 -- docs diagrams` returns **zero**.
+- **The owner's fixture results were deliberately not re-run.** The complete-order fixture's one content step, zero conflicts, exact tree equality at `8fbf7e62…`, and retained 19-conflict regression are **owner-recorded**. Re-running them would be this role evaluating whether A-601 is remediated, which is TASK-039's judgment and not this role's. **No merge, and no merge simulation, was performed by this activation.**
+- Rows 1 … 22 were compared against their state at `b5d32c9` and are unchanged. Row 23 is an append.
+- **The delta on this file is reported as `--numstat`** under `MC-008`. The two replaced lines are the epoch-2 `Entries` cell, "7 … 22" to "7 … 23", and the trailing cursor line, `22` to `23`. `git diff --numstat` against `b5d32c9` reports **143 additions and 2 deletions** for this file, the two enumerated and confirmed to be exactly those lines. Six paths change in total, all under `tasks/**` - the graph 17 / 8, this log 143 / 2, TASK-013 record 9 / 7, TASK-001 record 3 / 3, TASK-038 renamed from `tasks/ready/` to `tasks/review/` with 35 / 12, and TASK-039 renamed from `tasks/blocked/` to `tasks/ready/` with 26 / 9. Git detected both moves as renames rather than delete-plus-add, which is the first activation in which it has.
+- `last_consumed_event_seq = 23 = ingress_seq = max(seq)`; quiescence at 23 is demonstrable under self-exclusion.
+- **The F-601 coupling was checked in the negative direction.** No verdict was recorded, so the floor must not move and no source clause may move. Every architecture edge still reads `lineage_round: 8` and every `normative_architecture_source` clause still names `970b081` as the last superseded baseline with TASK-038's commit described as the one TASK-039 approves. Binding `8ea5c32` as a review target is not naming it in a source clause, and it was not.
+- Every `status` field was compared with its lifecycle directory and with both graph tables, in both directions, for all 39 records.
+- All 73 `gate_for` / `gate_tasks` pairs were compared in both directions. **The count is unchanged**, because this activation created no task and no relation; all eight round-8 relations remain `pending` on both sides.
+- `LIN-ARCH-REVIEW` declares rounds 1 … 8 with no gap and its cohort stays at eight, with none added and none removed.
+- **No edge was added, removed, retyped, or refloored.** TASK-039's `review_ready(TASK-038)` edge moved from unsatisfied to satisfied, which is a change of state and not of topology.
+- **TASK-031, its immutable target, its additive note, and the A-506 round-9 obligation were each verified unchanged.**
+- **No gate was marked passed, no verdict authored, no finding resolved, no implementation task released, no architecture merged, and no publication treated as a satisfied precondition.**
+
+### Limitations of this activation
+
+- This execution's permission profile blocks the repository's PowerShell validators, so `validate-assignment.ps1`, `validate-write-scope.ps1`, `validate-framework.ps1`, `test-orchestration.ps1`, and `check-repository.ps1` were **not run here**. They are genuinely unrun rather than merely unreported, and the surrounding operator runs them.
+- The architect's counts, fixture results, and merge-tree evidence are recorded as **owner-recorded** and were not re-derived, because doing so would be this role performing the round-8 review.
+- The effects commit is **`994134d`**, full `994134d3a078d24d40c7fdfb31d7ac0eb04e31b9`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
+
+### Remaining blockers and next owners
+
+| Item | Owner | Why it is open |
+|---|---|---|
+| Independent review of the seventh architecture amendment | reviewer / gpt, **TASK-039** | **Ready and dispatchable now. This is the next owner.** Reviews `8ea5c32` against `970b081`; one verdict applied atomically to **eight** relations, deciding whether nine implementation tasks may leave `blocked`. Must judge A-601, execute the full prescribed integration order itself, re-verify everything round 7 resolved, and check import fidelity |
+| Independent re-review of the corrected decomposition, round 8 | reviewer / gpt, **TASK-031** | **Ready and dispatchable now, in parallel**, unchanged |
+| Independent review of the A-506 correction and the `ACT-008` … `ACT-015` effects | reviewer / gpt, `LIN-DECOMP-REVIEW` **round 9, not yet created** | **Unchanged.** Invariant 8 forbids creating round 9 before round 8 records a verdict. The backlog grew by one activation |
+| One open High architecture finding | architect / gpt, TASK-038, judged by TASK-039 | A-601. An amendment addressing it exists and is unjudged; nothing is released by its existence |
+| Remote publication of the `ACT-009` … `ACT-015` effects and TASK-032 … TASK-038 | user | All `local-only` |
+| Pull request 15 is `CONFLICTING` against `main` | user, with architect / gpt | Unchanged |
+| The durable pre-dispatch ingress collector | runtime / claude, TASK-026, with TASK-005 | Contract published eight times, judged four times, rejected four times. TASK-013 runs under `interim-operator-authorized` |
+| A durable governance commit for `HUMAN-002` | user | Still absent |
+| The same-family reviewer margin on `LIN-ARCH-REVIEW` | user | TASK-038 and TASK-039 are both `gpt`, the fifth consecutive round |
+| Toolchain bootstrap, runtime implementation, runtime validation | devops / runtime / reviewer / security / qa / performance | All wait on a passing architecture lineage verdict at round 8 |
+| Cross-task resource-lock enforcement | runtime / claude, TASK-005 | `architecture-docs` has eight registered holders and is free |
+
+### Effects commit for ACT-015
+
+- The effects commit is a **single** commit on `agent/claude/orchestrator/task-013`, base `b5d32c9f043ea9dc739dbf1748d84b86378049ef`, carrying the ledger row for `seq` 23, the cursor advance to 23, and every lifecycle effect together.
+- The effects commit is **`994134d`**, full `994134d3a078d24d40c7fdfb31d7ac0eb04e31b9`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
+- **It is not pinned as any round's review target.** TASK-031's round-8 target stays `f14bdde`. This is the eighth consecutive activation whose effects commit is not bound to an open review round.
+- **Publication: `local-only`.** No push, pull request, or merge was performed or attempted.
+- This activation did **not** alter TASK-031's review target, any earlier round's durable verdict, the architecture edge floor, any source clause, or the A-506 review obligation, and it merged no architecture branch anywhere.
