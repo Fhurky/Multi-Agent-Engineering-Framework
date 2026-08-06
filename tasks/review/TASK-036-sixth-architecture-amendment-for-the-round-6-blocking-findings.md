@@ -1,7 +1,7 @@
 ---
 task_id: TASK-036
 title: Sixth architecture amendment for the round-6 blocking findings — recovery event outcome fields, recovery batch legality, collector deduplication representability, the nominal registration receipt, and the plan-phase failure path
-status: ready
+status: review
 owner_role: architect
 llm: gpt
 branch: agent/gpt/architect/task-036
@@ -81,14 +81,24 @@ dependencies_satisfied:
     recorded_by: TASK-013 activation ACT-012, consuming ingress entry seq 20
     satisfying_rule: gate_recorded is satisfied by any recorded verdict, whatever that verdict is.
 resource_lock_state_at_creation: free. The TASK-034 execution's lock was released after its commit, confirmed by a direct read of the shared lock directory at ACT-012, and TASK-035 declared no lock. TASK-002, TASK-016, TASK-024, TASK-028, TASK-032, and TASK-034 are the other registered holders and none is active. This task becomes the seventh registered holder.
+published_commit: 970b08125eaf6e5bfb7b24ec2a55238161b16eac
+published_branch: agent/gpt/architect/task-036
+publication: local-only
+publication_reason: The owner recorded local-only because TASK-036 requires no external egress and explicitly excludes push, pull-request creation, and merge. The durable state agrees - git branch -a --contains 970b081 returns only agent/gpt/architect/task-036, with no remote tracking ref and no pull request. Under publication_class bootstrap this satisfies review_ready, because its consumer TASK-037 is another bootstrap task reading the same Git common directory.
+resource_lock_state_at_publication: free. The owner recorded release as deferred to the official post-commit release-task.ps1 call, accurate for the moment it described. The later durable fact is that release happened - at ACT-013 the shared Git-common lock directory was read directly and holds exactly one entry, task-013.json, and no task-036.json. Both facts are recorded; neither the architect nor the Orchestrator is claimed to have performed the release inside its own execution.
+authored_delta: 41 paths, 2790 insertions, 364 deletions, three commits, measured at ACT-013 with git diff --shortstat 080433b 970b081. Larger than the amendment because it also carries the imported 6d145eb baseline; not the size of the round-7 change.
+cumulative_architecture_diff: 23 paths, 642 insertions, 126 deletions, restricted to docs and diagrams, measured with git diff --shortstat 6d145eb 970b081 -- docs diagrams. This is what round 7 judges as a change.
+import_set: 37 paths, 2233 insertions, 323 deletions, committed separately as b894e7f and measured with git diff --shortstat 080433b b894e7f. It is the 6d145eb architecture content, authored by earlier rounds rather than by this task.
+three_commit_structure_note: This is the first publication in the graph to use three commits - b894e7f imports the rejected baseline, 65d624d carries the amendment at 23 paths and 576 insertions and 126 deletions, and the head 970b081 adds the owner verification handoff to docs/architecture/ARCHITECTURE.md alone at plus 66 lines in one file. The amendment's 576 insertions plus the handoff's 66 reconcile the cumulative 642 exactly, which makes the three-set distinction checkable by arithmetic rather than by assertion. The head is the bound target because it is the only commit at which the declared entry-point artifact is complete.
 review_target_branch: agent/gpt/architect/task-036
-review_target_commit: not yet published
+review_target_commit: 970b08125eaf6e5bfb7b24ec2a55238161b16eac
 review_target_base: 6d145eb81033986361aba6454d10f52e5773f950
-review_target_applicability: applicable and resolved for the base; the target commit is a value the Orchestrator pins at the activation that consumes this task's publication
-review_target_note: TASK-037 reviews this task's immutable published commit against review-diff base 6d145eb, the TASK-034 amendment this one revises, reading 468b37b, fe0374c, c2ee3eb, 8d0c570, and 9576fc9 where a judgment needs an earlier baseline. The target commit does not exist yet and is deliberately not guessed. The Orchestrator binds it from the branch as published. If this branch carries more than one commit, the bound target is the one this task's own handoff names as published, and its declared entry-point artifact must be complete at that commit.
-branch_point_of: agent/claude/orchestrator/task-013
-scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
-scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+review_target_applicability: applicable and resolved. The target commit was read from the branch as published at ACT-013 and is now immutable; no later activation changes it.
+review_target_note: TASK-037 reviews this task's immutable published commit 970b081 against review-diff base 6d145eb, the TASK-034 amendment this one revises, reading 468b37b, fe0374c, c2ee3eb, 8d0c570, and 9576fc9 where a judgment needs an earlier baseline. The Orchestrator bound the target at ACT-013 from the branch as published. The branch carries three commits and the target is the head, which is the commit this task's own handoff names as published; b894e7f is the baseline import and 65d624d the amendment, and both are authoring ancestry rather than the target. The entry-point artifact was checked for completeness at the bound commit and carries the owner's recorded verification handoff, which the amendment commit does not - that is why the head is bound.
+branch_point_of: agent/gpt/architect/task-036
+scope_validation_base: 080433b1d4ab53d5ee83a0a85895f6b0f04164e1
+scope_validation_applicability: applicable and resolved. Read from the repository at ACT-013 with git merge-base agent/gpt/architect/task-036 agent/claude/orchestrator/task-013, which returns 080433b - the ACT-012 follow-up commit and the head this branch was cut from. It matches what this record anticipated and what the owner reported, so no A-209-class divergence arose.
+scope_validation_result: The owner recorded the base as 080433b. The Orchestrator independently confirmed that git diff --name-only 080433b 970b081 filtered against docs/architecture/, docs/adr/, and diagrams/architecture/ leaves zero residue, so nothing under tasks/, config/, scripts/, .github/, or .githooks/ was touched.
 scope_validation_note: Create agent/gpt/architect/task-036 from the head of agent/claude/orchestrator/task-013 at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/orchestrator/task-013 and pass that value to -BaseRef. Never pass a review-diff base, 6d145eb, 468b37b, fe0374c, c2ee3eb, 8d0c570, c325275, or origin/main. Findings F-403 and A-209 each recorded why. Record the resolved 40-hex value in the handoff, and report the actual provenance if it disagrees with what this record anticipates rather than substituting a base that passes.
 architecture_baseline_arrives_by_content_import: true
 architecture_baseline_import_note: Stated as a measured fact and not as an expectation, which is the discipline MC-010 exists to enforce. At the time this record was written 6d145eb is NOT an ancestor of agent/claude/orchestrator/task-013 and cannot be made one - it sits on agent/gpt/architect/task-034, its review gate carries a changes-required verdict, and merging a rejected unreviewed amendment into the Orchestrator branch is prohibited by that gate being in TASK-034's pre_merge_gates. No branch point exists that both contains 6d145eb and carries the current task records. Import the 6d145eb architecture content by tree and blob copy. TASK-034 committed its import and its amendment as two separate commits, which made the three provenance sets checkable in one command and which round 6 verified as faithful; do the same.
@@ -234,13 +244,26 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 ## Task-record lifecycle
 
-This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `ready` at activation `ACT-012`, on the satisfied `gate_recorded(TASK-035)` edge at `afed101`.
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `ready` at activation `ACT-012`, on the satisfied `gate_recorded(TASK-035)` edge at `afed101`, and moved from `tasks/ready/` to `tasks/review/` at `ACT-013` on the `artifact_published` ingress fact recorded as `seq` 21.
 
 ## Handoff
 
 Maintained by the Orchestrator under TASK-013 from the architect's commits and published documents.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: reviewer / gpt via TASK-037, which records one verdict applied atomically to seven `LIN-ARCH-REVIEW` round-7 relations and decides whether TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 may leave `blocked`
+Transcribed from the owner's handoff in the "TASK-036 Architect output" section of `docs/architecture/ARCHITECTURE.md` at the published commit. There is no pull request. What follows quotes that source and does not convert an owner statement into an Orchestrator judgment.
+
+- **Commit or pull request:** three commits on `agent/gpt/architect/task-036` — `b894e7fc75ab5edd65949acf1be7e76d6bb7a448` (baseline import), `65d624def7826e0b78ca866b351845d653e51027` (amendment), and the head `970b08125eaf6e5bfb7b24ec2a55238161b16eac` (verification handoff). **`970b081` is the bound review target.** No pull request exists.
+
+- **Verification, as the owner recorded it.** Scope-validation base `080433b`, resolved against this Orchestrator branch. The three provenance sets stated as 41, 23, and 37 paths and explicitly "not conflated". Target-tree enumeration: 39 tracked task Markdown files yielding 37 task records plus two support documents; 130 relation documents forming 65 exact pairs; 56 fully enriched and zero partially enriched; zero pair or side mismatches; 170 unique prerequisite edges; deterministic Kahn traversal consuming 37/37 nodes; `LIN-ARCH-REVIEW` deriving seven cohort artifacts, seven contiguous uniquely owned rounds, and TASK-037 as round-7 owner.
+
+- **What the Orchestrator verified independently at `ACT-013`:** the branch head, all three commit identifiers and their parent chain, the branch point `080433b`, zero paths outside the declared write scope, each of the three provenance sets reproducing the owner's figure, the arithmetic 576 + 66 = 642 that reconciles the amendment and handoff commits against the cumulative diff, that `6d145eb` is **not** an ancestor, that **zero** base architecture documents are absent at the target, that no remote ref exists, and that the entry-point artifact is complete at the bound commit.
+
+- **A cross-check worth recording.** The owner's independently derived enumeration reports **37 task records and 65 exact pairs**, and revision 13 of the dependency graph enumerated 65 pairs across 37 records from the Orchestrator's own register. The two derivations are separate and agree. The remaining owner figures — 130 relation documents, 56 enriched, 170 edges, the Kahn traversal, and the cohort derivation — are **owner-recorded and deliberately not re-derived**, because deriving them is a review act belonging to TASK-037.
+
+- **`MC-011` was followed again.** This record carried no count, and the owner enumerated its own target tree rather than inheriting one — the second consecutive amendment to do so.
+
+- **Publication:** `local-only`, for the reason the owner recorded; the durable ref state agrees. **Task lock:** recorded as deferred to the official post-commit call and now free, confirmed by direct read; both facts recorded.
+
+- **No finding is resolved by this record.** **A-501, A-502, A-503, A-504, and A-505 remain open at High.** The owner's statement that it repaired them is an owner claim about its own work, recorded here and in no register; every disposition at round 7 is TASK-037's to record. A-503's `HUMAN-002` property is **not** recorded satisfied.
+
+- **Next owner:** reviewer / gpt via **TASK-037**, now `ready`, which records one verdict applied atomically to seven `LIN-ARCH-REVIEW` round-7 relations and decides whether TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 may leave `blocked`
