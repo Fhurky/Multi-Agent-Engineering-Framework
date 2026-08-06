@@ -259,6 +259,7 @@ This record's `status` field, its lifecycle directory, and its activation cursor
 
 Maintained by this task's own activations; each activation appends its outcome here and in the activation log.
 
+- **ACT-014 effects binding:** the effects commit is **`88c7c39`**, full `88c7c39d826ce98c6843acdc450f28120b8267aa`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder preserved in the chronological paragraph below.
 - **ACT-013 effects binding:** the effects commit is **`9dcd771`**, full `9dcd7718853bf318d7ae2ef6a4a46ef3bd6689b0`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder preserved in the chronological paragraph below.
 - **ACT-012 effects binding:** the effects commit is **`21955df`**, full `21955dfd5fece7fe7e5d1db0cfd3333fb2a0a662`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder preserved in the chronological paragraph below.
 - **ACT-011 effects binding:** the effects commit is **`c3477c4`**, full `c3477c4e29d9a3910041fba01704faa155dc0d5d`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder preserved in the chronological paragraph below.

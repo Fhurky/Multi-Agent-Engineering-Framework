@@ -2126,7 +2126,7 @@ Verdicts from earlier rounds stay durable and are recorded in the `ACT-012` and 
 ### Effects commit for ACT-014
 
 - The effects commit is a **single** commit on `agent/claude/orchestrator/task-013`, base `3dc20ebfaba3ee9cbf583b87c9658189693305db`, carrying the ledger row for `seq` 22, the cursor advance to 22, and every lifecycle effect together.
-- **The commit had not been created when this section was written, so no hash is asserted here.** One follow-up commit records it and carries no effect, no ledger row, and no cursor change.
+- The effects commit is **`88c7c39`**, full `88c7c39d826ce98c6843acdc450f28120b8267aa`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
 - **It is not pinned as any round's review target.** TASK-031's round-8 target stays `f14bdde`. This is the seventh consecutive activation whose effects commit is not bound to an open review round.
 - **Publication: `local-only`. Reason: public remote egress approval is pending.**
 - This activation did **not** alter TASK-031's review target, any earlier round's durable verdict, or the A-506 review obligation, and it merged no architecture branch anywhere.
