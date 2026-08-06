@@ -2327,6 +2327,7 @@ The user stated a new requirement in the control session: **routine human GitHub
 
 ### Effects commit for ACT-018
 
+- **Effects binding:** the effects commit is **`0dee8cf`**, full `0dee8cff4d2313349471858861c04ddafdf6e598`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder below.
 - One commit on `agent/claude/orchestrator/task-013`, base `9c96953e27639e0c3b71b77580bd604bc3933fad`, carrying the ledger row for `seq` 26, the cursor advance to 26, the TASK-018 and TASK-019 transitions, the TASK-040 and TASK-041 creations, the `HUMAN-004` registration, the Orchestrator-owned graph corrections, and revision 19 of the dependency graph — all together.
 - **This activation creates that commit and deliberately does not create the follow-up hash-binding commit**, so no hash is asserted here; a reader who finds none is reading that state rather than a lost value. The surrounding operator binds it.
 - **Publication: `local-only`.** No push, pull request, or merge was performed or attempted.
