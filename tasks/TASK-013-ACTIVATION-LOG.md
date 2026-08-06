@@ -1657,7 +1657,7 @@ No high or critical **security** finding exists. A-202, A-401, and A-402 are Hig
 ### Effects commit for ACT-011
 
 - The effects commit is a **single** commit on `agent/claude/orchestrator/task-013`, base `a0d6e77a93c3eaf50134568620c682089ff909ae`, carrying the ledger row for `seq` 19, the cursor advance to 19, and every lifecycle effect together. If it does not land, the cursor is unchanged, no ledger row exists, and the same range is consumed again with identical effects.
-- **The commit had not been created when this section was written, so no hash is asserted here.** A commit cannot contain its own hash; one follow-up commit records it and carries no effect, no ledger row, and no cursor change. A reader who finds no hash here is reading that state, not a lost value.
+- The effects commit is **`c3477c4`**, full `c3477c4e29d9a3910041fba01704faa155dc0d5d`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
 - **It is not pinned as any round's review target.** TASK-031's round-8 target stays `f14bdde` and TASK-035's target is `6d145eb`, an architecture commit on another branch. This is the fourth consecutive activation whose effects commit is not bound to an open review round.
 - **Publication: `local-only`. Reason: public remote egress approval is pending.**
 - This activation did **not** alter any earlier round's durable verdict, any bound review target other than TASK-035's newly bound one, the architecture edge floor, or any source clause, and it did not merge any architecture branch anywhere.
