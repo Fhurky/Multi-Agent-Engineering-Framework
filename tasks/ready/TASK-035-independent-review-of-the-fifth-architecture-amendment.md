@@ -1,7 +1,7 @@
 ---
 task_id: TASK-035
 title: Independent review of the fifth runtime architecture amendment
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-035
@@ -11,6 +11,16 @@ write_scope:
 dependencies:
   - task: TASK-034
     edge: review_ready
+dependencies_satisfied:
+  - edge: review_ready
+    task: TASK-034
+    satisfied_at: 6d145eb81033986361aba6454d10f52e5773f950
+    satisfied_branch: agent/gpt/architect/task-034
+    satisfied_remote_ref: none — publication is local-only and no remote ref for this branch exists in this clone
+    publication_class: bootstrap
+    publication: local-only
+    satisfying_rule: A bootstrap task's local-only publication satisfies review_ready for that task only, because its consumer is another bootstrap task reading the same Git common directory. Publication classes rule 1 in tasks/TASK-001-DEPENDENCY-GRAPH.md. This task is publication_class bootstrap, so the rule applies and no merge is required.
+    recorded_by: TASK-013 activation ACT-011, consuming ingress entry seq 19
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -68,13 +78,19 @@ verdict_note: This task records exactly one verdict. That single verdict is appl
 parent_task: TASK-001
 publication_class: bootstrap
 supersedes: TASK-033
-blocked_reason: TASK-034 has not published the fifth architecture amendment, so there is no immutable target to review. The declared dependency review_ready(TASK-034) is unsatisfied.
-exit_condition: TASK-034 reaches review_ready — an immutable published commit on agent/gpt/architect/task-034 whose publication_class bootstrap is satisfied. No merge is required. The Orchestrator then binds review_target_commit from the branch as published and moves this record to ready.
 review_target_branch: agent/gpt/architect/task-034
-review_target_commit: not yet published
+review_target_commit: 6d145eb81033986361aba6454d10f52e5773f950
 review_target_base: 468b37b2649d031074eba64aca47f4561a0c41a3
-review_target_applicability: applicable and resolved for the base; the target commit is a value the Orchestrator pins at the activation that consumes TASK-034's publication
-review_target_note: The target is TASK-034's immutable published commit, compared against review-diff base 468b37b, the TASK-032 amendment it revises. Read fe0374c, c2ee3eb, 8d0c570, and 9576fc9 where a judgment needs an earlier baseline. The target commit is deliberately not guessed here; the Orchestrator reads it from the branch as published, as ACT-009 did for 468b37b and ACT-007 for fe0374c. If the branch carries more than one commit, the bound target is the one TASK-034's handoff names as published, and its declared entry-point artifact must be complete at that commit.
+review_target_applicability: applicable and resolved. The Orchestrator read the target from the branch as published at ACT-011 and bound it; it is immutable and no later activation changes it.
+review_target_note: The target is TASK-034's immutable published commit 6d145eb, the head of agent/gpt/architect/task-034, compared against review-diff base 468b37b, the TASK-032 amendment it revises. Read fe0374c, c2ee3eb, 8d0c570, and 9576fc9 where a judgment needs an earlier baseline. The branch carries two commits and the target is the head, which TASK-034's handoff names as published; e594e728ff98693772ee566d2b377c6621325fde is the baseline import commit and is authoring ancestry, not the target. The entry-point artifact was confirmed complete at the bound commit.
+target_provenance_measured_by_orchestrator:
+  authored_delta: 37 paths, 2233 insertions, 323 deletions, two commits, against branch point a0d6e77a93c3eaf50134568620c682089ff909ae
+  cumulative_architecture_diff: 14 paths, 369 insertions, 91 deletions, against 468b37b restricted to docs and diagrams
+  import_set: 35 paths, 1944 insertions, 312 deletions, committed separately as e594e72
+  amendment_commit_equals_cumulative: true — git diff --shortstat e594e72 6d145eb is byte-for-byte identical to the cumulative architecture diff, because the owner committed the import and the amendment separately
+  documents_present_at_base_and_absent_at_target: 0
+  base_is_ancestor_of_target: false
+  measurement_note: These are the Orchestrator's own read-only measurements at ACT-011, recorded so the reviewer can reproduce or contradict them. They are evidence, not a finding and not a disposition. Verify each from the repository; if a measurement disagrees with what you find, report the actual value as a finding against the Orchestrator.
 branch_point_of: agent/claude/orchestrator/task-013
 scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
 scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
@@ -109,7 +125,9 @@ The cohort has grown by one at every round since round 1 and **no member has eve
 
 ## Review target
 
-Branch `agent/gpt/architect/task-034`, at the immutable published commit that TASK-013 binds into `review_target_commit`, compared against **`468b37b`** — the TASK-032 amendment this one revises. Read `fe0374c`, `c2ee3eb`, `8d0c570`, and `9576fc9` where a judgment needs an earlier baseline.
+Branch `agent/gpt/architect/task-034`, at the immutable published commit **`6d145eb81033986361aba6454d10f52e5773f950`**, which TASK-013 bound at activation `ACT-011`, compared against **`468b37b`** — the TASK-032 amendment this one revises.
+
+**The import and the amendment are separate commits this round, which makes the three sets checkable rather than merely asserted.** `e594e72` carries the imported `468b37b` baseline and `6d145eb` carries the amendment alone, so `git diff e594e72..6d145eb` is byte-for-byte the cumulative architecture diff. Round 5 could not offer that, because TASK-032 mixed both in one commit. Verify the equality rather than assuming it. Read `fe0374c`, `c2ee3eb`, `8d0c570`, and `9576fc9` where a judgment needs an earlier baseline.
 
 **Read the target as three separate sets, and say which is which in the report.**
 
@@ -198,7 +216,7 @@ This task's single file is new and path-disjoint from TASK-009's `reports/code-r
 
 ## Gate and remediation path
 
-This task records six gate relations as `gate_for` reverse edges rather than scheduling dependencies. Their gate names, rounds, scheduling classes, ordering against integration, lineage, and lineage round are declared in the frontmatter above and summarized in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body does not restate them. It becomes dispatchable when TASK-034 reaches `review_ready` — an immutable published commit, no merge required. TASK-034 becomes integrable only after this task's verdict closes its review gate.
+This task records six gate relations as `gate_for` reverse edges rather than scheduling dependencies. Their gate names, rounds, scheduling classes, ordering against integration, lineage, and lineage round are declared in the frontmatter above and summarized in the registers in `tasks/TASK-001-DEPENDENCY-GRAPH.md`; this body does not restate them. Its `review_ready(TASK-034)` dependency is **satisfied** at `6d145eb`, recorded by activation `ACT-011`, so this task is dispatchable now. TASK-034 becomes integrable only after this task's verdict closes its review gate.
 
 **One verdict, applied atomically to six relations, yielding six durable gate-verdict facts.** This is the model stated in "Verdict cardinality" above, in the acceptance criteria, in the frontmatter fields `verdict_cardinality` and `verdict_application`, and in gate-round rule clause 5.
 
@@ -216,7 +234,7 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 ## Task-record lifecycle
 
-This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `blocked` at activation `ACT-010`, because its dependency `review_ready(TASK-034)` is unsatisfied.
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `blocked` at activation `ACT-010` and moved from `tasks/blocked/` to `tasks/ready/` at `ACT-011`, on the satisfied `review_ready(TASK-034)` edge at `6d145eb`.
 
 ## Handoff
 
