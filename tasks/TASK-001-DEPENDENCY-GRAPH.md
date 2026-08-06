@@ -2,7 +2,16 @@
 
 Durable handoff note for the autonomous multi-agent runtime task graph. It records the dependency order, ownership, write-scope partition, edge semantics, gate scheduling classes, gate lineages, and the activation and event-ingress model. Individual task records remain the authoritative source for scope and acceptance criteria; this document is kept in agreement with them by TASK-013.
 
-**Revision 17**, produced by TASK-013 activation `ACT-016`. **One** independent verdict drove it, and for the first time in this graph's history **it passed**:
+**Revision 18**, produced by TASK-013 activation `ACT-017`. **No verdict drove it. It records a completed operator integration and performs none:**
+
+- **The approved architecture is integrated.** The operator squashed the approved cumulative target `8ea5c32` onto `integration/autonomous-runtime` as `de3a8d6ae74a0db423e07cfde5f7b251326d8249`, one commit with **exactly one parent** and a tree byte-identical to the source publication's. This is the **first `branch_integrated` fact of epoch 2** and the first integration of any kind since `seq` 4.
+- **All eight architecture records are `done`.** Under ADR-0041 the single commit integrates the whole cumulative lineage: **TASK-038** carries **content-merged** evidence and **TASK-002, TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, and TASK-036** carry **lineage-subsumed** evidence in cohort order. **No predecessor Git merge occurred**, and each subsumption record says so.
+- **No historical verdict was rewritten.** Every `changes-required` verdict from rounds 1 … 7 stays durable on the record that received it. Subsumption proves lifecycle inclusion in the one approved tree; it does not retroactively approve a rejected publication.
+- **Nothing else moved.** TASK-018 stays `ready`; the eight runtime consumers stay `blocked`, each on an `integrated()` edge naming a **runtime** task rather than an architecture one, so this integration satisfies none of them. No dependency was invented, removed, or retyped.
+- **`MC-012`** defines `source_path` and `producer_task` for a `branch_integrated` fact — the last epoch-2 schema gap — and records that such an entry's `content_hash` necessarily equals that of the publication it lands.
+- TASK-031, A-506, the `LIN-DECOMP-REVIEW` round-9 obligation, and F-401's `interim-operator-authorized` status are unchanged. **An integrated contract is still not an implemented collector.**
+
+Revision 17, produced by TASK-013 activation `ACT-016`, is retained below. **One** independent verdict drove it, and for the first time in this graph's history **it passed**:
 
 - **TASK-039 round 8 returned `approved`** at `734bdbc`, applied atomically to eight relations — `(TASK-038, r1)` … `(TASK-002, r8)` — **all of which are now CLOSED together.** A-601 `resolved`; no new finding; A-701 not opened. `LIN-ARCH-REVIEW` had returned `changes-required` at all seven previous rounds.
 - **`8ea5c32789ee01fd4a2cec4aff13905b120edae3` is the first approved architecture source this graph has had.** Every consumer's `normative_architecture_source` moved to it in the same commit, while the floor **stays** at `lineage_round: 8` — F-601's coupling exercised by an approval rather than a rejection, where the floor deliberately does not move because there is no superseding round.
@@ -281,7 +290,7 @@ TASK-005 owns enforcement: it implements ready-task selection over these edge ty
 | Task | Title | Owner role | LLM | Depends on | State |
 |---|---|---|---|---|---|
 | TASK-001 | Decompose the autonomous multi-agent runtime | orchestrator | claude | — | review |
-| TASK-002 | Runtime architecture and ADRs | architect | claude | — | review, `changes-required` at rounds 1 … 4 |
+| TASK-002 | Runtime architecture and ADRs | architect | claude | — | **done**, lineage-subsumed at `de3a8d6` |
 | TASK-003 | Durable run state and checkpoints | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 8)`; TASK-018 `integrated` | blocked |
 | TASK-004 | Provider adapters and agent workers | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 8)`; TASK-018 `integrated` | blocked |
 | TASK-005 | Scheduling, leases, fencing, bounded concurrency | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 8)`; TASK-003, TASK-004, TASK-026 `integrated` | blocked |
@@ -295,7 +304,7 @@ TASK-005 owns enforcement: it implements ready-task selection over these edge ty
 | TASK-013 | Task-record lifecycle transitions and gate closure | orchestrator | claude | — (event-triggered) | blocked, quiescent |
 | TASK-014 | Independent review of this decomposition, rounds 1–2 | reviewer | gpt | TASK-001 `review_ready` | done |
 | TASK-015 | Independent architecture review of TASK-002, round 1 | reviewer | gpt | TASK-002 `review_ready` | done |
-| TASK-016 | Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 `gate_recorded` | review, `changes-required` at rounds 1, 2, and 3 |
+| TASK-016 | Architecture amendment: runtime contracts and workspace lifecycle | architect | claude | TASK-015 `gate_recorded` | **done**, lineage-subsumed at `de3a8d6` |
 | TASK-017 | Agent workspace lifecycle automation | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 8)`; TASK-003, TASK-018 `integrated` | blocked |
 | TASK-018 | Runtime toolchain bootstrap | devops | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 8)` — **satisfied** | **ready** |
 | TASK-019 | Independent review of the runtime toolchain | reviewer | gpt | TASK-018 `review_ready` | blocked |
@@ -303,21 +312,21 @@ TASK-005 owns enforcement: it implements ready-task selection over these edge ty
 | TASK-021 | Independent re-review of the corrected decomposition, round 3 | reviewer | gpt | TASK-001 `review_ready` | done |
 | TASK-022 | Independent re-review of the corrected decomposition, round 4 | reviewer | gpt | TASK-001 `review_ready` | done, `changes-required` |
 | TASK-023 | Independent re-review of the corrected decomposition, round 5 | reviewer | gpt | TASK-001 `review_ready` | done, `changes-required` |
-| TASK-024 | Second architecture amendment: ingress inbox and revision-5 scheduling vocabulary | architect | claude | TASK-020 `gate_recorded` | review, `changes-required` at rounds 1 and 2 |
+| TASK-024 | Second architecture amendment: ingress inbox and revision-5 scheduling vocabulary | architect | claude | TASK-020 `gate_recorded` | **done**, lineage-subsumed at `de3a8d6` |
 | TASK-025 | Independent review of the second architecture amendment | reviewer | gpt | TASK-024 `review_ready` | done, `changes-required` |
 | TASK-026 | Durable ingress inbox and activation cursor store | runtime | claude | `LIN-ARCH-REVIEW` `gate_passed(review, 8)`; TASK-003, TASK-018 `integrated` | blocked |
 | TASK-027 | Independent re-review of the corrected decomposition, round 6 | reviewer | gpt | TASK-001 `review_ready` | done, `changes-required` |
-| TASK-028 | Third architecture amendment: round-3 blocking findings and the approved pre-dispatch observer | architect | gpt | TASK-025 `gate_recorded` | review, published at `fe0374c`, `changes-required` at round 1 |
+| TASK-028 | Third architecture amendment: round-3 blocking findings and the approved pre-dispatch observer | architect | gpt | TASK-025 `gate_recorded` | **done**, lineage-subsumed at `de3a8d6` |
 | TASK-029 | Independent review of the third architecture amendment | reviewer | gpt | TASK-028 `review_ready` | done, `changes-required` |
 | TASK-030 | Independent re-review of the corrected decomposition, round 7 | reviewer | gpt | TASK-001 `review_ready` | done, `changes-required` |
 | TASK-031 | Independent re-review of the corrected decomposition, round 8 | reviewer | gpt | TASK-001 `review_ready` | ready |
-| TASK-032 | Fourth architecture amendment: the round-4 blocking findings | architect | gpt | TASK-029 `gate_recorded` | review, published `local-only` at `468b37b`, `changes-required` at round 1 |
+| TASK-032 | Fourth architecture amendment: the round-4 blocking findings | architect | gpt | TASK-029 `gate_recorded` | **done**, lineage-subsumed at `de3a8d6` |
 | TASK-033 | Independent review of the fourth architecture amendment | reviewer | gpt | TASK-032 `review_ready` | done, `changes-required` |
-| TASK-034 | Fifth architecture amendment: the round-5 blocking findings | architect | gpt | TASK-033 `gate_recorded` | review, published `local-only` at `6d145eb`, `changes-required` at round 1 |
+| TASK-034 | Fifth architecture amendment: the round-5 blocking findings | architect | gpt | TASK-033 `gate_recorded` | **done**, lineage-subsumed at `de3a8d6` |
 | TASK-035 | Independent review of the fifth architecture amendment | reviewer | gpt | TASK-034 `review_ready` | done, `changes-required` |
-| TASK-036 | Sixth architecture amendment: the round-6 blocking findings | architect | gpt | TASK-035 `gate_recorded` | review, published `local-only` at `970b081`, `changes-required` at round 1 |
+| TASK-036 | Sixth architecture amendment: the round-6 blocking findings | architect | gpt | TASK-035 `gate_recorded` | **done**, lineage-subsumed at `de3a8d6` |
 | TASK-037 | Independent review of the sixth architecture amendment | reviewer | gpt | TASK-036 `review_ready` | done, `changes-required` |
-| TASK-038 | Seventh architecture amendment: the integration-order blocker | architect | gpt | TASK-037 `gate_recorded` | review, **review gate CLOSED at `734bdbc`**, approved source `8ea5c32`, **not integrated** |
+| TASK-038 | Seventh architecture amendment: the integration-order blocker | architect | gpt | TASK-037 `gate_recorded` | **done**, content-merged at `de3a8d6` |
 | TASK-039 | Independent review of the seventh architecture amendment | reviewer | gpt | TASK-038 `review_ready` | done, **approved** |
 
 ### `HUMAN-003` — TASK-028 execution-provider reroute
@@ -409,22 +418,37 @@ Every `required_gates` entry has a named owner, every round is recorded, and eve
 | TASK-002 | review | TASK-025 r3 | `changes-required` | `LIN-ARCH-REVIEW` | 3 |
 | TASK-002 | review | TASK-029 r4 | `changes-required` | `LIN-ARCH-REVIEW` | 4 |
 | TASK-002 | review | TASK-033 r5 | `changes-required` | `LIN-ARCH-REVIEW` | 5 |
-| TASK-002 | review | TASK-035 r6 | pending | `LIN-ARCH-REVIEW` | 6 |
+| TASK-002 | review | TASK-035 r6 | `changes-required` | `LIN-ARCH-REVIEW` | 6 |
+| TASK-002 | review | TASK-037 r7 | `changes-required` | `LIN-ARCH-REVIEW` | 7 |
+| TASK-002 | review | TASK-039 r8 | **`approved`, gate CLOSED** | `LIN-ARCH-REVIEW` | 8 |
 | TASK-016 | review | TASK-020 r1 | `changes-required` | `LIN-ARCH-REVIEW` | 2 |
 | TASK-016 | review | TASK-025 r2 | `changes-required` | `LIN-ARCH-REVIEW` | 3 |
 | TASK-016 | review | TASK-029 r3 | `changes-required` | `LIN-ARCH-REVIEW` | 4 |
 | TASK-016 | review | TASK-033 r4 | `changes-required` | `LIN-ARCH-REVIEW` | 5 |
-| TASK-016 | review | TASK-035 r5 | pending | `LIN-ARCH-REVIEW` | 6 |
+| TASK-016 | review | TASK-035 r5 | `changes-required` | `LIN-ARCH-REVIEW` | 6 |
+| TASK-016 | review | TASK-037 r6 | `changes-required` | `LIN-ARCH-REVIEW` | 7 |
+| TASK-016 | review | TASK-039 r7 | **`approved`, gate CLOSED** | `LIN-ARCH-REVIEW` | 8 |
 | TASK-024 | review | TASK-025 r1 | `changes-required` | `LIN-ARCH-REVIEW` | 3 |
 | TASK-024 | review | TASK-029 r2 | `changes-required` | `LIN-ARCH-REVIEW` | 4 |
 | TASK-024 | review | TASK-033 r3 | `changes-required` | `LIN-ARCH-REVIEW` | 5 |
-| TASK-024 | review | TASK-035 r4 | pending | `LIN-ARCH-REVIEW` | 6 |
+| TASK-024 | review | TASK-035 r4 | `changes-required` | `LIN-ARCH-REVIEW` | 6 |
+| TASK-024 | review | TASK-037 r5 | `changes-required` | `LIN-ARCH-REVIEW` | 7 |
+| TASK-024 | review | TASK-039 r6 | **`approved`, gate CLOSED** | `LIN-ARCH-REVIEW` | 8 |
 | TASK-028 | review | TASK-029 r1 | `changes-required` | `LIN-ARCH-REVIEW` | 4 |
 | TASK-028 | review | TASK-033 r2 | `changes-required` | `LIN-ARCH-REVIEW` | 5 |
-| TASK-028 | review | TASK-035 r3 | pending | `LIN-ARCH-REVIEW` | 6 |
+| TASK-028 | review | TASK-035 r3 | `changes-required` | `LIN-ARCH-REVIEW` | 6 |
+| TASK-028 | review | TASK-037 r4 | `changes-required` | `LIN-ARCH-REVIEW` | 7 |
+| TASK-028 | review | TASK-039 r5 | **`approved`, gate CLOSED** | `LIN-ARCH-REVIEW` | 8 |
 | TASK-032 | review | TASK-033 r1 | `changes-required` | `LIN-ARCH-REVIEW` | 5 |
-| TASK-032 | review | TASK-035 r2 | pending | `LIN-ARCH-REVIEW` | 6 |
-| TASK-034 | review | TASK-035 r1 | pending | `LIN-ARCH-REVIEW` | 6 |
+| TASK-032 | review | TASK-035 r2 | `changes-required` | `LIN-ARCH-REVIEW` | 6 |
+| TASK-032 | review | TASK-037 r3 | `changes-required` | `LIN-ARCH-REVIEW` | 7 |
+| TASK-032 | review | TASK-039 r4 | **`approved`, gate CLOSED** | `LIN-ARCH-REVIEW` | 8 |
+| TASK-034 | review | TASK-035 r1 | `changes-required` | `LIN-ARCH-REVIEW` | 6 |
+| TASK-034 | review | TASK-037 r2 | `changes-required` | `LIN-ARCH-REVIEW` | 7 |
+| TASK-034 | review | TASK-039 r3 | **`approved`, gate CLOSED** | `LIN-ARCH-REVIEW` | 8 |
+| TASK-036 | review | TASK-037 r1 | `changes-required` | `LIN-ARCH-REVIEW` | 7 |
+| TASK-036 | review | TASK-039 r2 | **`approved`, gate CLOSED** | `LIN-ARCH-REVIEW` | 8 |
+| TASK-038 | review | TASK-039 r1 | **`approved`, gate CLOSED** | `LIN-ARCH-REVIEW` | 8 |
 | TASK-003 | review / security / qa | TASK-009 / TASK-010 / TASK-011, r1 | pending | runtime lineages | 1 |
 | TASK-004 | review / security / qa | TASK-009 / TASK-010 / TASK-011, r1 | pending | runtime lineages | 1 |
 | TASK-005 | review / security / qa / performance | TASK-009 / TASK-010 / TASK-011 / TASK-012, r1 | pending | runtime lineages | 1 |
@@ -466,7 +490,7 @@ Two properties of this table are deliberate and are stated without overclaiming:
 ```text
 Wave 0   TASK-031                            decomposition re-review round 8, ready now
          TASK-013                            event-triggered, quiescent, not a wave member
-Wave 1   TASK-038                            seventh architecture amendment, review gate CLOSED at 734bdbc, approved source 8ea5c32, awaiting a separate branch integration
+Wave 1   (complete)                          all eight architecture tasks are done; 8ea5c32 integrated at de3a8d6 on integration/autonomous-runtime
 Wave 2   TASK-018                            toolchain, READY - its only dependency is satisfied
          TASK-019                            gate the toolchain before it merges, blocked until TASK-018 publishes
          TASK-036                            sixth architecture amendment, changes-required at round 7, not integrable
@@ -482,7 +506,7 @@ Wave 8   TASK-009 | TASK-010 | TASK-011      parallel, separate execution contex
 Wave 9   TASK-012                            needs a passing QA baseline, not merely a recorded one
 ```
 
-Revision 5 inserted TASK-026 at Wave 4 and moved the scheduler and everything after it one wave later, because the scheduler's ingress observer now reads a durable inbox that TASK-026 owns. Revision 7 changed only Wave 0 and Wave 1 membership: TASK-025 and TASK-027 recorded their verdicts and left, TASK-030 replaced TASK-027 at Wave 0, and TASK-028 and TASK-029 replaced TASK-025 at Wave 1. Revision 8 changed the same two. **Revision 9 changed only Wave 1**: TASK-029 recorded its verdict and left, and TASK-032 and TASK-033 joined, with TASK-032 the dispatchable half. Revision 10 changed no wave membership: it moved the dispatchable half of Wave 1 from TASK-032 to TASK-033. Revision 11 changed only Wave 1: TASK-033 recorded its verdict and left, and TASK-034 and TASK-035 joined, with TASK-034 the dispatchable half. Revision 12 moved the dispatchable half of Wave 1 from TASK-034 to TASK-035. Revision 13 changed only Wave 1: TASK-035 recorded its verdict and left, and TASK-036 and TASK-037 joined, with TASK-036 the dispatchable half. Revision 14 moved the dispatchable half of Wave 1 from TASK-036 to TASK-037. Revision 15 changed only Wave 1: TASK-037 recorded its verdict and left, and TASK-038 and TASK-039 joined, with TASK-038 the dispatchable half. Wave 1 entered its **seventh** attempt — and for the first time the remaining blocker was not a contract defect but the procedure for landing the contracts. Revision 16 moved the dispatchable half of Wave 1 from TASK-038 to TASK-039. **Revision 17 empties the architecture wave of pending work for the first time**: round 8 passed, TASK-039 is `done`, and Wave 1 now holds only TASK-038 awaiting a separate branch integration. **Wave 2 becomes dispatchable** — TASK-018 is `ready`. Wave 1 took **seven** failed attempts and one success. TASK-031 is unchanged at Wave 0 and remains dispatchable in parallel. **Wave 1 is now in its fifth attempt** — amend, gate, fail, amend again, five times over — and every later wave has moved with it each time. Round 5 is the first round to close a majority of what it was given: three of five findings `resolved` and one inherited view closed clean. It released nothing, because a `changes-required` verdict blocks integration whatever its finding count, and two new High findings opened alongside. That is the cost the aggregate register records for the architecture lineage, and it is stated rather than absorbed silently into the wave numbering. TASK-013 is not a wave and is not claimed at wave boundaries on a timer. It is dispatched only when an unconsumed ingress fact exists; see the activation model below.
+Revision 5 inserted TASK-026 at Wave 4 and moved the scheduler and everything after it one wave later, because the scheduler's ingress observer now reads a durable inbox that TASK-026 owns. Revision 7 changed only Wave 0 and Wave 1 membership: TASK-025 and TASK-027 recorded their verdicts and left, TASK-030 replaced TASK-027 at Wave 0, and TASK-028 and TASK-029 replaced TASK-025 at Wave 1. Revision 8 changed the same two. **Revision 9 changed only Wave 1**: TASK-029 recorded its verdict and left, and TASK-032 and TASK-033 joined, with TASK-032 the dispatchable half. Revision 10 changed no wave membership: it moved the dispatchable half of Wave 1 from TASK-032 to TASK-033. Revision 11 changed only Wave 1: TASK-033 recorded its verdict and left, and TASK-034 and TASK-035 joined, with TASK-034 the dispatchable half. Revision 12 moved the dispatchable half of Wave 1 from TASK-034 to TASK-035. Revision 13 changed only Wave 1: TASK-035 recorded its verdict and left, and TASK-036 and TASK-037 joined, with TASK-036 the dispatchable half. Revision 14 moved the dispatchable half of Wave 1 from TASK-036 to TASK-037. Revision 15 changed only Wave 1: TASK-037 recorded its verdict and left, and TASK-038 and TASK-039 joined, with TASK-038 the dispatchable half. Wave 1 entered its **seventh** attempt — and for the first time the remaining blocker was not a contract defect but the procedure for landing the contracts. Revision 16 moved the dispatchable half of Wave 1 from TASK-038 to TASK-039. Revision 17 emptied the architecture wave of pending work for the first time: round 8 passed and TASK-039 went `done`, leaving TASK-038 awaiting a separate branch integration. **Revision 18 closes Wave 1 entirely** — the integration landed at `de3a8d6` and all eight architecture tasks are `done`. Wave 1 took **seven** failed rounds, one passing round, and one integration. **Wave 2 is the live wave**: TASK-018 is `ready` and dispatchable. TASK-031 is unchanged at Wave 0 and remains dispatchable in parallel. **Wave 1 is now in its fifth attempt** — amend, gate, fail, amend again, five times over — and every later wave has moved with it each time. Round 5 is the first round to close a majority of what it was given: three of five findings `resolved` and one inherited view closed clean. It released nothing, because a `changes-required` verdict blocks integration whatever its finding count, and two new High findings opened alongside. That is the cost the aggregate register records for the architecture lineage, and it is stated rather than absorbed silently into the wave numbering. TASK-013 is not a wave and is not claimed at wave boundaries on a timer. It is dispatched only when an unconsumed ingress fact exists; see the activation model below.
 
 ## TASK-013 activation and event-ingress model
 
@@ -653,7 +677,7 @@ The architecture at commit `9576fc9` on `agent/claude/architect/task-002` was th
 
 **Round 4 is the first round that resolved more than it left open, and it still released nothing.** Eight findings closed and five remain — A-202, A-203, A-206, A-105, and A-301 — of which three are High. A `changes-required` verdict blocks integration whatever its finding count, so the reduction changes the amount of remaining work and not the state of any gate. TASK-029 additionally recorded that **A-004, A-101, A-102, and A-104 are inherited views** of the same projection, registration-proof, and result-adoption defects and "do not create duplicate implementation obligations", so TASK-032 carries five scope items rather than nine.
 
-**An approved architecture source now exists, and it is `8ea5c32789ee01fd4a2cec4aff13905b120edae3`.** Rounds 1 … 7 rejected `9576fc9`, `8d0c570`, `c2ee3eb`, `fe0374c`, `468b37b`, `6d145eb`, and `970b081`; **round 8 approved `8ea5c32` at `734bdbc`**, and `ACT-016` closed all eight relations together. Every rejected baseline stays superseded and a record citing one as approved is still a finding. **Build against `8ea5c32` and nothing else.** It is a commit on `agent/gpt/architect/task-038` that has **not** been integrated into any branch — approval and integration are different facts, and only the first has occurred. Until then the graph names a *target*, not an approved source. Every architecture dependency edge names the lineage `LIN-ARCH-REVIEW` at `lineage_round: 7` rather than any single task, so no further retarget is required if an eighth round becomes necessary — only the floor moves, and under F-601 it never moves without the source clause moving in the same commit.
+**An approved architecture source now exists, and it is `8ea5c32789ee01fd4a2cec4aff13905b120edae3`.** Rounds 1 … 7 rejected `9576fc9`, `8d0c570`, `c2ee3eb`, `fe0374c`, `468b37b`, `6d145eb`, and `970b081`; **round 8 approved `8ea5c32` at `734bdbc`**, and `ACT-016` closed all eight relations together. Every rejected baseline stays superseded and a record citing one as approved is still a finding. **Build against `8ea5c32` and nothing else.** It is now integrated: `de3a8d6` on `integration/autonomous-runtime` carries a tree byte-identical to it, so a consumer branching from the integration branch finds exactly the approved contracts. Approval and integration are different facts and **both** have now occurred, in that order — which is the order ADR-0041 requires and the order this graph took eight rounds to reach. Until then the graph names a *target*, not an approved source. Every architecture dependency edge names the lineage `LIN-ARCH-REVIEW` at `lineage_round: 7` rather than any single task, so no further retarget is required if an eighth round becomes necessary — only the floor moves, and under F-601 it never moves without the source clause moving in the same commit.
 
 **Normative source rule.** F-202 recorded that TASK-003 still pinned the rejected baseline alone; **F-601 then recorded that the nine consumers named the round-3 amendment as one TASK-025 approves, when TASK-025 had rejected it.** Every implementation record now states its normative source in the same corrected form: *the named documents at **`8ea5c32`**, the approved TASK-038 target*, together with the explicit statement that the seven earlier baselines remain superseded and rejected. A record that names `9576fc9`, `8d0c570`, `c2ee3eb`, `fe0374c`, `468b37b`, `6d145eb`, or `970b081` as approved is a finding; a record that treats the approval as an integration is a finding; and a record that attributes an approval to a round that recorded `changes-required` is a finding. No superseded baseline and no ungated amendment is ever the normative source on its own. **A raised lineage floor is not by itself sufficient** — F-601 recorded that the floor was mechanically correct at round 4 while the source clause still pointed at the rejected round-3 artifact, so the floor and the source clause must be moved together.
 
