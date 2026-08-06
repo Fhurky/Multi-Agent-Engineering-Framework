@@ -1,7 +1,7 @@
 ---
 task_id: TASK-018
 title: Bootstrap the runtime TypeScript and Node.js toolchain
-status: blocked
+status: ready
 owner_role: devops
 llm: claude
 branch: agent/claude/devops/task-018
@@ -41,9 +41,18 @@ gate_tasks:
     gate_lineage: LIN-TOOLCHAIN-SECURITY
     lineage_round: 1
 gate_scheduling: The security gate is aggregate and retrospective. Its reason and its recorded risk are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, row "TASK-010 / security / TASK-018". It has the longest exposure window in the graph but it is not the only retrospective gate; every runtime assembly gate is retrospective as well.
+dependencies_satisfied:
+  - lineage: LIN-ARCH-REVIEW
+    edge: gate_passed
+    gate: review
+    lineage_round: 8
+    satisfied_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    verdict_recorded: approved
+    recorded_by: TASK-013 activation ACT-016, consuming ingress entry seq 24
+    approved_source: 8ea5c32789ee01fd4a2cec4aff13905b120edae3
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, by 468b37b, by 6d145eb, by 970b081, and by the TASK-038 commit that TASK-039 approves. None of 9576fc9, 8d0c570, c2ee3eb, fe0374c, 468b37b, 6d145eb, and 970b081 is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, 4, 5, 6, and 7, the round-7 verdict at 9bb75d9 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 8 or later, which TASK-039 owns. A record that cites any of the seven as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
+normative_architecture_source: 8ea5c32789ee01fd4a2cec4aff13905b120edae3, the immutable TASK-038 target. THIS IS THE FIRST APPROVED ARCHITECTURE SOURCE THIS GRAPH HAS HAD. LIN-ARCH-REVIEW recorded approved at lineage_round 8, at 734bdbc, and TASK-013 activation ACT-016 closed all eight relations together, so the lineage's authoritative verdict is passing at the floor this record's edge declares. The earlier baselines 9576fc9, 8d0c570, c2ee3eb, fe0374c, 468b37b, 6d145eb, and 970b081 remain superseded authoring baselines that were each rejected at rounds 1 through 7; a record that cites any of them as approved is still a finding. Build against 8ea5c32 and nothing else. The approved source is a commit on agent/gpt/architect/task-038 that has NOT been integrated into any branch; reading it is how a consumer consults the approved architecture until the separate branch-integration operation lands.
 human_decisions:
   - id: HUMAN-001
     status: resolved
@@ -51,8 +60,8 @@ human_decisions:
     decided_at: fb9f45c
     decided_on: 2026-08-04
     effect: package.json, package-lock.json, tsconfig.json, and scripts/quality/** were added to assignments.devops.write_scope in config/agents/settings.yaml.
-blocked_reason: The amended runtime architecture has not passed its independent review gate. TASK-020 returned changes-required on the first amendment with findings A-101 through A-105, so a second amendment, TASK-024, must be authored and approved first. Landing a toolchain before the platform decision is reviewed risks landing the wrong one. LIN-ARCH-REVIEW has since recorded changes-required at round 5 on the TASK-032 amendment 468b37b at 3660cc2, at round 6 on the TASK-034 amendment 6d145eb at afed101, and at round 7 on the TASK-036 amendment 970b081 at 9bb75d9, so the authoritative round is 7 and it failed. Round 7 resolved A-501 through A-505, satisfied every inherited obligation, and met every declared acceptance criterion, and still blocked on one fresh High finding A-601 - the normative integration order replays a non-ancestral rejected predecessor immediately after the cumulative target and conflicts in 19 files. The remediation is TASK-038 and the revalidation is TASK-039 at round 8. This task is exactly as far from dispatch as it was before round 7.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 8 or higher, which satisfies gate_passed(LIN-ARCH-REVIEW, review, 8).
+unblocked_reason: This task was blocked from the first decomposition until ACT-016 solely on the architecture gate. LIN-ARCH-REVIEW recorded approved at round 8, at 734bdbc, with A-601 resolved and no new finding, and ACT-016 closed all eight relations together. This record declares exactly ONE dependency - gate_passed(LIN-ARCH-REVIEW, review, 8) - and it is now satisfied, which makes this the only consumer whose complete typed dependency set is met and the first implementation task in this graph ever to become dispatchable. Build against the approved source 8ea5c32; it is a commit on agent/gpt/architect/task-038 that has not been integrated into any branch, so read it directly.
+exit_condition: satisfied. This task declared exactly one dependency - gate_passed(LIN-ARCH-REVIEW, review, 8) - and LIN-ARCH-REVIEW recorded approved at round 8 at 734bdbc, closed by ACT-016. It is the ONLY consumer whose complete typed dependency set is now satisfied; every other consumer retains at least one integrated() edge that no branch integration has yet satisfied. This task is ready and dispatchable.
 review_target_base: not applicable until this task publishes
 review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
 branch_point_of: integration/autonomous-runtime

@@ -45,11 +45,14 @@ gate_tasks:
   - task: TASK-039
     gate: review
     round: 3
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 8
+integration_state: not integrated. This record's review gate is CLOSED - LIN-ARCH-REVIEW round 8 recorded approved at 734bdbc and TASK-013 activation ACT-016 closed all eight relations together. Closure removes the gate obstacle to integration; it does not perform one. No architecture branch has been merged into integration/autonomous-runtime or anywhere else, no BranchIntegrated fact exists, no content has been merged, and no predecessor has been subsumed. Integration is a separate externally visible operation that follows this durable closure and produces its own ingress fact for a later activation. Until that happens this record stays in review and is not done.
 parent_task: TASK-001
 publication_class: bootstrap
 normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, and by 468b37b; this task produces the next amendment in the same lineage. None of 9576fc9, 8d0c570, c2ee3eb, fe0374c, and 468b37b is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, 4, and 5, the round-5 verdict at 3660cc2 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 6 or later, which TASK-035 owns.

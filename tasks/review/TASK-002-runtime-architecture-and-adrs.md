@@ -98,11 +98,14 @@ gate_tasks:
   - task: TASK-039
     gate: review
     round: 8
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 8
+integration_state: not integrated. This record's review gate is CLOSED - LIN-ARCH-REVIEW round 8 recorded approved at 734bdbc and TASK-013 activation ACT-016 closed all eight relations together. Closure removes the gate obstacle to integration; it does not perform one. No architecture branch has been merged into integration/autonomous-runtime or anywhere else, no BranchIntegrated fact exists, no content has been merged, and no predecessor has been subsumed. Integration is a separate externally visible operation that follows this durable closure and produces its own ingress fact for a later activation. Until that happens this record stays in review and is not done.
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 9576fc9

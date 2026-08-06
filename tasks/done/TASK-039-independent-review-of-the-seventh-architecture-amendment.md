@@ -1,7 +1,7 @@
 ---
 task_id: TASK-039
 title: Independent review of the seventh runtime architecture amendment
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-039
@@ -27,7 +27,9 @@ gate_for:
   - task: TASK-038
     gate: review
     round: 1
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -35,7 +37,9 @@ gate_for:
   - task: TASK-036
     gate: review
     round: 2
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -43,7 +47,9 @@ gate_for:
   - task: TASK-034
     gate: review
     round: 3
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -51,7 +57,9 @@ gate_for:
   - task: TASK-032
     gate: review
     round: 4
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -59,7 +67,9 @@ gate_for:
   - task: TASK-028
     gate: review
     round: 5
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -67,7 +77,9 @@ gate_for:
   - task: TASK-024
     gate: review
     round: 6
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -75,7 +87,9 @@ gate_for:
   - task: TASK-016
     gate: review
     round: 7
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -83,7 +97,9 @@ gate_for:
   - task: TASK-002
     gate: review
     round: 8
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 734bdbc5d9541daa78fd570057317152247d1f87
+    gate_closed: true
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -93,6 +109,14 @@ verdict_application: atomic
 verdict_note: This task records exactly one verdict. That single verdict is applied atomically to all eight gate relations above, producing eight durable gate-verdict facts. All eight close together or all eight stay open together; a split outcome is not representable.
 parent_task: TASK-001
 publication_class: bootstrap
+published_commit: 734bdbc5d9541daa78fd570057317152247d1f87
+published_branch: agent/gpt/reviewer/task-039
+publication: local-only
+publication_reason: The reviewer recorded local-only because this task requires no external egress, and states that no push, pull request, merge, or remote query was performed. The durable state agrees - git branch -a --contains 734bdbc returns only agent/gpt/reviewer/task-039, with no remote tracking ref and no pull request.
+resource_lock_state_at_publication: this task declares no resource lock. At ACT-016 the shared Git-common lock directory was read directly and holds exactly one entry, task-013.json, and no task-039.json, so the per-task lock is free. Neither the reviewer nor the Orchestrator is claimed to have released it inside its own execution.
+scope_validation_base: 4dc37f1a5d83a88f6f0b6beb6f2784d9071ee9db
+scope_validation_applicability: applicable and resolved. Confirmed at ACT-016 as the parent of 734bdbc and the ACT-015 follow-up commit.
+verdict_recorded_summary: approved, recorded at 734bdbc and consumed as ingress entry seq 24 by activation ACT-016. One verdict applied atomically to all eight relations; all eight CLOSE together. A-601 resolved. No new finding and A-701 not opened. This is the first passing verdict any gate lineage in this graph has recorded.
 supersedes: TASK-037
 review_target_branch: agent/gpt/architect/task-038
 review_target_commit: 8ea5c32789ee01fd4a2cec4aff13905b120edae3
@@ -227,13 +251,24 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 ## Task-record lifecycle
 
-This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `blocked` at activation `ACT-014` and moved from `tasks/blocked/` to `tasks/ready/` at `ACT-015`, on the satisfied `review_ready(TASK-038)` edge at `8ea5c32`.
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `blocked` at activation `ACT-014`, moved to `tasks/ready/` at `ACT-015` on the satisfied `review_ready(TASK-038)` edge at `8ea5c32`, and moved to `tasks/done/` at `ACT-016` on its own recorded verdict.
 
 ## Handoff
 
 Maintained by the Orchestrator under TASK-013 from the reviewer's report.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to record the single verdict as eight durable gate-verdict facts — closing all eight together and releasing TASK-018 and the runtime waves on a passing verdict, or leaving all eight open, routing findings back to the architect, and creating the next round's reviewer task
+- **Commit or pull request:** one commit, `734bdbc5d9541daa78fd570057317152247d1f87` `docs(TASK-039): record round-8 architecture review` on `agent/gpt/reviewer/task-039`, parent `4dc37f1`. It adds exactly one file — the 273-line report — and touches nothing else. No pull request exists.
+
+- **Verdict, transcribed. `approved`.** One verdict applied atomically to all eight relations, which the report lists individually and states "All eight close together; a split outcome is not representable." **This is the first passing verdict any gate lineage in this graph has recorded, at the eighth attempt of `LIN-ARCH-REVIEW`.**
+
+- **Disposition.** **A-601 `resolved`.** The report records that the amendment "replaces the conflicting predecessor replay with one coherent cumulative content integration unit, makes the latest passing cumulative target the only Git content input, and closes predecessor lifecycle state through one atomic direct/subsumed evidence batch without replaying predecessor blobs", and that "the prescribed content order was executed independently and produced zero conflicts and exact final-tree equality". **No new finding; A-701 is not opened.**
+
+- **What the report says about release, quoted precisely.** "TASK-038 may integrate after the Orchestrator consumes this durable verdict and closes the atomic relation set. The architecture gate no longer requires TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 to remain blocked. The Orchestrator may release each consumer according to its complete typed dependency set." That is a statement about the **architecture gate** ceasing to block — not that every consumer's dependencies are satisfied.
+
+- **What the Orchestrator verified independently at `ACT-016`**: commit identity, parent, the single changed path, absence of any remote ref, absence of a `task-039` lock, the report's verdict value and cardinality against its own eight-relation list, and reproduction of row 23's `fact_id` before computing row 24. The reviewer's architecture judgments and its independent order execution were **not** re-derived.
+
+- **Publication:** `local-only`, for the reason the owner recorded; the durable ref state agrees. **Task lock:** free at `ACT-016`, confirmed by direct read.
+
+- **Next owner:** devops / gpt-free **TASK-018**, the only consumer whose complete typed dependency set is now satisfied, plus the externally visible **branch-integration operation** for TASK-038, which is not an Orchestrator action and which produces its own ingress fact for a later activation.
+
+- The Orchestrator recorded the single verdict as eight durable gate-verdict facts — closing all eight together and releasing TASK-018 and the runtime waves on a passing verdict, or leaving all eight open, routing findings back to the architect, and creating the next round's reviewer task
