@@ -87,11 +87,22 @@ gate_tasks:
   - task: TASK-037
     gate: review
     round: 7
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 9bb75d9705533e52e150cafb6fa87a382496c90c
+    remediated_by: TASK-038
+    revalidated_by: TASK-039
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 7
+  - task: TASK-039
+    gate: review
+    round: 8
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 8
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 9576fc9

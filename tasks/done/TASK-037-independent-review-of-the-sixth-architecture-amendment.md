@@ -1,7 +1,7 @@
 ---
 task_id: TASK-037
 title: Independent review of the sixth runtime architecture amendment
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-037
@@ -27,7 +27,10 @@ gate_for:
   - task: TASK-036
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 9bb75d9705533e52e150cafb6fa87a382496c90c
+    remediated_by: TASK-038
+    revalidated_by: TASK-039
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -35,7 +38,10 @@ gate_for:
   - task: TASK-034
     gate: review
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 9bb75d9705533e52e150cafb6fa87a382496c90c
+    remediated_by: TASK-038
+    revalidated_by: TASK-039
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -43,7 +49,10 @@ gate_for:
   - task: TASK-032
     gate: review
     round: 3
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 9bb75d9705533e52e150cafb6fa87a382496c90c
+    remediated_by: TASK-038
+    revalidated_by: TASK-039
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -51,7 +60,10 @@ gate_for:
   - task: TASK-028
     gate: review
     round: 4
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 9bb75d9705533e52e150cafb6fa87a382496c90c
+    remediated_by: TASK-038
+    revalidated_by: TASK-039
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -59,7 +71,10 @@ gate_for:
   - task: TASK-024
     gate: review
     round: 5
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 9bb75d9705533e52e150cafb6fa87a382496c90c
+    remediated_by: TASK-038
+    revalidated_by: TASK-039
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -67,7 +82,10 @@ gate_for:
   - task: TASK-016
     gate: review
     round: 6
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 9bb75d9705533e52e150cafb6fa87a382496c90c
+    remediated_by: TASK-038
+    revalidated_by: TASK-039
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -75,7 +93,10 @@ gate_for:
   - task: TASK-002
     gate: review
     round: 7
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 9bb75d9705533e52e150cafb6fa87a382496c90c
+    remediated_by: TASK-038
+    revalidated_by: TASK-039
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
@@ -85,6 +106,15 @@ verdict_application: atomic
 verdict_note: This task records exactly one verdict. That single verdict is applied atomically to all seven gate relations above, producing seven durable gate-verdict facts. All seven close together or all seven stay open together; a split outcome is not representable.
 parent_task: TASK-001
 publication_class: bootstrap
+published_commit: 9bb75d9705533e52e150cafb6fa87a382496c90c
+published_branch: agent/gpt/reviewer/task-037
+publication: local-only
+publication_reason: The reviewer recorded local-only, stating external egress was neither required nor authorized, so the report is committed locally without push, pull request, merge, or other external-state change. The durable state agrees - git branch -a --contains 9bb75d9 returns only agent/gpt/reviewer/task-037, with no remote tracking ref and no pull request.
+resource_lock_state_at_publication: this task declares no resource lock. Its report records the task lock as pending release at report-authoring time, with release occurring only after the report is committed and the worktree is clean. That was accurate for the moment it described. The later durable fact is that release happened - at ACT-014 the shared Git-common lock directory was read directly and holds exactly one entry, task-013.json, and no task-037.json. Both facts are recorded; neither the reviewer nor the Orchestrator is claimed to have performed the release inside its own execution.
+scope_validation_base: 3dc20ebfaba3ee9cbf583b87c9658189693305db
+scope_validation_applicability: applicable and resolved. Confirmed at ACT-014 as the parent of 9bb75d9 and the ACT-013 follow-up commit.
+superseded_by: TASK-039
+verdict_recorded_summary: changes-required, recorded at 9bb75d9 and consumed as ingress entry seq 22 by activation ACT-014. One verdict applied atomically to seven relations; all seven stay open together. A-501 through A-505 all resolved, every required inherited and regression obligation satisfied, and every declared TASK-036 acceptance criterion met - the second consecutive round to clear its entire routed set and the first to meet every acceptance criterion. One fresh High finding A-601, architect-owned - the normative integration order integrates the cumulative TASK-036 target and then requires its non-ancestral rejected predecessor TASK-034, reproducing 19 conflicting files at the immediately following step. The reviewer records that the target alone merges cleanly into every integration base tested, so the defect is in the prescribed order rather than the target content. TASK-036 may not be integrated and TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 must remain blocked.
 supersedes: TASK-035
 review_target_branch: agent/gpt/architect/task-036
 review_target_commit: 970b08125eaf6e5bfb7b24ec2a55238161b16eac
@@ -231,13 +261,26 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 ## Task-record lifecycle
 
-This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `blocked` at activation `ACT-012` and moved from `tasks/blocked/` to `tasks/ready/` at `ACT-013`, on the satisfied `review_ready(TASK-036)` edge at `970b081`.
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `blocked` at activation `ACT-012`, moved to `tasks/ready/` at `ACT-013` on the satisfied `review_ready(TASK-036)` edge at `970b081`, and moved to `tasks/done/` at `ACT-014` on its own recorded verdict.
 
 ## Handoff
 
 Maintained by the Orchestrator under TASK-013 from the reviewer's report.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: orchestrator via TASK-013, to record the single verdict as seven durable gate-verdict facts — closing all seven together and releasing TASK-018 and the runtime waves on a passing verdict, or leaving all seven open, routing findings back to the architect, and creating the next round's reviewer task
+- **Commit or pull request:** one commit, `9bb75d9705533e52e150cafb6fa87a382496c90c` `docs(TASK-037): record round-7 architecture review` on `agent/gpt/reviewer/task-037`, parent `3dc20eb`. It adds exactly one file — the 311-line report — and touches nothing else. No pull request exists.
+
+- **Verdict, transcribed.** One `changes-required`, applied atomically to all seven relations, which the report lists individually and states "all remain open together". **TASK-036 must not be integrated and the nine implementation consumers must remain `blocked`.**
+
+- **Dispositions, as recorded by the gate owner.** **A-501, A-502, A-503, A-504, and A-505 all `resolved`**; every required inherited and regression obligation satisfied; **every declared TASK-036 acceptance criterion met**. This is the second consecutive round to clear its entire routed set and the first to meet every acceptance criterion. **A-503's `HUMAN-002` property is recorded repaired** — TASK-026 alone appends, TASK-005 alone signals, observes, and reads the activation range, and both success dispositions are constructible.
+
+- **One fresh High finding, A-601, blocks regardless.** `INTEGRATION-STRATEGY.md:121-127` integrates the cumulative TASK-036 target first and then requires its **non-ancestral rejected predecessor** TASK-034; a read-only `git merge-tree --write-tree 970b0812… 6d145eb8…` exits 1 with **19 conflicting files** — all three sequence diagrams, five ADRs, the architecture README and entry point, and nine runtime documents. The reviewer records that the target alone merges cleanly into every integration base tested, so **the defect is in the prescribed order, not the target's content**, and that replaying the rejected predecessor after the cumulative target risks regressing the repairs this round just verified. The reviewer also states plainly that meeting the author's declared criteria "does not eliminate a reviewer's duty to find fresh defects".
+
+- **What the Orchestrator verified independently at `ACT-014`**: commit identity, parent, the single changed path, absence of any remote ref, the report's verdict cardinality and its seven named relations, and reproduction of row 21's `fact_id` before computing row 22. The reviewer's architecture judgments and its `merge-tree` reproduction were **not** re-derived — doing so would be this role judging a gate it does not hold.
+
+- **A-506 is explicitly outside this task's scope**, which the report states directly: task-decomposition prose is Orchestrator-owned and belongs to the independent `LIN-DECOMP-REVIEW` lineage. The pending round-9 obligation is therefore unchanged and unaffected.
+
+- **Publication:** `local-only`, for the reason the owner recorded; the durable ref state agrees. **Task lock:** recorded as pending release at authoring time and now free, confirmed by direct read; both facts recorded.
+
+- **Next owner:** architect / gpt via **TASK-038** for A-601, with **TASK-039** owning `LIN-ARCH-REVIEW` round 8 over eight relations.
+
+- The Orchestrator recorded the single verdict as seven durable gate-verdict facts — closing all seven together and releasing TASK-018 and the runtime waves on a passing verdict, or leaving all seven open, routing findings back to the architect, and creating the next round's reviewer task

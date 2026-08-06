@@ -17,7 +17,7 @@ dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
-    lineage_round: 7
+    lineage_round: 8
 required_gates:
   - review
   - security
@@ -43,7 +43,7 @@ gate_tasks:
 gate_scheduling: The security gate is aggregate and retrospective. Its reason and its recorded risk are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, row "TASK-010 / security / TASK-018". It has the longest exposure window in the graph but it is not the only retrospective gate; every runtime assembly gate is retrospective as well.
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, by 468b37b, by 6d145eb, and by the TASK-036 commit that TASK-037 approves. None of 9576fc9, 8d0c570, c2ee3eb, fe0374c, 468b37b, and 6d145eb is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, 4, 5, and 6, the round-6 verdict at afed101 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 7 or later, which TASK-037 owns. A record that cites any of the six as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
+normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, by 468b37b, by 6d145eb, by 970b081, and by the TASK-038 commit that TASK-039 approves. None of 9576fc9, 8d0c570, c2ee3eb, fe0374c, 468b37b, 6d145eb, and 970b081 is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, 4, 5, 6, and 7, the round-7 verdict at 9bb75d9 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 8 or later, which TASK-039 owns. A record that cites any of the seven as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
 human_decisions:
   - id: HUMAN-001
     status: resolved
@@ -51,8 +51,8 @@ human_decisions:
     decided_at: fb9f45c
     decided_on: 2026-08-04
     effect: package.json, package-lock.json, tsconfig.json, and scripts/quality/** were added to assignments.devops.write_scope in config/agents/settings.yaml.
-blocked_reason: The amended runtime architecture has not passed its independent review gate. TASK-020 returned changes-required on the first amendment with findings A-101 through A-105, so a second amendment, TASK-024, must be authored and approved first. Landing a toolchain before the platform decision is reviewed risks landing the wrong one. LIN-ARCH-REVIEW has since recorded changes-required at round 4 on the TASK-028 amendment fe0374c at 3df261fa, at round 5 on the TASK-032 amendment 468b37b at 3660cc2, and at round 6 on the TASK-034 amendment 6d145eb at afed101, so the authoritative round is 6 and it failed. Round 6 resolved every finding routed to it and recorded five fresh High findings A-501 through A-505 in their place. The remediation is TASK-036 and the revalidation is TASK-037 at round 7. This task is exactly as far from dispatch as it was before round 6.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 7 or higher, which satisfies gate_passed(LIN-ARCH-REVIEW, review, 7).
+blocked_reason: The amended runtime architecture has not passed its independent review gate. TASK-020 returned changes-required on the first amendment with findings A-101 through A-105, so a second amendment, TASK-024, must be authored and approved first. Landing a toolchain before the platform decision is reviewed risks landing the wrong one. LIN-ARCH-REVIEW has since recorded changes-required at round 5 on the TASK-032 amendment 468b37b at 3660cc2, at round 6 on the TASK-034 amendment 6d145eb at afed101, and at round 7 on the TASK-036 amendment 970b081 at 9bb75d9, so the authoritative round is 7 and it failed. Round 7 resolved A-501 through A-505, satisfied every inherited obligation, and met every declared acceptance criterion, and still blocked on one fresh High finding A-601 - the normative integration order replays a non-ancestral rejected predecessor immediately after the cumulative target and conflicts in 19 files. The remediation is TASK-038 and the revalidation is TASK-039 at round 8. This task is exactly as far from dispatch as it was before round 7.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 8 or higher, which satisfies gate_passed(LIN-ARCH-REVIEW, review, 8).
 review_target_base: not applicable until this task publishes
 review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
 branch_point_of: integration/autonomous-runtime

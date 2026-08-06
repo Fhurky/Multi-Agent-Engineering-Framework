@@ -23,11 +23,22 @@ gate_tasks:
   - task: TASK-037
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 9bb75d9705533e52e150cafb6fa87a382496c90c
+    remediated_by: TASK-038
+    revalidated_by: TASK-039
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 7
+  - task: TASK-039
+    gate: review
+    round: 2
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 8
 parent_task: TASK-001
 publication_class: bootstrap
 normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, by 468b37b, and by 6d145eb; this task produces the next amendment in the same lineage. None of those five is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, 4, 5, and 6, the round-6 verdict at afed101 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 7 or later, which TASK-037 owns.
