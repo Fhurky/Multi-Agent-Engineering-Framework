@@ -159,6 +159,14 @@ This task is a **new** reviewer task in a **separate execution context**. It mus
 
 Do not move this record between lifecycle directories and do not edit its `status` field. `tasks/**` is outside the reviewer role's configured write scope. Record the handoff in the report and the pull request description; the Orchestrator performs the transition under TASK-013.
 
+## Additive note — what this round does not cover, recorded at ACT-012
+
+**Nothing in this record changes.** Its review target `f14bdde`, review-diff base `443ff9b`, round, lineage, gate relation, scope, and acceptance criteria are exactly as bound, and they are not retargeted.
+
+This note records a boundary, because a later reader could otherwise assume this round covers more than it does. `LIN-ARCH-REVIEW` round 6 recorded **A-506**, an Orchestrator-owned finding that the live sections of `tasks/TASK-001-DEPENDENCY-GRAPH.md` had gone stale against their own target records. Activation `ACT-012` remediated it. **That correction is outside this round's immutable target** — it is in the `ACT-012` effects commit, five activations after `f14bdde` — so it is not yours to judge and its absence from your report is correct rather than an omission.
+
+The same is true of the `ACT-008` … `ACT-012` effects generally: none has been reviewed by any decomposition round. They belong to `LIN-DECOMP-REVIEW` round 9, which cannot be created until this round records a verdict, because invariant 8 requires every round greater than 1 to follow a recorded one. **Recording your verdict is what unblocks that.**
+
 ## Task-record lifecycle
 
 This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013.
