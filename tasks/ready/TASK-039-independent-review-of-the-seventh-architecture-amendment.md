@@ -1,7 +1,7 @@
 ---
 task_id: TASK-039
 title: Independent review of the seventh runtime architecture amendment
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-039
@@ -11,6 +11,16 @@ write_scope:
 dependencies:
   - task: TASK-038
     edge: review_ready
+dependencies_satisfied:
+  - edge: review_ready
+    task: TASK-038
+    satisfied_at: 8ea5c32789ee01fd4a2cec4aff13905b120edae3
+    satisfied_branch: agent/gpt/architect/task-038
+    satisfied_remote_ref: none — publication is local-only and no remote ref for this branch exists in this clone
+    publication_class: bootstrap
+    publication: local-only
+    satisfying_rule: A bootstrap task's local-only publication satisfies review_ready for that task only, because its consumer is another bootstrap task reading the same Git common directory. Publication classes rule 1 in tasks/TASK-001-DEPENDENCY-GRAPH.md.
+    recorded_by: TASK-013 activation ACT-015, consuming ingress entry seq 23
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -84,13 +94,18 @@ verdict_note: This task records exactly one verdict. That single verdict is appl
 parent_task: TASK-001
 publication_class: bootstrap
 supersedes: TASK-037
-blocked_reason: TASK-038 has not published the seventh architecture amendment, so there is no immutable target to review. The declared dependency review_ready(TASK-038) is unsatisfied.
-exit_condition: TASK-038 reaches review_ready — an immutable published commit on agent/gpt/architect/task-038 whose publication_class bootstrap is satisfied. No merge is required. The Orchestrator then binds review_target_commit from the branch as published and moves this record to ready.
 review_target_branch: agent/gpt/architect/task-038
-review_target_commit: not yet published
+review_target_commit: 8ea5c32789ee01fd4a2cec4aff13905b120edae3
+target_provenance_measured_by_orchestrator:
+  authored_delta: 46 paths, 3171 insertions, 382 deletions, five commits, against branch point b5d32c9f043ea9dc739dbf1748d84b86378049ef
+  cumulative_architecture_diff: 16 paths, 425 insertions, 62 deletions, against 970b081 restricted to docs and diagrams
+  import_set: 41 paths, 2790 insertions, 364 deletions, committed separately as 726f285
+  documents_present_at_base_and_absent_at_target: 0
+  base_is_ancestor_of_target: false
+  measurement_note: These are the Orchestrator's own read-only measurements at ACT-015, recorded so the reviewer can reproduce or contradict them. They are evidence, not a finding and not a disposition. The owner's complete-order fixture results were deliberately not re-run by the Orchestrator, because judging whether A-601 is remediated is this task's work.
 review_target_base: 970b08125eaf6e5bfb7b24ec2a55238161b16eac
-review_target_applicability: applicable and resolved for the base; the target commit is a value the Orchestrator pins at the activation that consumes TASK-038's publication
-review_target_note: The target is TASK-038's immutable published commit, compared against review-diff base 970b081, the TASK-036 amendment it revises. Read 6d145eb, 468b37b, fe0374c, c2ee3eb, 8d0c570, and 9576fc9 where a judgment needs an earlier baseline. The target commit is deliberately not guessed here. If the branch carries more than one commit, the bound target is the one TASK-038's handoff names as published, and its declared entry-point artifact must be complete at that commit.
+review_target_applicability: applicable and resolved. The Orchestrator read the target from the branch as published at ACT-015 and bound it; it is immutable and no later activation changes it.
+review_target_note: The target is TASK-038's immutable published commit 8ea5c32, the head of agent/gpt/architect/task-038, compared against review-diff base 970b081, the TASK-036 amendment it revises. Read 6d145eb, 468b37b, fe0374c, c2ee3eb, 8d0c570, and 9576fc9 where a judgment needs an earlier baseline. The branch carries five commits and the target is the head; 726f285 is the baseline import and ce2ecfc, 8b90bdf, and b408ee0 are authoring ancestry, not the target.
 branch_point_of: agent/claude/orchestrator/task-013
 scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
 scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
@@ -119,7 +134,9 @@ The cohort has grown by one at every round since round 1 and **no member has eve
 
 ## Review target
 
-Branch `agent/gpt/architect/task-038`, at the immutable published commit TASK-013 binds, compared against **`970b081`** — the TASK-036 amendment this one revises.
+Branch `agent/gpt/architect/task-038`, at the immutable published commit **`8ea5c32789ee01fd4a2cec4aff13905b120edae3`**, which TASK-013 bound at activation `ACT-015`, compared against **`970b081`** — the TASK-036 amendment this one revises.
+
+**This target is five commits**: one baseline import and four authored. The Orchestrator bound the head because that is where the declared entry-point artifact is complete. The owner reports a new fixture at `docs/architecture/runtime/fixtures/verify-integration-order.ps1` with one content step, zero conflicts, exact tree equality at `8fbf7e62b12ec36ea3d4ea9db544d6fe804de700`, and the retained 19-conflict legacy regression. **Those are owner claims and the Orchestrator deliberately did not re-run them — executing the full prescribed order yourself is Part A of this review.**
 
 **Read the target as three separate sets and say which is which:** the **authored delta** against the branch point; the **cumulative architecture diff** against `970b081` restricted to `docs/` and `diagrams/`, which is what this round judges; and the **import set**, the `970b081` content arriving by tree and blob copy rather than by ancestry. TASK-038 was instructed to commit the import separately, as TASK-034 and TASK-036 both did.
 
@@ -194,7 +211,7 @@ This task's single file is new and path-disjoint from TASK-009's two paths and f
 
 ## Gate and remediation path
 
-Eight `gate_for` reverse edges, whose properties are normative in the frontmatter and the registers. It becomes dispatchable when TASK-038 reaches `review_ready` — an immutable published commit, no merge required. TASK-038 becomes integrable only after this task's verdict closes its review gate.
+Eight `gate_for` reverse edges, whose properties are normative in the frontmatter and the registers. Its `review_ready(TASK-038)` dependency is **satisfied** at `8ea5c32`, recorded by activation `ACT-015`, so this task is dispatchable now. TASK-038 becomes integrable only after this task's verdict closes its review gate.
 
 **One verdict, applied atomically to eight relations.** The architect may not close any of these gates. Publishing this task's report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
@@ -210,7 +227,7 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 ## Task-record lifecycle
 
-This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `blocked` at activation `ACT-014`, because its dependency `review_ready(TASK-038)` is unsatisfied.
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `blocked` at activation `ACT-014` and moved from `tasks/blocked/` to `tasks/ready/` at `ACT-015`, on the satisfied `review_ready(TASK-038)` edge at `8ea5c32`.
 
 ## Handoff
 

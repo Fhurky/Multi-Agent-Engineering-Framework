@@ -1,7 +1,7 @@
 ---
 task_id: TASK-038
 title: Seventh architecture amendment for the round-7 integration-order blocker — one coherent integration unit for the architecture lineage
-status: ready
+status: review
 owner_role: architect
 llm: gpt
 branch: agent/gpt/architect/task-038
@@ -59,14 +59,24 @@ dependencies_satisfied:
     recorded_by: TASK-013 activation ACT-014, consuming ingress entry seq 22
     satisfying_rule: gate_recorded is satisfied by any recorded verdict, whatever that verdict is.
 resource_lock_state_at_creation: free. The TASK-036 execution's lock was released after its commit, confirmed by a direct read of the shared lock directory at ACT-014, and TASK-037 declared no lock. TASK-002, TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, and TASK-036 are the other registered holders and none is active. This task becomes the eighth registered holder.
+published_commit: 8ea5c32789ee01fd4a2cec4aff13905b120edae3
+published_branch: agent/gpt/architect/task-038
+publication: local-only
+publication_reason: The owner recorded local-only, stating TASK-038 explicitly excludes push, pull-request creation, merge, and other external-state changes. The durable state agrees - git branch -a --contains 8ea5c32 returns only agent/gpt/architect/task-038, with no remote tracking ref and no pull request. Under publication_class bootstrap this satisfies review_ready, because its consumer TASK-039 is another bootstrap task reading the same Git common directory.
+resource_lock_state_at_publication: free. At ACT-015 the shared Git-common lock directory was read directly and holds exactly one entry, task-013.json, and no task-038.json. The owner's own release statement and this later durable fact are both recorded; neither the architect nor the Orchestrator is claimed to have performed the release inside its own execution.
+authored_delta: 46 paths, 3171 insertions, 382 deletions, five commits, measured at ACT-015 with git diff --shortstat b5d32c9 8ea5c32. Larger than the amendment because it also carries the imported 970b081 baseline; not the size of the round-8 change.
+cumulative_architecture_diff: 16 paths, 425 insertions, 62 deletions, restricted to docs and diagrams, measured with git diff --shortstat 970b081 8ea5c32 -- docs diagrams. This is what round 8 judges as a change.
+import_set: 41 paths, 2790 insertions, 364 deletions, committed separately as 726f285 and measured with git diff --shortstat b5d32c9 726f285. It is the 970b081 architecture content, authored by earlier rounds rather than by this task.
+commit_structure_note: Five commits, the largest publication in this graph - 726f285 imports the rejected baseline, then ce2ecfc, 8b90bdf, b408ee0, and the head 8ea5c32 carry the amendment and its handoff evidence. The head is the bound target because it is the commit at which the declared entry-point artifact is complete, which is the rule ACT-013 established for a multi-commit publication. The owner's handoff notes that the final head is re-run after its evidence commit.
 review_target_branch: agent/gpt/architect/task-038
-review_target_commit: not yet published
+review_target_commit: 8ea5c32789ee01fd4a2cec4aff13905b120edae3
 review_target_base: 970b08125eaf6e5bfb7b24ec2a55238161b16eac
-review_target_applicability: applicable and resolved for the base; the target commit is a value the Orchestrator pins at the activation that consumes this task's publication
-review_target_note: TASK-039 reviews this task's immutable published commit against review-diff base 970b081, the TASK-036 amendment this one revises, reading 6d145eb, 468b37b, fe0374c, c2ee3eb, 8d0c570, and 9576fc9 where a judgment needs an earlier baseline. The target commit does not exist yet and is deliberately not guessed. The Orchestrator binds it from the branch as published. If this branch carries more than one commit, the bound target is the one this task's own handoff names as published, and its declared entry-point artifact must be complete at that commit — ACT-013 bound a three-commit publication's head for exactly that reason.
-branch_point_of: agent/claude/orchestrator/task-013
-scope_validation_base: git merge-base HEAD agent/claude/orchestrator/task-013
-scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
+review_target_applicability: applicable and resolved. The target commit was read from the branch as published at ACT-015 and is now immutable; no later activation changes it.
+review_target_note: TASK-039 reviews this task's immutable published commit 8ea5c32 against review-diff base 970b081, the TASK-036 amendment this one revises, reading 6d145eb, 468b37b, fe0374c, c2ee3eb, 8d0c570, and 9576fc9 where a judgment needs an earlier baseline. The Orchestrator bound the target at ACT-015 from the branch as published. The branch carries five commits and the target is the head; 726f285 is the baseline import and ce2ecfc, 8b90bdf, and b408ee0 are authoring ancestry. The entry-point artifact was checked for completeness at the bound commit.
+branch_point_of: agent/gpt/architect/task-038
+scope_validation_base: b5d32c9f043ea9dc739dbf1748d84b86378049ef
+scope_validation_applicability: applicable and resolved. Read from the repository at ACT-015 with git merge-base agent/gpt/architect/task-038 agent/claude/orchestrator/task-013, which returns b5d32c9 - the ACT-014 follow-up commit and the head this branch was cut from. It matches what this record anticipated and what the owner reported, so no A-209-class divergence arose.
+scope_validation_result: The owner recorded the base as b5d32c9. The Orchestrator independently confirmed that git diff --name-only b5d32c9 8ea5c32 filtered against docs/architecture/, docs/adr/, and diagrams/architecture/ leaves zero residue, so nothing under tasks/, config/, scripts/, .github/, or .githooks/ was touched.
 scope_validation_note: Create agent/gpt/architect/task-038 from the head of agent/claude/orchestrator/task-013 at worktree-creation time, then resolve the immutable branch point inside the worktree with git merge-base HEAD agent/claude/orchestrator/task-013 and pass that value to -BaseRef. Never pass a review-diff base, 970b081, 6d145eb, 468b37b, fe0374c, c2ee3eb, 8d0c570, c325275, or origin/main. Findings F-403 and A-209 each recorded why. Record the resolved 40-hex value in the handoff, and report the actual provenance if it disagrees with what this record anticipates rather than substituting a base that passes.
 architecture_baseline_arrives_by_content_import: true
 architecture_baseline_import_note: Stated as a measured fact, which is the discipline MC-010 enforces. At the time this record was written 970b081 is NOT an ancestor of agent/claude/orchestrator/task-013 and cannot be made one - it sits on agent/gpt/architect/task-036, its review gate carries a changes-required verdict, and merging a rejected unreviewed amendment into the Orchestrator branch is prohibited by that gate being in TASK-036's pre_merge_gates. No branch point exists that both contains 970b081 and carries the current task records. Import the 970b081 architecture content by tree and blob copy, committed separately from the amendment as TASK-034 and TASK-036 both did. Note the sharp irony this round has surfaced - the import mechanism this graph adopted to work around unmergeable predecessors is precisely what A-601 says the integration strategy has not accounted for. Importing content for authoring is not the same as prescribing a merge order for integration, and this task must fix the second without abandoning the first.
@@ -184,13 +194,26 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 ## Task-record lifecycle
 
-This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `ready` at activation `ACT-014`, on the satisfied `gate_recorded(TASK-037)` edge at `9bb75d9`.
+This record's `status` field and its lifecycle directory are changed only by the Orchestrator under TASK-013. It was created `ready` at activation `ACT-014`, on the satisfied `gate_recorded(TASK-037)` edge at `9bb75d9`, and moved from `tasks/ready/` to `tasks/review/` at `ACT-015` on the `artifact_published` ingress fact recorded as `seq` 23.
 
 ## Handoff
 
 Maintained by the Orchestrator under TASK-013 from the architect's commits and published documents.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Next owner: reviewer / gpt via TASK-039, which records one verdict applied atomically to eight `LIN-ARCH-REVIEW` round-8 relations and decides whether TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 may leave `blocked`
+Transcribed from the owner's handoff in the "TASK-038 Architect output" section of `docs/architecture/ARCHITECTURE.md` at the published commit. There is no pull request. What follows quotes that source and does not convert an owner statement into an Orchestrator judgment.
+
+- **Commit or pull request:** five commits on `agent/gpt/architect/task-038` — `726f285` (baseline import), `ce2ecfc`, `8b90bdf`, `b408ee0`, and the head `8ea5c32789ee01fd4a2cec4aff13905b120edae3`. **`8ea5c32` is the bound review target.** No pull request exists.
+
+- **Verification, as the owner recorded it.** Scope-validation base `b5d32c9`. The primary change is `docs/architecture/runtime/INTEGRATION-STRATEGY.md` lines 7–20 and 126–170, which "replaces the conflicting predecessor replay with the one-target procedure, reconciles content import, per-unit squash, lifecycle closure, and the full runtime order". A new fixture at `docs/architecture/runtime/fixtures/verify-integration-order.ps1` "runs the complete one-step architecture content order, asserts exact target-tree equality, and retains the rejected target/predecessor 19-conflict regression". Reported results: **one content step, zero conflicts, equal result/target tree `8fbf7e62b12ec36ea3d4ea9db544d6fe804de700`, legacy second-step exit 1, and the exact 19-conflict set**. Target-alone merge trees against `main`, `origin/main`, `integration/autonomous-runtime`, its remote, the resolved branch point, and the Orchestrator head each produced zero conflicts and the same substantive target tree. Three distinct sets stated as 46, 16, and 41 paths and "not treated as ancestry, approval, or one another".
+
+- **What the Orchestrator verified independently at `ACT-015`:** the branch head and the full five-commit chain, the branch point `b5d32c9`, **zero** paths outside the declared write scope, each of the three provenance sets reproducing the owner's figure, that `970b081` is **not** an ancestor, that **zero** base architecture documents are absent at the target, that no remote ref exists, that no `task-038` lock remains, and that the entry-point artifact is complete at the bound commit.
+
+- **The fixture results were deliberately not re-run.** Whether the complete-order fixture actually remediates A-601 is the round-8 judgment, and re-deriving it here would be this role evaluating a gate it does not hold. **No merge and no merge simulation was performed by this activation.**
+
+- **Owner-recorded limitation, quoted.** "The complete-order fixture is intentionally anchored to the recorded 19-path historical regression. A future Git message-format change may require parser maintenance without changing the underlying rule."
+
+- **Publication:** `local-only`, for the reason the owner recorded; the durable ref state agrees. **Task lock:** free at `ACT-015`, confirmed by direct read.
+
+- **No finding is resolved by this record.** **A-601 remains open at High.** The owner's fixture evidence is an owner claim about its own work, recorded here and in no register; the disposition at round 8 is TASK-039's to record.
+
+- **Next owner:** reviewer / gpt via **TASK-039**, now `ready`, which records one verdict applied atomically to eight `LIN-ARCH-REVIEW` round-8 relations and decides whether TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 may leave `blocked`
