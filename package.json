@@ -1,0 +1,26 @@
+{
+  "name": "multi-agent-engineering-framework",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Runtime toolchain for the autonomous agent runtime (TASK-018, ADR-0001).",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "typecheck": "node scripts/quality/typecheck.mjs",
+    "build": "node scripts/quality/typecheck.mjs --emit",
+    "lint": "node scripts/quality/lint.mjs",
+    "format": "node scripts/quality/format.mjs --write",
+    "format:check": "node scripts/quality/format.mjs --check",
+    "test": "node scripts/ci/runtime-test.mjs",
+    "test:coverage": "node scripts/ci/runtime-test.mjs --coverage"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.0"
+  }
+}
