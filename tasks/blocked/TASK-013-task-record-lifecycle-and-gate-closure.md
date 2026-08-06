@@ -263,6 +263,7 @@ This record's `status` field, its lifecycle directory, and its activation cursor
 
 ## Handoff
 
+- **ACT-017 effects binding:** the effects commit is **`43718a1`**, full `43718a1d9dc229eda1800f6de82b13d70c5cffe0`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder preserved in the chronological handoff below.
 - **ACT-016 effects binding:** the effects commit is **`e59eb6a`**, full `e59eb6ae09968f8a12ef0e84dfa72a9862fb4dc9`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder preserved in the chronological handoff below.
 - **ACT-015 effects binding:** the effects commit is **`994134d`**, full `994134d3a078d24d40c7fdfb31d7ac0eb04e31b9`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder preserved in the chronological handoff below.
 
