@@ -24,7 +24,7 @@ Conditional authority is represented by an immutable, externally issued record r
 ```ts
 export interface MergeExecutorActivationRecord {
   executor: 'task_integration' | 'release_main';
-  architectureDecisionCommit: '7dc07488a5b1cac8b1327ebd63bf747adbe03c68';
+  governanceDecisionCommit: '7dc07488a5b1cac8b1327ebd63bf747adbe03c68';
   architectureReview: ImmutablePassingGateRef;       // TASK-041 or a later superseding round
   implementationReview: ImmutablePassingGateRef;
   implementationSecurityReview: ImmutablePassingGateRef;
@@ -298,7 +298,7 @@ The release executor's permission to merge into `main` does not collide with the
 
 ## GitHub identity and human-controlled policy
 
-Each executor uses its own GitHub App installation identity with a short-lived installation token obtained at execution time and held outside the repository. Repository scope is limited to the one configured repository. The task executor has Contents read/write, Pull requests read, Checks read, Commit statuses read, and Metadata read. The release executor has the same set. No identity has Administration, Actions, Environments, Deployments, Secrets, Issues, or checks/status write permission, and neither App is a ruleset or branch-protection bypass actor. The narrow client allow-list permits reads needed for admission/reconciliation and the pull-request merge endpoint only.
+Each executor uses its own GitHub App installation identity with a short-lived installation token obtained at execution time and held outside the repository. Repository scope is limited to the one configured repository. The task executor has Contents read/write, Pull requests read, Checks read, Commit statuses read, and Metadata read. The release executor has the same set. GitHub's merge endpoint needs Contents write, so software confinement is also required: a credential broker retains the raw token and injects an opaque client capability that can perform only the admission/reconciliation reads and exact pull-request merge request. The executor cannot obtain or log the token or construct an arbitrary HTTP request. No identity has Administration, Actions, Environments, Deployments, Secrets, Issues, or checks/status write permission, and neither App is a ruleset or branch-protection bypass actor.
 
 The following later changes are human-controlled and required before activation; this task does not make them:
 
