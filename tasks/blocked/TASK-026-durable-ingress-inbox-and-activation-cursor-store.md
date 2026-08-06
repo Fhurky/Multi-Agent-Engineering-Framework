@@ -13,7 +13,7 @@ dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
-    lineage_round: 5
+    lineage_round: 6
   - task: TASK-003
     edge: integrated
   - task: TASK-018
@@ -50,13 +50,13 @@ gate_tasks:
     lineage_round: 1
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, and by the TASK-032 commit that TASK-033 approves. None of 9576fc9, 8d0c570, c2ee3eb, and fe0374c is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, and 4, the round-4 verdict at 3df261fa — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 5 or later, which TASK-033 owns. A record that cites any of the four as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
+normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, by 468b37b, and by the TASK-034 commit that TASK-035 approves. None of 9576fc9, 8d0c570, c2ee3eb, fe0374c, and 468b37b is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, 4, and 5, the round-5 verdict at 3660cc2 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 6 or later, which TASK-035 owns. A record that cites any of the five as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
 remediates:
   - finding: F-301
     source: reports/code-review/TASK-001-DECOMPOSITION-REVIEW-ROUND-4.md
     part: implementation of the durable store and its adapters
-blocked_reason: No approved ingress inbox contract exists. TASK-024 published a candidate at c2ee3eb that still declared consumedBy on the inbox entry, which finding F-401 rejects. Neither the durable state store nor the toolchain is integrated. LIN-ARCH-REVIEW has since recorded changes-required at round 3 on the TASK-024 amendment c2ee3eb at aa38c7d2 and at round 4 on the TASK-028 amendment fe0374c at 3df261fa, so the authoritative round is 4 and it failed. The remediation is TASK-032 and the revalidation is TASK-033 at round 5. This task is exactly as far from dispatch as it was before round 4.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 5 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
+blocked_reason: No approved ingress inbox contract exists. TASK-024 published a candidate at c2ee3eb that still declared consumedBy on the inbox entry, which finding F-401 rejects. Neither the durable state store nor the toolchain is integrated. LIN-ARCH-REVIEW has since recorded changes-required at round 3 on the TASK-024 amendment c2ee3eb at aa38c7d2, at round 4 on the TASK-028 amendment fe0374c at 3df261fa, and at round 5 on the TASK-032 amendment 468b37b at 3660cc2, so the authoritative round is 5 and it failed. The remediation is TASK-034 and the revalidation is TASK-035 at round 6. This task is exactly as far from dispatch as it was before round 5.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 6 or higher, and TASK-003 and TASK-018 are integrated into integration/autonomous-runtime.
 review_target_base: not applicable until this task publishes
 review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
 branch_point_of: integration/autonomous-runtime
@@ -79,7 +79,9 @@ Revision 5 of `tasks/TASK-001-DEPENDENCY-GRAPH.md` replaces the observation rule
 
 ## Normative source
 
-The named documents at `9576fc9` **as amended by `8d0c570`, by `c2ee3eb`, by `fe0374c`, and by the TASK-032 commit that TASK-033 approves**. None of those four is approved — `LIN-ARCH-REVIEW` recorded `changes-required` at rounds 1, 2, 3, and 4, the round-4 verdict at `3df261fa` — so each is a superseded authoring baseline and never a normative source on its own. `docs/architecture/runtime/COMPONENT-BOUNDARIES.md` must assign the ingress inbox to this task as the eighth module, and `INTERFACE-CONTRACTS.md` must declare its types. Do not start before that contract is approved, which means before `LIN-ARCH-REVIEW` records a passing or formally accepted authoritative verdict at `lineage_round` 5 or later.
+The named documents at `9576fc9` **as amended by `8d0c570`, by `c2ee3eb`, by `fe0374c`, by `468b37b`, and by the TASK-034 commit that TASK-035 approves**. None of those five is approved — `LIN-ARCH-REVIEW` recorded `changes-required` at rounds 1, 2, 3, 4, and 5, the round-5 verdict at `3660cc2` — so each is a superseded authoring baseline and never a normative source on its own. `docs/architecture/runtime/COMPONENT-BOUNDARIES.md` must assign the ingress inbox to this task as the eighth module, and `INTERFACE-CONTRACTS.md` must declare its types. Do not start before that contract is approved, which means before `LIN-ARCH-REVIEW` records a passing or formally accepted authoritative verdict at `lineage_round` 6 or later.
+
+**Round 5 judged the collector contract again and it is still not approved.** TASK-033 recorded all six `HUMAN-002` Part B properties **satisfied** at `3660cc2`, for the second consecutive round, and still returned `changes-required` — the blockers are A-202, A-105, A-401, and A-402, none of which is a collector-contract defect. The properties this task depends on are therefore in their best recorded state and are still carried inside a failing verdict, so nothing here is released. The report states the conclusion "is independent of, and does not cure, A-202, A-401, or A-402".
 
 **Round 4 assessed this task's own contract and did not approve it.** TASK-029 recorded all six `HUMAN-002` Part B checks **satisfied** — the collector is represented as runtime-owned, outside `tasks/**`, running before scheduler selection, validating and deduplicating before the durable append, appending through this task's store, signalling the high-water mark to TASK-005, structurally barred from letting the recurring task append its own trigger, and bounding interim operator authorization by implementation and validation. **That is not an approval of the contract**: the same verdict is `changes-required`, and `A-202` — the exact source schema that cannot load the committed task records — is recorded `not resolved` with the reviewer stating in terms that the satisfied `HUMAN-002` checks "does not cure A-202". This task therefore still has no approved contract to implement.
 

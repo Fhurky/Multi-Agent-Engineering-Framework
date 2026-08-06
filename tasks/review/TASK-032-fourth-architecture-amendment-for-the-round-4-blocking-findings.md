@@ -23,11 +23,22 @@ gate_tasks:
   - task: TASK-033
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 3660cc2bf0bbe5bfcf4c76ad2c3401d4c4bfa0da
+    remediated_by: TASK-034
+    revalidated_by: TASK-035
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 5
+  - task: TASK-035
+    gate: review
+    round: 2
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 6
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 468b37b2649d031074eba64aca47f4561a0c41a3
@@ -40,27 +51,44 @@ remediates:
     severity: high
     source: reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md
     disposition_at_round_4: not resolved
-    disposition_at_round_5: pending — TASK-033 records it
+    disposition_at_round_5: partially resolved
+    carried_to: TASK-034
   - finding: A-203
     severity: high
     source: reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md
     disposition_at_round_4: partially resolved
-    disposition_at_round_5: pending — TASK-033 records it
+    disposition_at_round_5: resolved
+    carried_to: none — closed by the gate owner at round 5
   - finding: A-206
     severity: high
     source: reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md
     disposition_at_round_4: partially resolved
-    disposition_at_round_5: pending — TASK-033 records it
+    disposition_at_round_5: resolved
+    carried_to: none — closed by the gate owner at round 5
   - finding: A-105
     severity: medium
     source: reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md
     disposition_at_round_4: partially resolved
-    disposition_at_round_5: pending — TASK-033 records it
+    disposition_at_round_5: partially resolved
+    carried_to: TASK-034
   - finding: A-301
     severity: low
     source: reports/code-review/TASK-028-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-3.md
     disposition_at_round_4: new at round 4
-    disposition_at_round_5: pending — TASK-033 records it
+    disposition_at_round_5: resolved
+    carried_to: none — closed by the gate owner at round 5
+findings_opened_against_this_task:
+  - finding: A-401
+    severity: high
+    source: reports/code-review/TASK-032-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-4.md
+    summary: The reconciliation builder cannot construct its declared six-field result from its inputs; leaseState and adoptableResultPresent are not derivable from build's parameters.
+    carried_to: TASK-034
+  - finding: A-402
+    severity: high
+    source: reports/code-review/TASK-032-ARCHITECTURE-AMENDMENT-REVIEW-ROUND-4.md
+    summary: The normative integration strategy and the current-graph proof still state round 4, a four-member cohort, and a 31-task/46-pair graph while the target task graph is at round 5 with 33 tasks and 52 pairs.
+    carried_to: TASK-034
+verdict_recorded_summary: changes-required at round 1 of this record's review gate, recorded by TASK-033 at 3660cc2 and consumed as ingress entry seq 18 by activation ACT-010. One verdict applied atomically to five relations; all five stay open together. Dispositions - A-202 partially resolved, A-105 partially resolved, A-203 resolved, A-206 resolved, A-301 resolved. New High findings A-401 and A-402. Inherited views - A-102 closes with A-206; A-004 and A-101 do not close and their residue is tracked by A-402; A-104 does not fully close and its residue is tracked by A-401. All six HUMAN-002 Part B properties recorded satisfied for the second consecutive round, which the report states does not cure A-202, A-401, or A-402. Acceptance criteria - 12 of 15 met; criteria 1, 2, and 5 not met. The import of the fe0374c baseline was judged faithful. This amendment may not be integrated.
 inherited_views_not_separately_remediated:
   - finding: A-004
     view_of: A-202
@@ -256,6 +284,10 @@ Maintained by the Orchestrator under TASK-013 from the architect's commits and p
 
 - **Publication:** `local-only`, for the reason the owner recorded. This is the **first** record in this graph whose owner-stated publication and durable ref state agree, because no push occurred outside the execution.
 
-- **No finding is resolved by this record.** A-202, A-203, A-206, A-105, and A-301 each carry `disposition_at_round_5: pending`. The owner states its work is "architecture authoring, not review approval", and the Orchestrator records that statement rather than a disposition.
+- **The round-5 verdict, recorded at `ACT-010`.** TASK-033 returned **one** `changes-required` verdict at `3660cc2`, applied atomically to five relations; all five stay open together and **this amendment may not be integrated**. It is the fifth consecutive failing round of `LIN-ARCH-REVIEW`. Three of the five carried findings closed — **A-203**, **A-206**, and **A-301** `resolved` — and two did not: **A-202** and **A-105** are `partially resolved`. Two fresh High findings, **A-401** and **A-402**, block independently. Twelve of fifteen acceptance criteria are met; 1, 2, and 5 are not.
 
-- **Next owner:** reviewer / gpt via **TASK-033**, now `ready`, which records one verdict applied atomically to five `LIN-ARCH-REVIEW` round-5 relations and decides whether TASK-003 through TASK-008, TASK-017, TASK-018, and TASK-026 may leave `blocked`.
+- **What round 5 settled in this amendment's favour, recorded because it is real.** The `fe0374c` import that `MC-010` flagged as an unverified risk is judged **faithful**: 47 base architecture files all present at the target, 33 byte-identical, 14 differing only inside the declared amendment set, three new ADRs, **zero deletions and zero unexpected divergent paths**. The reviewer also found this branch's ancestry does **not** reproduce the pull-request-15 conflict class — a read-only `merge-tree` against local `main` and `origin/main` produced zero conflict markers, and both are ancestors of the target. The module topology, ADR structure, structural safeguards, role scope, and language policy all pass, and all six `HUMAN-002` properties are satisfied for the second consecutive round. None of that releases anything, and the report says so.
+
+- **Why the two open findings are not the same kind of failure.** A-202 and A-402 both come down to the amendment asserting counts and a graph proof over `tasks/**` that were true of an earlier tree: the target says 30 records / 92 relation documents / 24 enriched and a 31-task, 46-pair graph at round 4, while its own tree holds 33 / 104 / 34 and a 33-task, 52-pair graph at round 5. That is a stale-fixture defect, not a schema defect — round 4's A-202 was the schema, and the schema half is now repaired. A-401 is different in kind: a declared builder cannot construct two of its six output fields from its declared inputs, which is a contract-completeness defect independent of any fixture.
+
+- **Next owner:** architect / gpt via **TASK-034**, the fifth amendment, carrying A-202, A-105, A-401, A-402, and the A-004 / A-101 / A-104 residue. **TASK-035** owns `LIN-ARCH-REVIEW` round 6 and is `blocked` until TASK-034 publishes.

@@ -45,11 +45,22 @@ gate_tasks:
   - task: TASK-033
     gate: review
     round: 3
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 3660cc2bf0bbe5bfcf4c76ad2c3401d4c4bfa0da
+    remediated_by: TASK-034
+    revalidated_by: TASK-035
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 5
+  - task: TASK-035
+    gate: review
+    round: 4
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 6
 parent_task: TASK-001
 publication_class: bootstrap
 normative_architecture_source: 9576fc9 as amended by 8d0c570; this task produces the next amendment in the same lineage

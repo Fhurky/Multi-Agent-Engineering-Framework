@@ -34,11 +34,22 @@ gate_tasks:
   - task: TASK-033
     gate: review
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 3660cc2bf0bbe5bfcf4c76ad2c3401d4c4bfa0da
+    remediated_by: TASK-034
+    revalidated_by: TASK-035
     gate_class: point
     retrospective: false
     gate_lineage: LIN-ARCH-REVIEW
     lineage_round: 5
+  - task: TASK-035
+    gate: review
+    round: 3
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-ARCH-REVIEW
+    lineage_round: 6
 parent_task: TASK-001
 publication_class: bootstrap
 normative_architecture_source: 9576fc9 as amended by 8d0c570 and by c2ee3eb; this task produced the round-4 amendment in the same lineage. Neither 8d0c570 nor c2ee3eb is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 2 and 3 — so each is a superseded authoring baseline to amend, never an approved source to build on. This task's own commit fe0374c is now a third such baseline: LIN-ARCH-REVIEW recorded changes-required on it at round 4, at 3df261fa. The next amendment is TASK-032's.

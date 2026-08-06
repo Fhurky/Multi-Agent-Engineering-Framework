@@ -17,7 +17,7 @@ dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
     gate: review
-    lineage_round: 5
+    lineage_round: 6
 required_gates:
   - review
   - security
@@ -43,7 +43,7 @@ gate_tasks:
 gate_scheduling: The security gate is aggregate and retrospective. Its reason and its recorded risk are in the aggregate and retrospective gate register in tasks/TASK-001-DEPENDENCY-GRAPH.md, row "TASK-010 / security / TASK-018". It has the longest exposure window in the graph but it is not the only retrospective gate; every runtime assembly gate is retrospective as well.
 parent_task: TASK-001
 publication_class: runtime
-normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, and by the TASK-032 commit that TASK-033 approves. None of 9576fc9, 8d0c570, c2ee3eb, and fe0374c is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, and 4, the round-4 verdict at 3df261fa — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 5 or later, which TASK-033 owns. A record that cites any of the four as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
+normative_architecture_source: 9576fc9 as amended by 8d0c570, by c2ee3eb, by fe0374c, by 468b37b, and by the TASK-034 commit that TASK-035 approves. None of 9576fc9, 8d0c570, c2ee3eb, fe0374c, and 468b37b is approved — LIN-ARCH-REVIEW recorded changes-required at rounds 1, 2, 3, 4, and 5, the round-5 verdict at 3660cc2 — so each is a superseded authoring baseline to amend and never an approved source to build on. No approved architecture source exists yet: one comes into being only when LIN-ARCH-REVIEW records a passing or formally accepted authoritative verdict at lineage_round 6 or later, which TASK-035 owns. A record that cites any of the five as approved is a finding, and a record that attributes an approval to a round that recorded changes-required is a finding.
 human_decisions:
   - id: HUMAN-001
     status: resolved
@@ -51,8 +51,8 @@ human_decisions:
     decided_at: fb9f45c
     decided_on: 2026-08-04
     effect: package.json, package-lock.json, tsconfig.json, and scripts/quality/** were added to assignments.devops.write_scope in config/agents/settings.yaml.
-blocked_reason: The amended runtime architecture has not passed its independent review gate. TASK-020 returned changes-required on the first amendment with findings A-101 through A-105, so a second amendment, TASK-024, must be authored and approved first. Landing a toolchain before the platform decision is reviewed risks landing the wrong one. LIN-ARCH-REVIEW has since recorded changes-required at round 3 on the TASK-024 amendment c2ee3eb at aa38c7d2 and at round 4 on the TASK-028 amendment fe0374c at 3df261fa, so the authoritative round is 4 and it failed. The remediation is TASK-032 and the revalidation is TASK-033 at round 5. This task is exactly as far from dispatch as it was before round 4.
-exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 5 or higher, which satisfies gate_passed(LIN-ARCH-REVIEW, review, 5).
+blocked_reason: The amended runtime architecture has not passed its independent review gate. TASK-020 returned changes-required on the first amendment with findings A-101 through A-105, so a second amendment, TASK-024, must be authored and approved first. Landing a toolchain before the platform decision is reviewed risks landing the wrong one. LIN-ARCH-REVIEW has since recorded changes-required at round 3 on the TASK-024 amendment c2ee3eb at aa38c7d2, at round 4 on the TASK-028 amendment fe0374c at 3df261fa, and at round 5 on the TASK-032 amendment 468b37b at 3660cc2, so the authoritative round is 5 and it failed. The remediation is TASK-034 and the revalidation is TASK-035 at round 6. This task is exactly as far from dispatch as it was before round 5.
+exit_condition: The LIN-ARCH-REVIEW lineage records a passing or formally accepted authoritative verdict at lineage round 6 or higher, which satisfies gate_passed(LIN-ARCH-REVIEW, review, 5).
 review_target_base: not applicable until this task publishes
 review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
 branch_point_of: integration/autonomous-runtime
