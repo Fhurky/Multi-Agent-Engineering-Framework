@@ -2246,7 +2246,7 @@ No high or critical **security** finding exists. A-601 is a High architecture-re
 
 - This execution's permission profile blocks the repository's PowerShell validators, so `validate-assignment.ps1`, `validate-write-scope.ps1`, `validate-framework.ps1`, `test-orchestration.ps1`, and `check-repository.ps1` were **not run here**. They are genuinely unrun rather than merely unreported, and the surrounding operator runs them.
 - The architect's counts, fixture results, and merge-tree evidence are recorded as **owner-recorded** and were not re-derived, because doing so would be this role performing the round-8 review.
-- This activation creates the effects commit but **not** the follow-up hash-binding commit; the effects commit hash is therefore not asserted anywhere in this section.
+- The effects commit is **`994134d`**, full `994134d3a078d24d40c7fdfb31d7ac0eb04e31b9`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
 
 ### Remaining blockers and next owners
 
@@ -2267,7 +2267,7 @@ No high or critical **security** finding exists. A-601 is a High architecture-re
 ### Effects commit for ACT-015
 
 - The effects commit is a **single** commit on `agent/claude/orchestrator/task-013`, base `b5d32c9f043ea9dc739dbf1748d84b86378049ef`, carrying the ledger row for `seq` 23, the cursor advance to 23, and every lifecycle effect together.
-- **This activation creates that commit and deliberately does not create the follow-up hash-binding commit**, so no hash is asserted here. The surrounding operator runs the official validators, binds the effects commit hash in a second commit, and releases the lock.
+- The effects commit is **`994134d`**, full `994134d3a078d24d40c7fdfb31d7ac0eb04e31b9`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change.
 - **It is not pinned as any round's review target.** TASK-031's round-8 target stays `f14bdde`. This is the eighth consecutive activation whose effects commit is not bound to an open review round.
 - **Publication: `local-only`.** No push, pull request, or merge was performed or attempted.
 - This activation did **not** alter TASK-031's review target, any earlier round's durable verdict, the architecture edge floor, any source clause, or the A-506 review obligation, and it merged no architecture branch anywhere.

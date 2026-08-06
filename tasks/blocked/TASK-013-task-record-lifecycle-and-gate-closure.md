@@ -259,6 +259,8 @@ This record's `status` field, its lifecycle directory, and its activation cursor
 
 ## Handoff
 
+- **ACT-015 effects binding:** the effects commit is **`994134d`**, full `994134d3a078d24d40c7fdfb31d7ac0eb04e31b9`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder preserved in the chronological handoff below.
+
 Maintained by this task's own activations; each activation appends its outcome here and in the activation log.
 
 - **ACT-014 effects binding:** the effects commit is **`88c7c39`**, full `88c7c39d826ce98c6843acdc450f28120b8267aa`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder preserved in the chronological paragraph below.
