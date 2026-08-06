@@ -1,7 +1,7 @@
 ---
 task_id: TASK-018
 title: Bootstrap the runtime TypeScript and Node.js toolchain
-status: ready
+status: review
 owner_role: devops
 llm: claude
 branch: agent/claude/devops/task-018
@@ -52,6 +52,19 @@ dependencies_satisfied:
     approved_source: 8ea5c32789ee01fd4a2cec4aff13905b120edae3
 parent_task: TASK-001
 publication_class: runtime
+published_commit: 296b14faad459307650f0f6e066bd55fdd4bcbe3
+published_branch: agent/claude/devops/task-018
+published_remote_ref: refs/heads/agent/claude/devops/task-018 on origin, at 296b14faad459307650f0f6e066bd55fdd4bcbe3
+pull_request: 20, OPEN, base integration/autonomous-runtime, head agent/claude/devops/task-018 at 296b14faad459307650f0f6e066bd55fdd4bcbe3, not a draft, mergeable
+publication: published
+publication_recorded_by: TASK-013 activation ACT-018, consuming ingress entry seq 26, event type artifact_published
+review_ready: satisfied at 296b14faad459307650f0f6e066bd55fdd4bcbe3. This is the FIRST record in this graph to satisfy review_ready under the runtime publication class rather than the bootstrap class - immutable published commit, branch pushed to the configured remote, and an open pull request against integration/autonomous-runtime, all three present. Every earlier publication in this graph was bootstrap class.
+integration_state: NOT INTEGRATED. review_ready is satisfied and the review gate is OPEN. TASK-018 declares pre_merge_gates [review], owned by TASK-019 at LIN-TOOLCHAIN-REVIEW lineage_round 1, verdict pending. No branch_integrated fact exists for this branch, nothing is merged, and pull request 20 must not be merged until TASK-019 records a passing verdict. ACT-018 performed no merge and simulated none.
+owner_commits:
+  - bc20bc533739cddd63804ca5eab1ad90bdb1107f
+  - cd565e5b882f018a138eb34d4488a8d54b027647
+  - 560f9a045704cffcc7493412326679bb5972a068
+  - 296b14faad459307650f0f6e066bd55fdd4bcbe3
 normative_architecture_source: 8ea5c32789ee01fd4a2cec4aff13905b120edae3, the immutable TASK-038 target. THIS IS THE FIRST APPROVED ARCHITECTURE SOURCE THIS GRAPH HAS HAD. LIN-ARCH-REVIEW recorded approved at lineage_round 8, at 734bdbc, and TASK-013 activation ACT-016 closed all eight relations together, so the lineage's authoritative verdict is passing at the floor this record's edge declares. The earlier baselines 9576fc9, 8d0c570, c2ee3eb, fe0374c, 468b37b, 6d145eb, and 970b081 remain superseded authoring baselines that were each rejected at rounds 1 through 7; a record that cites any of them as approved is still a finding. Build against 8ea5c32 and nothing else. The approved source is a commit on agent/gpt/architect/task-038 that has NOT been integrated into any branch; reading it is how a consumer consults the approved architecture until the separate branch-integration operation lands.
 human_decisions:
   - id: HUMAN-001
@@ -61,13 +74,15 @@ human_decisions:
     decided_on: 2026-08-04
     effect: package.json, package-lock.json, tsconfig.json, and scripts/quality/** were added to assignments.devops.write_scope in config/agents/settings.yaml.
 unblocked_reason: This task was blocked from the first decomposition until ACT-016 solely on the architecture gate. LIN-ARCH-REVIEW recorded approved at round 8, at 734bdbc, with A-601 resolved and no new finding, and ACT-016 closed all eight relations together. This record declares exactly ONE dependency - gate_passed(LIN-ARCH-REVIEW, review, 8) - and it is now satisfied, which makes this the only consumer whose complete typed dependency set is met and the first implementation task in this graph ever to become dispatchable. Build against the approved source 8ea5c32; it is a commit on agent/gpt/architect/task-038 that has not been integrated into any branch, so read it directly.
-exit_condition: satisfied. This task declared exactly one dependency - gate_passed(LIN-ARCH-REVIEW, review, 8) - and LIN-ARCH-REVIEW recorded approved at round 8 at 734bdbc, closed by ACT-016. It is the ONLY consumer whose complete typed dependency set is now satisfied; every other consumer retains at least one integrated() edge that no branch integration has yet satisfied. This task is ready and dispatchable.
-review_target_base: not applicable until this task publishes
-review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication, from the branch as published.
+exit_condition: satisfied and discharged. This task declared exactly one dependency - gate_passed(LIN-ARCH-REVIEW, review, 8) - and LIN-ARCH-REVIEW recorded approved at round 8 at 734bdbc, closed by ACT-016. It was dispatched, executed, and published at 296b14f, and ACT-018 moved it to review. What remains is its own review and security gates, not a dependency.
+review_target_base: 5dc764057843fc5e5a40909847b1de900c4fd992
+review_target_commit: 296b14faad459307650f0f6e066bd55fdd4bcbe3
+review_target_applicability: applicable and resolved. TASK-019 reviews the delta between this task's branch point on integration/autonomous-runtime and its published head. Both values are read from the repository - git merge-base 296b14f integration/autonomous-runtime returns 5dc7640, and 5dc7640 is on origin/integration/autonomous-runtime - rather than asserted. The target is immutable and must not be retargeted if this task later publishes a further commit; a superseding commit is reviewed by a new round, per findings F-403 and A-209.
+review_target_note: The head 296b14f is bound rather than 560f9a0. The owner's pull request body contains one internally inconsistent sentence - "This branch is review_ready at 560f9a0" - which its own Verification section contradicts by recording that every command was run "in this worktree at 296b14f, the head of this branch", and which its own Commits table contradicts by listing 296b14f as the fourth commit. The durable ref state agrees with the head - refs/heads/agent/claude/devops/task-018 and its remote tracking ref both point at 296b14f, and pull request 20 reports headRefOid 296b14f. Both statements are recorded and neither overwrites the other, which is this graph's standing treatment of an owner statement a durable fact contradicts.
 branch_point_of: integration/autonomous-runtime
-scope_validation_base: git merge-base HEAD integration/autonomous-runtime
-scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
-scope_validation_note: Branch from integration/autonomous-runtime at or after the commit where this task's dependencies merged, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
+scope_validation_base: 5dc764057843fc5e5a40909847b1de900c4fd992
+scope_validation_applicability: applicable and resolved
+scope_validation_note: Resolved by the owner inside its worktree as git merge-base HEAD integration/autonomous-runtime, reported in pull request 20, and reproduced by the Orchestrator at ACT-018. The owner recorded validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 5dc764057843fc5e5a40909847b1de900c4fd992 as valid true over 12 changed files, and the Orchestrator independently confirmed the same 12 paths by git diff --name-only against the same base. The superseded pre-publication value was the reproducible expression git merge-base HEAD integration/autonomous-runtime. It is deliberately not origin/main, not c325275, and not a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-018: Bootstrap the runtime TypeScript and Node.js toolchain
@@ -155,11 +170,35 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the owner's commit and pull request.
+Maintained by the Orchestrator under TASK-013 from the owner's commit messages and pull request 20, transcribed at activation `ACT-018`. Quoted material is the owner's; the Orchestrator adds no evidence of its own to this section beyond what it independently reproduced and says so where it did.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- Governance decision consumed: HUMAN-001, option A, commit `fb9f45c`, recorded by TASK-013 activation `ACT-001` in `tasks/TASK-013-ACTIVATION-LOG.md` event seq 1.
-- Next owner: devops / claude to implement once `gate_passed(TASK-016, review)` is satisfied; then reviewer / gpt for TASK-019; then orchestrator via TASK-013 to integrate the toolchain and unblock Wave 3
+- **Commit or pull request:** four commits on `agent/claude/devops/task-018` over branch point `5dc7640` — `bc20bc5` the manifests, `tsconfig.json`, and the quality entry points; `cd565e5` the shared PowerShell entry point and the toolchain smoke test; `560f9a0` the runtime CI workflow; and the head **`296b14f`**, a linter fix so that specifier rules scan whole files and a specifier on the closing line of a multi-line import is checked. Published at `refs/heads/agent/claude/devops/task-018` on `origin` and opened as **pull request 20**, `OPEN` against `integration/autonomous-runtime`, head `296b14f`, not a draft, reported `MERGEABLE`. **This is the first `runtime`-class publication in this graph**, and the first record whose `review_ready` is satisfied by commit **plus** remote **plus** pull request rather than by the bootstrap allowance.
+
+- **Verification, as the owner recorded it in pull request 20.** Every command was run in the owner's worktree at `296b14f`:
+
+  | Command | Owner-recorded result |
+  |---|---|
+  | `./scripts/ci/runtime-checks.ps1 -Stage all` | pass — typecheck, lint, format, test, smoke |
+  | `npm run typecheck` / `lint` / `format:check` / `test` | pass against the empty runtime tree, each reporting the skip explicitly |
+  | `npm run toolchain:smoke` | pass — **9/9 cases**, including a type error, a failing test, a single-line and a multi-line lint violation, and a non-strict `node:assert` import each failing the build |
+  | Temporary real module and `node:test` suite under `src/` and `tests/`, removed before commit | typecheck, lint, format, `npm test` 2/2, and `npm run test:coverage` at 100% line, branch, and function |
+  | `./scripts/ci/validate-framework.ps1` | pass — 13 roles |
+  | `./scripts/ci/test-orchestration.ps1` | pass |
+  | `./scripts/security/check-repository.ps1` | pass |
+  | `git diff --check 5dc7640...HEAD` | clean |
+  | `./scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 5dc764057843fc5e5a40909847b1de900c4fd992` | `valid: true`, **12 changed files** |
+
+  The owner also recorded its ADR-0001 parameter mapping: `engines.node: ">=22.0.0"` with the workflow pinned to `node-version: 22.x`; `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` in `tsconfig.json`; `"type": "module"` with `NodeNext` resolution and a lint rule `ESM-RELATIVE-EXTENSION`; `node:test` with a `STRICT-ASSERT` lint rule; and an empty `dependencies` object with a `NO-THIRD-PARTY-IMPORT` lint rule. **Dependency inventory for the security gate: three dev-only packages** — `typescript`, `@types/node`, and `undici-types` — and zero runtime dependencies.
+
+  **What the Orchestrator reproduced rather than accepted**, stated separately because the distinction is the one this log keeps everywhere: the four-commit chain and its order; the branch point `5dc7640` as `git merge-base 296b14f integration/autonomous-runtime`, and that `5dc7640` is on `origin/integration/autonomous-runtime`; the authored delta of exactly **12 paths, 1069 insertions, 0 deletions**, every one inside this task's declared write scope and inside `assignments.devops.write_scope`; `git diff --check` clean; that `package.json` declares the Node 22 floor, `"type": "module"`, and an empty `dependencies`; that the workflow holds `contents: read` and does not touch `ci.yml` or `security.yml`; and the pull-request state, base, head, and draft status. **Every PowerShell validator result above is the owner's, not the Orchestrator's** — this execution profile blocks those scripts and none was re-run here.
+
+- **Known risks, as the owner recorded them and as the Orchestrator confirmed them:**
+  - **No GitHub Actions run exists for this branch or this pull request.** The owner recorded that Actions is enabled on the repository but that no run was created for `runtime.yml` or for the baseline `ci.yml` within roughly twenty minutes of publication, that the most recent repository run predates the branch, and that `api.github.com` intermittently refused connections from that host during the window. **The Orchestrator confirmed the absence independently**: `gh run list --branch agent/claude/devops/task-018` returns `[]` and `gh pr checks 20` reports "no checks reported". **No CI success is claimed, inferred, or recorded.** The workflow has never executed on GitHub, so its `windows-latest` behavior is verified only by the owner's local runs. Re-running the checks on pull request 20 is how that gets confirmed, and it is a reviewer and operator action rather than an Orchestrator one.
+  - The owner's own decisions a reviewer is asked to weigh, recorded verbatim in substance: no ESLint or Prettier, with lint and format written as dependency-free Node scripts under `scripts/quality/`; compile-then-run rather than type stripping, with `erasableSyntaxOnly` keeping the source compatible with stripping later; `tsconfig.json` options beyond the ADR-0001 minimum that constrain eight downstream tasks; an empty runtime tree reporting success with an explicit skip because `src/**` and `tests/**` are outside this task's scope; and `actions/setup-node@v4` chosen as a stable major beside the repository's existing `actions/checkout@v6`.
+  - One internally inconsistent sentence in the pull request body names `560f9a0` as the `review_ready` commit. See `review_target_note` in the frontmatter: the head `296b14f` is bound, the owner's own verification and commit table agree with the head, and both statements are recorded.
+  - The security gate is aggregate and retrospective. The toolchain and its three dev-only packages sit on the integration branch unassessed until TASK-010 runs at Wave 8. That exposure is declared in the aggregate and retrospective gate register and is unchanged by this publication.
+
+- **Governance decision consumed:** HUMAN-001, option A, commit `fb9f45c`, recorded by TASK-013 activation `ACT-001` in `tasks/TASK-013-ACTIVATION-LOG.md` event seq 1. The owner recorded that no human-controlled governance path was modified, and the Orchestrator confirmed it from the changed-path list: `.github/workflows/ci.yml`, `.github/workflows/security.yml`, `config/agents/settings.yaml`, `.agents/**`, `scripts/orchestration/**`, and `tasks/**` are all absent from the delta.
+- **The author did not approve this work and marked no gate as passed.** The owner states so in its own words, and no verdict on this artifact exists.
+- **Next owner: reviewer / gpt for TASK-019**, `LIN-TOOLCHAIN-REVIEW` round 1, now `ready` on the satisfied `review_ready(TASK-018)` edge. Its target is `296b14f` against base `5dc7640`. **Pull request 20 must not be merged until that verdict passes**; merging first would be exactly the pre-merge-gate inversion finding F-101 exists to prevent. Then TASK-010 for the retrospective security gate, and the Orchestrator via TASK-013 to record the integration once it happens and release TASK-003, TASK-004, TASK-017, and TASK-026 from their `integrated(TASK-018)` edges.
 </content>
