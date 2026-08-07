@@ -1,7 +1,7 @@
 ---
 task_id: TASK-043
 title: Target-bound continuous-integration evidence for reviewed heads
-status: ready
+status: review
 owner_role: devops
 llm: claude
 branch: agent/claude/devops/task-043
@@ -29,6 +29,35 @@ gate_tasks:
     gate_lineage: LIN-CI-EVIDENCE-REVIEW
     lineage_round: 1
 parent_task: TASK-001
+published_commit: 37a48249c03509e929fed2c8d27a1ff4f152f8db
+published_branch: agent/claude/devops/task-043
+published_remote_ref: refs/heads/agent/claude/devops/task-043
+pull_request: 24
+publication: published
+publication_note: >-
+  Recorded by ACT-022 from the repository and the GitHub API rather than from the owner's
+  statement, which agrees with both. The branch carries exactly one authored commit past its
+  branch point, so the head-binding rule had a single candidate and no authoring-ancestry commit
+  to exclude. git ls-remote origin refs/heads/agent/claude/devops/task-043 resolves to
+  37a48249c03509e929fed2c8d27a1ff4f152f8db, and pull request 24 reports the same headRefOid,
+  OPEN against integration/autonomous-runtime, not a draft, MERGEABLE with mergeStateStatus
+  CLEAN, created 2026-08-07T07:13:06Z. All three runtime-class conditions - immutable commit,
+  pushed branch, and an open pull request - are satisfied independently, so publication-classes
+  rule 2 could have blocked review_ready(TASK-043) and did not have to. This is the second
+  runtime-class publication in this graph after TASK-018.
+target_bound_check_runs: >-
+  Present and successful, read from repos/Fhurky/Multi-Agent-Engineering-Framework/commits/
+  37a48249c03509e929fed2c8d27a1ff4f152f8db/check-runs at ACT-022. total_count 2, both completed
+  with conclusion success - job validate under workflow CI, check run id 92797952346, completed
+  2026-08-07T07:13:27Z, and job security under workflow Security, check run id 92797952368,
+  completed 07:13:26Z. gh pr checks 24 independently reports both pass. The separate legacy
+  combined-status endpoint returns state pending with zero contexts, which is GitHub's default
+  for zero contexts rather than a running check; this task's own diagnosis records that the same
+  endpoint returns the same thing for ec533fb, which demonstrably passed, so that surface
+  distinguishes nothing in this repository. Both surfaces were read. This is the second published
+  head in this graph to carry executed passing check runs, after TASK-041's ec533fb, and it is
+  recorded as a fact about this commit and nothing else. It is not a disposition on F-041-03,
+  which belongs to TASK-045.
 publication_class: runtime
 publication_class_reason: >-
   Declared runtime rather than bootstrap deliberately, and the choice is substantive rather
@@ -58,13 +87,36 @@ human_prerequisite_contingency: >-
   task determines that one of these is required, it returns a dependency_unsatisfiable handoff
   naming exactly which, with the evidence, and performs none of them. It must not widen its own
   authority, edit an enforcement path, or work around a control.
-review_target_base: git merge-base HEAD integration/autonomous-runtime
-review_target_applicability: applicable, declared as a reproducible expression because this task's branch and artifact do not exist yet. Round 1 of LIN-CI-EVIDENCE-REVIEW diffs this task's published head against its own immutable branch point on integration/autonomous-runtime. The Orchestrator pins the resolved value at the activation that consumes the publication.
-review_target_commit: not yet published. Pinned by the activation that consumes this task's publication, bound to the branch head rather than to any earlier authored commit.
+review_target_base: 8a4fe763d2f7819bf979f9a70c26993baa1d86c6
+review_target_applicability: applicable and resolved at ACT-022. Round 1 of LIN-CI-EVIDENCE-REVIEW diffs this task's published head against its own immutable branch point on integration/autonomous-runtime. The value was read with git merge-base 37a48249c03509e929fed2c8d27a1ff4f152f8db integration/autonomous-runtime at ACT-022 and independently confirmed as the single parent of this task's only authored commit. It supersedes the reproducible expression git merge-base HEAD integration/autonomous-runtime that this record carried before publication.
+review_target_commit: 37a48249c03509e929fed2c8d27a1ff4f152f8db
+review_target_note: >-
+  Bound by ACT-022 to the branch head, under the head-binding rule ACT-009, ACT-013, ACT-015,
+  ACT-018, ACT-020, and ACT-021 each applied. Here the rule had a single candidate: git log
+  8a4fe763..37a48249 returns exactly one commit, so there is no authoring-ancestry commit to
+  exclude and no PENDING-placeholder case of the kind that decided TASK-032's binding. The
+  reviewed delta is git diff 8a4fe763d2f7819bf979f9a70c26993baa1d86c6
+  37a48249c03509e929fed2c8d27a1ff4f152f8db, which is 4 paths, 1142 insertions, and 0 deletions.
+  It is deliberately not origin/main, not de3a8d6, not 4615114, not c95ce600, and not 5e5fc8f.
+authored_delta: >-
+  4 paths, 1142 insertions, 0 deletions, recomputed by ACT-022 with git diff --numstat against
+  the resolved branch point rather than inherited from the owner's figures, which agree. All four
+  are additions - scripts/ci/assert-check-runs.ps1, scripts/ci/check-run-evidence.ps1,
+  scripts/ci/required-checks.json, and scripts/ci/test-check-run-evidence.ps1 - and all four are
+  under scripts/ci/**, which is this task's entire declared write scope. The out-of-scope residue
+  is empty by enumeration rather than by inference. No path under .github/workflows/**,
+  .githooks/**, AGENTS.md, config/agents/settings.yaml, .agents/**, scripts/orchestration/**,
+  scripts/setup/**, docs/**, src/**, tests/**, reports/**, or tasks/** appears in the delta,
+  which is the exclusion set this record made load-bearing.
+integration_state: >-
+  NOT INTEGRABLE. review is declared in pre_merge_gates and the relation is open with no verdict
+  at any round. ACT-022 neither merged, modified, closed, reopened, commented on, nor approved
+  pull request 24, and no Orchestrator activation may perform that merge. Pull request 24 must
+  not be merged before TASK-045 records a passing verdict.
 branch_point_of: integration/autonomous-runtime
-scope_validation_base: git merge-base HEAD integration/autonomous-runtime
-scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet. It coincides with review_target_base for this record because this task's branch point and the base of the delta under review are the same commit; the two fields are nevertheless declared separately, because findings F-403 and A-209 required them to stay separate questions rather than one shared value.
-scope_validation_note: Create agent/claude/devops/task-043 from the head of integration/autonomous-runtime, which was 461511437a26a57fe9a976c5ce3222ca123084d1 when this record was written, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Never pass origin/main, c325275, de3a8d6, c95ce600, 5e5fc8f, or a review-diff base. Record the resolved value in the handoff so the Orchestrator can pin it.
+scope_validation_base: 8a4fe763d2f7819bf979f9a70c26993baa1d86c6
+scope_validation_applicability: applicable and resolved at ACT-022, read with git merge-base 37a48249c03509e929fed2c8d27a1ff4f152f8db integration/autonomous-runtime. It coincides with review_target_base for this record because this task's branch point and the base of the delta under review are the same commit; the two fields remain separately declared and separately resolved, because findings F-403 and A-209 required them to stay separate questions rather than one shared value, and a coincidence of value is not a merger of questions.
+scope_validation_note: The owner created agent/claude/devops/task-043 from the head of integration/autonomous-runtime, which had moved from 461511437a26a57fe9a976c5ce3222ca123084d1 to 8a4fe763d2f7819bf979f9a70c26993baa1d86c6 by the time the branch was cut, and recorded the resolved value in pull request 24. Prescription and execution agree, which is the outcome A-209 exists to check for. The owner ran scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 8a4fe763d2f7819bf979f9a70c26993baa1d86c6 and recorded valid True with changed_files 4 and exit 0. Never pass origin/main, c325275, de3a8d6, c95ce600, 5e5fc8f, or a review-diff base.
 ---
 
 # TASK-043: Target-bound continuous-integration evidence for reviewed heads
@@ -148,11 +200,19 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the DevOps owner's commit, pull request, and handoff.
+Maintained by the Orchestrator under TASK-013 from the DevOps owner's commit, pull request, and handoff. **Transcribed at `ACT-022` from the source commit and pull request 24; the owner's claims are attributed to the owner and are not judgments of this role.**
 
-- Commit or pull request:
-- Verification:
-- Known risks:
+- **Commit or pull request:** one authored commit, `37a48249c03509e929fed2c8d27a1ff4f152f8db` `feat(TASK-043): assert target-bound check-run evidence for a reviewed head`, on `agent/claude/devops/task-043` over branch point `8a4fe763d2f7819bf979f9a70c26993baa1d86c6`. Pushed to `origin` and opened as **pull request 24**, `OPEN` against `integration/autonomous-runtime`, head `37a48249`, not a draft, `MERGEABLE` / `CLEAN`. It is ingress entry **`seq` 30**, class `artifact_published`.
+- **What the owner produced.** Four files, all created, all under `scripts/ci/**`: `assert-check-runs.ps1`, which the owner declares the **entry point** and which the Orchestrator therefore used as this fact's `source_path`; `check-run-evidence.ps1`, the verdict module the owner states performs no input or output; `required-checks.json`, the required-context configuration; and `test-check-run-evidence.ps1`, an offline fixture suite. The owner records the invocation as `./scripts/ci/assert-check-runs.ps1 -Commit <40-character commit identifier>`, with `-Json` and `-Repository` / `-ConfigurationPath` variants.
+- **The determination the owner recorded, which is a determination and not an Orchestrator finding.** The owner states the cause of the zero-check-run condition as **GitHub Actions incident `qcvjkzcs7j74`**, impact `critical`, opened `2026-08-06T15:22:49Z` and resolved `2026-08-07T02:04:44Z`, permalink `https://stspg.io/rcz3fcm83sff`, read from `https://www.githubstatus.com/api/v2/incidents.json`. It quotes two status-page updates verbatim stating that webhook triggers were throttled to roughly 15 % so that push and pull-request events did not create workflow runs, gives an event-by-event correlation table in which every qualifying trigger for pull requests 20, 21, and 22 falls inside the window and every trigger for pull requests 23 and 24 falls after it, and records that the repository's complete history is 98 runs with **zero created on 2026-08-06**. It affirmatively excludes thirteen repository-side causes with the surface read for each, including Actions permissions, allowed-actions policy, workflow state, byte-identical trigger blobs across `5e5fc8f`, `296b14f`, `ec533fb`, and `8a4fe76`, mergeability, skip directives, draft state, fork and first-contributor gates, billing, branch protection and rulesets, archived state, default workflow permissions, and invalid YAML. It records one limitation of the surface: a deleted run also removes its check run, so the REST API cannot fully distinguish "never created" from "created then deleted", and the owner states nothing observed suggests deletion. **Whether the evidence supports the determination is TASK-045's judgment, not this role's.**
+- **The owner returned no human prerequisite**, recording that no member of this record's enumerated contingency set applies. **This record's `human_prerequisite_contingency` field is therefore unexercised**, and TASK-045's exit condition clause covering a returned prerequisite instead of a publication was checked at `ACT-022` and does not apply.
+- **Two corrections the owner recorded against observations this record carried forward.** First, the combined-status endpoint returns `state: pending` with zero contexts for **`ec533fb` as well**, the head that demonstrably passed, because this repository publishes check runs rather than legacy commit statuses — so that surface distinguishes nothing here and the owner's tool reads `check-runs` and never `status`. Second, **pull request 21 also received no runs from synchronize events at `2026-08-07T05:30:57Z` and `06:52:11Z`, both after the incident resolved**; the owner records that PR 21 is the only one of the four that is `mergeable: false` / `dirty` and states the correlation as an observation rather than a determination, raising no finding on it because it is outside this task's scope. **The Orchestrator confirmed independently at `ACT-022` that pull request 21 is `OPEN`, `CONFLICTING` / `DIRTY` at head `8a4fe763`, and untouched.**
+- **Verification, as the owner recorded it.** `test-check-run-evidence.ps1` → `Check-run evidence assertion checks passed: 82 assertions.` exit 0, covering zero check runs, the passing shape, a missing context, eight rejected conclusions plus a completed check with no conclusion, five unfinished statuses, four duplicate-resolution cases, a right-job/wrong-workflow impostor, an unresolvable workflow, an untrusted application, unrequired extras, the exit-code table, five configuration failures, and four command-line validation failures — all from fixtures with no network. Demonstrations: `assert-check-runs.ps1 -Commit ec533fb…` → `result=pass code=OK exit=0`; `-Commit 5e5fc8f…` → `result=fail code=E_NO_CHECK_RUNS exit=4`; `-Commit 296b14f…` → the same. Against its own head, `-Commit 37a48249…` → `result=pass code=OK exit=0` with both contexts `success`. Repository checks: `validate-assignment.ps1 -Role devops -Llm claude` `valid: True`; `validate-framework.ps1` 13 roles; `test-orchestration.ps1` passed; `check-repository.ps1` passed; `git diff --cached --check` clean; `validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 8a4fe763…` `valid: True`, `changed_files: 4`, exit 0. The owner states no content commit was created after the verification and that only the pull-request body was updated afterwards.
+- **The owner states the read-only guarantee explicitly**: exactly one GitHub call site, fixed to `GET`; no `POST`, `PATCH`, `PUT`, or `DELETE` anywhere under `scripts/ci/`; no `gh pr merge|close|comment|edit|reopen`, `gh run rerun|cancel`, or `gh workflow run|enable|disable`; no token parameter, no credential read, none printed. It records that nothing was re-run, cancelled, approved, merged, closed, reopened, or commented on for pull requests 20, 21, 22, or 23.
+- **Known risks, as the owner recorded them, six in the owner's own words.** The offline suite is **not wired into CI**, because `ci.yml` is a human-controlled baseline workflow an `agent/*` branch cannot change; the owner records this as a limitation and a follow-up for the workflow owner rather than returning it as a blocking prerequisite. The tool **reports and does not gate**: making it a required status check would need branch-protection or required-check changes, which are human-controlled and excluded here. **`5e5fc8f` and `296b14f` still carry zero check runs**, and the remedy is a new trigger event on branches this task is forbidden to touch, so those two heads remain unsupported by target-bound evidence until their owners republish. Created-then-deleted runs are not fully distinguishable through the REST API for a user-owned repository with no audit log. The status-page incident feed is external and mutable, so the identifiers, timestamps, and verbatim text are recorded in the pull request to keep the determination auditable. And `required-checks.json` must track the workflows: a rename would correctly produce `E_MISSING_CONTEXT`.
+- **Check runs at the exact published head, recorded by the Orchestrator from the API rather than from the owner's table**, which agrees: `total_count` **2**, both `completed` with conclusion **`success`** — `validate` under `CI`, id `92797952346`; `security` under `Security`, id `92797952368`. `gh pr checks 24` reports both `pass`. **This is recorded as a fact about `37a48249` and nothing else, and it is not a disposition on F-041-03**, which TASK-045 records.
 - **Edge satisfied at `ACT-021`:** `gate_recorded(TASK-041)` at `ec533fb5bb0055675fb81f72057d5636f7867db3`, ingress entry `seq` 29, class `gate_verdict_recorded`.
+- **Transition at `ACT-022`:** `ready` → `review` on ingress entry `seq` 30, class `artifact_published`. **`review_ready(TASK-043)` is satisfied on all three `runtime`-class conditions independently** — immutable commit, pushed branch, and an open pull request — so publication-classes rule 2, which states that a `local-only` publication never satisfies this edge for a `runtime`-class task, **could have blocked it and did not have to**. TASK-045 moved `blocked` → `ready` on that edge. **No gate was closed, no verdict was authored, and F-041-03 keeps the disposition TASK-041 recorded.**
+- **Why `remediation_completed` was not the class, stated rather than assumed.** This commit is a remediation owner publishing the fix for a routed finding, which matches a class **above** `artifact_published` in precedence. `MC-016` states the rule that resolves it: the classes are separated by the work the fact triggers, `remediation_completed`'s work is to route the fix to a new gate task in the next round, and that round — TASK-045 — already exists, created by `ACT-021`. Only `artifact_published`'s work remained.
 - **Relationship to TASK-019, recorded and deliberately not acted on.** TASK-018's head `296b14f` is in the same zero-check-run condition, and TASK-019's own round carries the same obligation to judge an absent run, placed on it by `ACT-018`. If this task's determination generalizes it would bear on that round too. **TASK-019's record, target, base, round, relations, scope, and acceptance criteria were not changed by `ACT-021`**, because its round is independent, its target is immutable, and retargeting or amending a dispatched round on the strength of another lineage's finding is what findings F-403 and A-209 exist to prevent. The relationship is recorded here and in the activation log so a later reader finds it rather than rediscovering it.
-- Next owner: reviewer / gpt via **TASK-045**, once this task publishes; or the **user**, if this task returns an enumerated human prerequisite.
+- **Next owner: reviewer / gpt via TASK-045**, `LIN-CI-EVIDENCE-REVIEW` round 1, **`ready` and dispatchable at `ACT-022`** on the satisfied edge. Its target is `37a48249c03509e929fed2c8d27a1ff4f152f8db` over base `8a4fe763d2f7819bf979f9a70c26993baa1d86c6`. The alternative branch — the **user**, on an enumerated human prerequisite — is closed for this round, because the owner returned none.
