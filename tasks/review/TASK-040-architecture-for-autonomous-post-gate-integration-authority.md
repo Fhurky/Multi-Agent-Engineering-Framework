@@ -49,12 +49,26 @@ gate_tasks:
   - task: TASK-047
     gate: review
     round: 3
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 78359ae2e3dc6e97fb3d60f0b847b84abed08fa6
+    relation_status: closed
     gate_class: point
     retrospective: false
     gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
     lineage_round: 3
 gate_status: >-
+  CLOSED. The review gate's status is the verdict recorded at its highest round, which is round 3
+  and records approved at 78359ae2e3dc6e97fb3d60f0b847b84abed08fa6 on agent/gpt/reviewer/task-047,
+  artifact reports/code-review/TASK-046-INTEGRATION-AUTHORITY-REVIEW-ROUND-3.md, published as pull
+  request 29. Under gate-round rule 3 a gate is closed when its highest round records approved.
+  ROUNDS 1 AND 2 KEEP THEIR DURABLE changes-required VERDICTS at
+  ec533fb5bb0055675fb81f72057d5636f7867db3 and 6f7f0edb63615d7f143dd6c59750a5ea7db701fc - both are
+  superseded, never rewritten, and all three rows stay recorded, which is gate-round rule 4. THIS
+  IS THE LONGEST REMEDIATION CHAIN IN THIS LINEAGE AND THE ONLY RELATION HERE TO TAKE THREE ROUNDS.
+  The round-3 verdict was authored by TASK-047 and applied ATOMICALLY to this relation and to
+  (TASK-046, review, round 1) and (TASK-042, review, round 2); all three closed together and a
+  split outcome is not representable. Transcribed here by the Orchestrator at ACT-026; this role
+  produced no verdict and closed nothing on its own authority. The superseded ACT-023 value read -
   OPEN. The review gate's status is the verdict recorded at its highest round, which is round 3 and
   is pending. Rounds 1 and 2 both recorded changes-required, at ec533fb5bb0055675fb81f72057d5636f7867db3
   and at 6f7f0edb63615d7f143dd6c59750a5ea7db701fc, and both are durable and superseded, never
@@ -80,8 +94,38 @@ round_2_verdict: >-
   architect-owned, routed to TASK-046 and revalidated by TASK-047 at round 3. This record's own
   artifact is unchanged and is not re-authored - 5e5fc8f stays the immutable round-1 target forever
   and the remediation chain runs TASK-042 then TASK-046 on new branches at new rounds.
+round_3_verdict: >-
+  approved, recorded by TASK-047 at 78359ae2e3dc6e97fb3d60f0b847b84abed08fa6, published as pull
+  request 29, artifact reports/code-review/TASK-046-INTEGRATION-AUTHORITY-REVIEW-ROUND-3.md, 272
+  lines, over the cumulative base c95ce600b40ab2dbac73da44a21bbb7a207c444d, which is this record's
+  own immutable branch point. ONE verdict applied ATOMICALLY to (TASK-046, review, round 1),
+  (TASK-042, review, round 2), and this record's round-3 relation; the report states it "applies
+  atomically to the complete relation cohort" and "is not a split result". NO FINDING OF ANY
+  SEVERITY WAS RECORDED. Round-1 dispositions read from the report - F-041-01 resolved and remains
+  resolved; F-041-02 resolved by the F-044-02 correction; F-041-04 resolved by the F-044-03
+  correction and the actual publication; F-041-03 explicitly NOT re-dispositioned, because it
+  belongs to the separately closed LIN-CI-EVIDENCE-REVIEW lineage. Round-2 dispositions - F-044-01,
+  F-044-02, and F-044-03 all resolved. All 32 carried scope rows met, from a fresh parse. IMPLEMENTATION
+  AUTHORIZATION IS GRANTED FOR THE FIRST TIME, after two consecutive denials - the report states
+  that "Implementation tasks may now be created, after the Orchestrator records this atomic verdict"
+  and that HUMAN-004 requires TWO separately owned tasks, runtime for the task-to-integration
+  executor and devops for the integration-to-main release executor. It states equally plainly that
+  "This approval does not activate either executor" and that the returned tasks-owned gate
+  narrowing, the returned human-controlled AGENTS.md amendment, and the separately provisioned
+  human-controlled RepositoryPolicyAttestor "remain prerequisites; the current contract correctly
+  fails closed while they are absent". This record's own artifact 5e5fc8f is unchanged and was not
+  re-authored; the remediation chain ran TASK-042 then TASK-046 on new branches at new rounds, and
+  round 3 judged the cumulative result.
+round_3_verdict_note: >-
+  The verdict is recorded here by the Orchestrator at ACT-026 and was authored by TASK-047. This
+  role transcribes a gate owner's judgment and never produces, softens, extends, or anticipates
+  one. No finding was created, resolved, re-dispositioned, merged, or split by ACT-026. In
+  particular, the report's grant of implementation authorization is the report's; ACT-026 acted on
+  it by creating TASK-048 and TASK-049 as BLOCKED records with their six single-owner gate tasks,
+  and made neither executor ready and neither active.
 round_3_owner_state: >-
-  TASK-047 is blocked as of ACT-023, one step out, on review_ready(TASK-046). It records one verdict
+  SUPERSEDED at ACT-026 by round_3_verdict above; retained verbatim as the state that was true
+  before the round reported. TASK-047 is blocked as of ACT-023, one step out, on review_ready(TASK-046). It records one verdict
   applied atomically to THREE relations - (TASK-046, review, round 1), (TASK-042, review, round 2),
   and (TASK-040, review, round 3) - over the target TASK-046 will publish and the pre-lineage base
   c95ce600b40ab2dbac73da44a21bbb7a207c444d, which is this record's own immutable branch point and is
@@ -90,16 +134,25 @@ round_3_owner_state: >-
   base. Nothing about this record's artifact changed at ACT-023, and the round-1 target 5e5fc8f was
   re-queried again and still returns total_count 0 check runs, recorded once more as an absence and
   never as a success.
-integrable: false
+integrable: true
 integrable_reason: >-
-  review is declared in pre_merge_gates and the relation is open, now carrying durable failing
-  verdicts at rounds 1 and 2 and no verdict at round 3. Neither ACT-021, ACT-022, nor ACT-023
-  merged, modified, closed, reopened, commented on, or approved pull request 22, and no
-  Orchestrator activation may perform that merge. Pull request 25, which the TASK-042 owner
-  states supersedes pull request 22 in content without modifying or closing it, is likewise open
-  and unmerged and is equally gated. HUMAN-004's own text states that existing pull requests
-  continue to obey their current gates and that the decision "does not retroactively authorize
-  a gate bypass".
+  review is this record's only declared pre_merge_gate and its only required_gate, and that
+  relation is CLOSED at approved at its highest round, round 3. Under the integrated edge
+  definition this record is review_ready with every pre-merge gate closed. It does NOT follow that
+  pull request 22 should be merged separately: under the approved INTEGRATION-STRATEGY.md the
+  content-bearing unit is the ONE latest cumulative target whose authoritative lineage verdict
+  passes, which is TASK-046 at f148567d716c00d7a24783318c8d6d7031492e7b. This record's published
+  head 5e5fc8fe656b0e08a5337642447d7a81f83c4822 is that target's grandparent - 5e5fc8f is
+  e33a62be's parent and e33a62be is f148567d's parent - so this record reaches integrated through
+  the same merge, by ancestry and by the lineage-subsumption evidence rule, and receives no commit
+  of its own. ACT-026 merged nothing, prescribed no merge, and left pull requests 22, 25, and 28
+  unmerged and unmodified; no Orchestrator activation may perform any of those merges. HUMAN-004's
+  own text still states that existing pull requests continue to obey their current gates and that
+  the decision "does not retroactively authorize a gate bypass" - the gate here was passed, not
+  bypassed. The superseded ACT-023 value read - integrable: false. review is declared in
+  pre_merge_gates and the relation is open, now carrying durable failing verdicts at rounds 1 and 2
+  and no verdict at round 3. Neither ACT-021, ACT-022, nor ACT-023 merged, modified, closed,
+  reopened, commented on, or approved pull request 22.
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 5e5fc8fe656b0e08a5337642447d7a81f83c4822
@@ -321,6 +374,9 @@ This record's `status` field and its lifecycle directory are changed only by the
 ## Handoff
 
 Maintained by the Orchestrator under TASK-013 from the owner's commit and pull request. Transcribed at `ACT-020` from the two commit messages on `agent/gpt/architect/task-040` and the pull request 22 description, both read at that commit. Nothing below is the Orchestrator's own assessment of the amendment; judging it is TASK-041's.
+
+- **Gate closed at `ACT-026`, at round 3, after three rounds and two remediations — the longest chain any relation in this graph has run.** TASK-047 recorded **`approved`** at `78359ae2e3dc6e97fb3d60f0b847b84abed08fa6`, ingress entry `seq` 36, class `gate_verdict_recorded`, applied **atomically** to `(TASK-046, r1)`, `(TASK-042, r2)`, and this record's `r3` — all three closed together. **Rounds 1 and 2 keep their durable `changes-required` verdicts** at `ec533fb5bb0055675fb81f72057d5636f7867db3` and `6f7f0edb63615d7f143dd6c59750a5ea7db701fc`; both are superseded, never rewritten, and all three rows stay recorded. **This record's `published_commit` `5e5fc8f` is unchanged, was not re-authored, and was not itself re-reviewed**: round 3 reviewed the cumulative delta `c95ce600..f148567d`, and this relation is inside its cohort because that delta contains this record's own delta. **`5e5fc8f` still carries `total_count` 0 check runs**, unchanged and recorded once more as an absence rather than as a success; the round's own target `f148567d` carries two `success` runs and the round's own report commit carries two more.
+- **What the closure authorizes, and what it does not.** The report grants implementation authorization for the first time, for **two separately owned executors**. `ACT-026` acted on that by creating **TASK-048** (`runtime` / `claude`) and **TASK-049** (`devops` / `claude`) as **`blocked`** records, each with its own single-owner review, security, and QA gate tasks — TASK-050, TASK-051, TASK-052 and TASK-053, TASK-054, TASK-055. **Neither executor is `ready` and neither is active.** The `AGENTS.md` amendment and the whole `RepositoryPolicyAttestor` and GitHub control-plane provisioning set remain the **user's**, authorized and unperformed, and `ACT-026` adopted and provisioned neither. **The one returned item inside this role's own scope — the `tasks/**`-owned `gate_passed` narrowing — was applied verbatim and pinned to `POST-GATE-MERGE-EXECUTORS.md` line 191 at `f148567d716c00d7a24783318c8d6d7031492e7b`**, because the round carrying it has now passed.
 
 - **Commit or pull request:** published commit **`5e5fc8fe656b0e08a5337642447d7a81f83c4822`** `docs(TASK-040): tighten merge authority boundaries`, the branch head, preceded on the same branch by **`d2c599696d25bc8938ef43514e8dc37aad70b047`** `docs(TASK-040): define autonomous post-gate merge executors`, which is authoring ancestry rather than the published commit. Branch point **`c95ce600b40ab2dbac73da44a21bbb7a207c444d`** on `integration/autonomous-runtime`. Pushed to `origin` and opened as **pull request 22**, `OPEN` against `integration/autonomous-runtime`, head `5e5fc8f`, not a draft, `MERGEABLE` / `CLEAN`. **This is a two-commit publication — the shortest in this architecture lineage since TASK-016 — and the first architecture publication whose pull request targets the integration branch rather than `main`.**
 - **Authored delta, recomputed by the Orchestrator:** **18 paths, 741 insertions, 84 deletions** over `c95ce600`. `d2c5996` carries 17 of those paths with 736 insertions and 83 deletions; the head adds `docs/architecture/runtime/LEASES-AND-SCHEDULING.md` and amends `docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md`, for 7 insertions and 3 deletions. **All 18 paths are inside this task's declared write scope**, checked by filtering the delta against `docs/architecture/ARCHITECTURE.md`, `docs/architecture/runtime/`, `docs/adr/`, and `diagrams/architecture/`; the residue is empty. `AGENTS.md`, `config/agents/settings.yaml`, `tasks/**`, `.github/**`, `.githooks/**`, `scripts/**`, `src/**`, and `tests/**` are all untouched — verified as an empty path list rather than inferred from the owner's statement.
