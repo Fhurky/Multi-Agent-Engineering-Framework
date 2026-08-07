@@ -26,14 +26,17 @@ Operator ──► bin/ CLI ──► lifecycle ──► supervisor ──► s
                                             │                          │
                                             │                          └──► owned process tree
                                             │                               (job object / pgid)
+                                            ├──► task integration executor ──► protected integration PR merge
                                             └──► durable state ──► run directory
                                                      ▲
                                           recovery ──┘
+
+Release control plane ──► release merge executor ──► protected integration-to-main PR merge
 ```
 
-Eight modules, each owned end to end by exactly one implementation task, with no shared module ownership:
+Ten modules with no shared ownership. The eight implemented-task assignments remain; TASK-040 adds two separately owned executor roles whose implementation tasks do not yet exist:
 
-| Module | Path | Owner task |
+| Module | Path | Sole owner |
 |---|---|---|
 | Durable state store | `src/orchestrator/state/` | TASK-003 |
 | Provider adapters, agent workers, process trees | `src/agents/` | TASK-004 |
@@ -43,10 +46,12 @@ Eight modules, each owned end to end by exactly one implementation task, with no
 | Recovery, timeouts, retries | `src/orchestrator/recovery/` | TASK-008 |
 | Agent workspace lifecycle | `src/orchestrator/workspace/` | TASK-017 |
 | Durable ingress inbox and its adapters | `src/orchestrator/ingress/` | TASK-026 |
+| Post-gate task integration executor | `src/orchestrator/integration/` | `runtime` role; no implementation task exists and creation remains blocked behind a passing TASK-047 or later verdict |
+| Integration release merge executor | `scripts/release/integration-merge/` | `devops` role; no implementation task exists and creation remains blocked behind a passing TASK-047 or later verdict |
 
 ### Load-bearing decisions
 
-Everything else follows from twenty-eight choices. The first six were authored under TASK-002; choices 7 through 10 under TASK-016; choices 11 and 12 under TASK-024; and choices 13 through 21 under TASK-028. TASK-032 refined choices 14, 15, and 18 through ADR-0032, ADR-0033, and ADR-0034; TASK-034 added choices 22 and 23 through ADR-0035 and ADR-0036. TASK-036 added choices 24 through 27 through ADR-0037 through ADR-0040 without changing module topology. TASK-038 adds choice 28 through ADR-0041. All seven earlier architecture publications are rejected authoring baselines: LIN-ARCH-REVIEW rounds 1 through 7 recorded `changes-required`. TASK-038 is a reviewable Architect-authored amendment, not review approval; only independent TASK-039 may record the lineage-round-8 verdict.
+Everything else follows from thirty-one choices. The first six were authored under TASK-002; choices 7 through 10 under TASK-016; choices 11 and 12 under TASK-024; and choices 13 through 21 under TASK-028. TASK-032 refined choices 14, 15, and 18 through ADR-0032, ADR-0033, and ADR-0034; TASK-034 added choices 22 and 23 through ADR-0035 and ADR-0036. TASK-036 added choices 24 through 27 through ADR-0037 through ADR-0040 without changing module topology. TASK-038 adds choice 28 through ADR-0041. TASK-040 adds choice 29 through ADR-0042 under HUMAN-004. TASK-041 recorded `changes-required`; TASK-042 adds choice 30 through ADR-0043. TASK-044 recorded `changes-required`; TASK-046 adds choice 31 through ADR-0044 without reopening any prior met item. The approved baseline is the TASK-038 target reviewed by TASK-039 and integrated at `de3a8d6`; TASK-040/TASK-042/TASK-046 cumulatively amend it and record no approval. Only independent TASK-047 may decide the cumulative amendment.
 
 1. **State is the fold of an append-only event journal.** A `RunRecord` is never authored directly; it is computed by replaying events through one pure transition function. Checkpoints are materialized folds written atomically, never a second source of truth. This is what makes crash recovery a replay rather than a repair.
 
@@ -102,7 +107,47 @@ Everything else follows from twenty-eight choices. The first six were authored u
 
 27. **Provider planning returns a typed classified result.** Unknown family resolution produces the exact `UNKNOWN_PROVIDER_FAMILY` failure before registration or spawn. Plan, begin, and complete have phase-accurate observables, while preparation failure remains at the upstream workspace/assignment boundary that can actually receive it.
 
-28. **A cumulative architecture lineage is one content integration unit.** Only its latest target with an authoritative passing or formally accepted verdict is squashed into the integration branch. One atomic evidence batch records that direct merge for the target and lineage subsumption for every predecessor, so their lifecycles close without replaying rejected blobs. Content import remains authoring provenance, never integration. ADR-0041 is the sole authority for this exception to ordinary per-task squash.
+28. **A cumulative architecture lineage is one content integration unit.** Only its latest target with authoritative integration-admissible gate evidence is squashed into the integration branch. One atomic evidence batch records that direct merge for the target and lineage subsumption for every predecessor, so their lifecycles close without replaying rejected blobs. Content import remains authoring provenance, never integration. ADR-0041 is the sole authority for this exception to ordinary per-task squash; ADR-0043 narrows only automated consumption of formal acceptance.
+
+29. **Post-gate GitHub merge authority is split, conditional, and evidence-first.** A runtime module may squash only an admitted task PR into the integration branch; a separate DevOps module may merge only an admitted integration PR into `main`. Each requires immutable head/base identity, authoritative typed gates and security evidence, durable intent before the API effect, verified target-tree evidence, bounded reconciliation, a least-privilege non-bypass identity, and TASK-026/TASK-005 result ingress. The human exception union has exactly the three HUMAN-004 members. ADR-0042 is the sole authority for the two executor boundaries; [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md) is the normative contract.
+
+30. **Automated gate admission, current-policy proof, and owner evidence are exact and fail closed.** Generic formal acceptance cannot construct a merge plan; only exact immutable authorized-human acceptance of matching High/Critical security findings can represent HUMAN-004's first exception. A separate human-controlled attestor signs the complete current branch/ruleset/bypass payload because neither executor can observe it under its least-privilege credential; absence of that dependency blocks activation. Every artifact owner reruns all target-dependent checks against the exact final published head, and any later content commit invalidates them. ADR-0043 owns these corrections.
+
+31. **Policy-control classification and exact-head evidence each have one practicable construction path.** One ordered total classifier maps verified credential/repository-policy action to HUMAN-004's third exception, unknown cause to its unclassifiable candidate-third result, and action-excluded operational attestation failure to exactly one refusal; no input invokes two result constructors. Executors never observe policy and receive only exact-subject signed fresh attestations from separately controlled observer principals. Published-head evidence is one external bundle with an author post-commit/pre-publication phase and a control-session post-publication phase; admission remains closed until both bind the same exact SHA and prove no later content. ADR-0044 owns these corrections.
+
+### TASK-046 correction register
+
+TASK-044 recorded `changes-required` for the TASK-042 target at `6f7f0edb63615d7f143dd6c59750a5ea7db701fc`. TASK-046 changes only the three routed Architect findings. It preserves the exact security-only gate acceptance, API-only merge surface, durable intent/recovery/bounded retry, ADR-0041 order, protected paths, authorized ingress, HUMAN-002 separation, exactly three HUMAN-004 kinds, module ownership and topology, every round-8 closure, TASK-018/TASK-019 isolation, and the unprovisioned human-controlled dependencies.
+
+| Finding | Located resolution or returned dependency | Decision |
+|---|---|---|
+| F-044-01 | Ordered `classifyPolicyControl`, disjoint control-action/operational states, single-result precedence, and explicit overlap counterexamples with no plan, intent, or API call | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#one-policy-control-classifier-and-one-result-constructor), [ADR-0044](../adr/0044-single-policy-result-and-two-phase-published-head-evidence.md) |
+| F-044-02 | Executor repository reads are only PR/check/head/base; separately controlled observer principals alone read branch protection, rulesets, bypass, check-source, and authorization policy | [runtime-components.md](../../diagrams/architecture/runtime-components.md#repository-access-paths), [COMPONENT-BOUNDARIES.md](runtime/COMPONENT-BOUNDARIES.md#trusted-repository-policy-attestation-boundary-human-control-plane) |
+| F-044-03 | Exact required command fields, separate author/control phases, three-ref no-later-content proof, admission refusals, and precise fixtures | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#exact-published-head-owner-evidence), [INTEGRATION-STRATEGY.md](runtime/INTEGRATION-STRATEGY.md#exact-published-head-verification-obligation) |
+| Human-controlled follow-up | RepositoryPolicyAttestor, GitHub controls, returned `AGENTS.md` text, and tasks-owned `gate_passed` narrowing remain unprovisioned and are returned, not authored | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#other-human-controlled-prerequisites) |
+
+### TASK-042 correction register
+
+TASK-041 recorded `changes-required` for TASK-040 at `ec533fb5bb0055675fb81f72057d5636f7867db3`. TASK-042 changes only the three routed Architect findings. It preserves both executors, separate owners and identities, total typed refusal, API merge rather than direct push, durable intent/recovery/bounded retry, ADR-0041 order, authorized ingress, HUMAN-002 separation, exactly three human exceptions, protected paths, module ownership, twelve-node/nineteen-edge acyclicity, two roots, every round-8 closed relation, and TASK-018/TASK-019 isolation.
+
+| Finding | Located resolution or returned dependency | Decision |
+|---|---|---|
+| F-041-01 | Executor-local `ExecutorGateAdmissibility` rejects generic acceptance with `PreMergeGateNotPassing` and no plan; the matching tasks-owned `gate_passed` narrowing is returned verbatim and blocks activation until pinned | [ADR-0043](../adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md), [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#exact-executor-gate-admissibility) |
+| F-041-02 | Complete signed current-policy payload, exact repository/ref/PR/OID/App subject, one-minute freshness, digest/signature, monotonic generation, revocation, and drift refusal; GitHub's bypass-actor permission gap is returned as an unresolved human-controlled attestor dependency | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#trusted-current-policy-observation-boundary) |
+| F-041-04 | General exact-published-head owner-verification obligation; later content invalidates all earlier target-dependent results; remote/PR head and GitHub-check presence are recorded exactly | [INTEGRATION-STRATEGY.md](runtime/INTEGRATION-STRATEGY.md#exact-published-head-verification-obligation) |
+| Human-controlled follow-up | Exact `AGENTS.md` amendment text and the tasks-owned gate predicate text are returned, not authored | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#exact-returned-agentsmd-amendment) |
+
+### TASK-040 amendment register
+
+HUMAN-004 is read directly at immutable commit `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`. It conditionally grants both merge effects and no other authority. This register authors their architecture and does not satisfy any activation condition, implement a component, approve itself, or alter an existing pull request.
+
+| Decision boundary | Authored contract | Decision |
+|---|---|---|
+| Two separate owners and paths | Runtime `src/orchestrator/integration/`; DevOps `scripts/release/integration-merge/`; both already inside current role scopes | [ADR-0042](../adr/0042-conditionally-authorized-post-gate-merge-executors.md) |
+| Typed admission/refusal and finite exception set | Pure total results over authoritative task/release records; exactly three detectable human exception kinds; unknown classification refuses | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md) |
+| Evidence, identity, retry, and recovery | Immutable head/base, canonical idempotency key, durable plan receipt before merge, exact result-tree verification, reconcile-before-retry, three-attempt/120-second bound | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#plan-durable-intent-execute-and-recovery) |
+| Ingress and HUMAN-002 | TASK-026-owned result adapter appends; TASK-005 wakes ordinary scheduling; implementations remain `dormant-before-durable-merge-ingress` until that path exists | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#ingress-scheduling-and-human-002) |
+| Human-controlled follow-up | Exact required `AGENTS.md`, GitHub protection/check, App, credential, and policy changes are returned, not edited | [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md#github-identity-and-human-controlled-policy) |
 
 ### TASK-038 amendment register
 
@@ -233,6 +278,12 @@ TASK-015 round 1 returned `changes-required` on the TASK-002 architecture at com
 | Every dispatched task runs in its own worktree, on its own branch, behind its own lock | [Workspace lifecycle](runtime/WORKSPACE-LIFECYCLE.md) |
 | Publication identity is durable and verified before the task lock is released | [Workspace lifecycle](runtime/WORKSPACE-LIFECYCLE.md), [Integration strategy](runtime/INTEGRATION-STRATEGY.md) |
 | The runtime cannot push `main`, bypass the pre-push hook, or write a governance path | [Workspace lifecycle](runtime/WORKSPACE-LIFECYCLE.md) |
+| A merge executor cannot perform a GitHub mutation before immutable typed admission and a durable plan receipt, and cannot blindly repeat an ambiguous mutation | [Post-gate merge executors](runtime/POST-GATE-MERGE-EXECUTORS.md) |
+| The runtime task executor cannot target `main`; the DevOps release executor can merge a protected PR into `main` but cannot push it, set `ALLOW_MAIN_PUSH`, or bypass policy | [Post-gate merge executors](runtime/POST-GATE-MERGE-EXECUTORS.md#structural-negative-capabilities) |
+| A verified merge wakes ordinary scheduling only through the TASK-026 result adapter and TASK-005 observation; neither executor can append its own trigger | [Post-gate merge executors](runtime/POST-GATE-MERGE-EXECUTORS.md#ingress-scheduling-and-human-002) |
+| Generic formal acceptance cannot construct a plan; only an exact matching immutable High/Critical security-risk record can represent the permitted exception | [Post-gate merge executors](runtime/POST-GATE-MERGE-EXECUTORS.md#exact-executor-gate-admissibility) |
+| Current branch controls and complete bypass actors come only from a fresh signed separate control-plane attestation; executors own no policy-read port, and one total classifier maps every non-usable state to one result | [Post-gate merge executors](runtime/POST-GATE-MERGE-EXECUTORS.md#one-policy-control-classifier-and-one-result-constructor) |
+| Owner verification has separate author and control phases bound to one exact final commit; no-later-content proof is mandatory and later content invalidates both phases | [Integration strategy](runtime/INTEGRATION-STRATEGY.md#exact-published-head-verification-obligation) |
 | No credential is ever persisted, logged, checkpointed, or emitted | [Provider adapters](runtime/PROVIDER-ADAPTERS.md) |
 
 ### Quality attributes
@@ -263,10 +314,11 @@ Detailed specifications, all normative:
 | [CRASH-RECOVERY.md](runtime/CRASH-RECOVERY.md) | Failure model, recovery phases, twenty-three post-crash invariants, accepted risks |
 | [WORKSPACE-LIFECYCLE.md](runtime/WORKSPACE-LIFECYCLE.md) | Workspace handle, split-phase prepare/finalize/abandon and reconcile, script delegation and direct repository access paths, publication classes and pull-request identity, structural prohibitions |
 | [INTEGRATION-STRATEGY.md](runtime/INTEGRATION-STRATEGY.md) | Branch topology, integration order, contract change control |
+| [POST-GATE-MERGE-EXECUTORS.md](runtime/POST-GATE-MERGE-EXECUTORS.md) | Conditional task and release merge authority, exact gate admissibility, trusted current-policy attestation, typed refusal, durable evidence, recovery, credentials, ingress, human exceptions, and returned governance text |
 
 The ingress inbox contract is section 2b of [INTERFACE-CONTRACTS.md](runtime/INTERFACE-CONTRACTS.md); the model it implements is normative in [STATE-MACHINE.md](runtime/STATE-MACHINE.md#ingress-model-for-event-triggered-recurring-work); its module boundary is in [COMPONENT-BOUNDARIES.md](runtime/COMPONENT-BOUNDARIES.md#durable-ingress-inbox-task-026); and its on-disk shape is in [DURABLE-STATE-AND-CHECKPOINTS.md](runtime/DURABLE-STATE-AND-CHECKPOINTS.md#run-directory-layout).
 
-Decisions: [`docs/adr/`](../adr/README.md), ADR-0001 through ADR-0041.
+Decisions: [`docs/adr/`](../adr/README.md), ADR-0001 through ADR-0044.
 
 Diagrams: [components](../../diagrams/architecture/runtime-components.md), [state machines](../../diagrams/architecture/runtime-state-machine.md), [sequences](../../diagrams/architecture/runtime-sequences.md).
 
@@ -280,17 +332,23 @@ Diagrams: [components](../../diagrams/architecture/runtime-components.md), [stat
 6. No module writes a human-controlled governance path, and no module reimplements the orchestration scripts. The workspace module invokes them; nothing else touches a worktree, a task branch, or a task lock.
 7. Every process a module spawns runs inside an owned job object or process group, and has a durable outcome before the writer lock is released.
 8. No module performs a process, worktree, branch, lock, commit, or publication side effect before the intent for it is durable. Receipts are identity-bearing, nominal, and store-verifiable. Publication is durably appended before `completeFinalize` may release a task lock.
-9. No implementation task may leave `blocked` until `LIN-ARCH-REVIEW` records a passing or formally accepted verdict at the target-derived current floor. The complete authoring chain is `9576fc9`, amended by `8d0c570`, `c2ee3eb`, `fe0374c45aaa51e589525cee978c8ff244837163`, rejected TASK-032 target `468b37b2649d031074eba64aca47f4561a0c41a3`, rejected TASK-034 target `6d145eb81033986361aba6454d10f52e5773f950`, rejected TASK-036 target `970b08125eaf6e5bfb7b24ec2a55238161b16eac`, and the TASK-038 final branch-head commit named in its execution handoff. Enumeration of this publication target derives the current floor and owner; this amendment's snapshot is lineage round 8 owned by TASK-039, and later targets recompute rather than copy it. Branch points and content-import commits are provenance, not replacement review or integration targets. No commit in the chain is called approved on publication alone.
+9. No implementation task may leave `blocked` until `LIN-ARCH-REVIEW` satisfies the target-derived current floor. The tasks-owned graph currently spells that as passing or formally accepted; TASK-042 returns the exact security-only narrowing and does not edit `tasks/**`. The complete authoring chain is `9576fc9`, amended by `8d0c570`, `c2ee3eb`, `fe0374c45aaa51e589525cee978c8ff244837163`, rejected TASK-032 target `468b37b2649d031074eba64aca47f4561a0c41a3`, rejected TASK-034 target `6d145eb81033986361aba6454d10f52e5773f950`, rejected TASK-036 target `970b08125eaf6e5bfb7b24ec2a55238161b16eac`, and the TASK-038 final branch-head commit named in its execution handoff. Enumeration of this publication target derives the current floor and owner; this amendment's snapshot is lineage round 8 owned by TASK-039, and later targets recompute rather than copy it. Branch points and content-import commits are provenance, not replacement review or integration targets. No commit in the chain is called approved on publication alone.
+10. Neither merge executor may become operational unless its immutable activation record proves every HUMAN-004 condition, pins the tasks-owned gate-vocabulary correction, carries a complete fresh signed current-policy attestation, carries a complete two-phase exact-head evidence bundle, and proves the durable merge-result ingress path exists. Presence of code, a token, a partial Metadata-read policy view, author-only evidence, or a passing pull-request check is not activation.
+11. Every artifact owner's target-dependent evidence binds one exact full final authored commit. The author phase records complete command evidence after that commit; the separate control phase proves local/remote/PR equality and no later content after publication. A later content commit invalidates both phases; exact check absence remains absence and owner evidence never becomes a gate verdict.
 
 ### Known gaps requiring Orchestrator routing
 
-No ownership gap remains in the architecture. The runtime capabilities remain implementation work and stay blocked behind independent Reviewer TASK-039; this section assigns owners without claiming that their code exists.
+The original runtime ownership gaps are closed. The two newly assigned executor modules remain proposed implementation work and stay blocked behind a passing independent TASK-047 or later verdict. The separately controlled policy attestor and tasks-owned predicate correction are returned activation dependencies; this section names boundaries without creating a task or claiming a capability exists.
 
 | Gap | Resolution |
 |---|---|
 | No task owned the root toolchain manifests or `scripts/quality/**` | Human governance decision HUMAN-001 at commit `fb9f45c` added them to the devops role's write scope; TASK-018 owns the toolchain and is gated by TASK-019 |
 | No module owned the agent workspace lifecycle that `AgentInvocation.worktreePath` presupposes | The TASK-016 amendment added the seventh module; TASK-017 owns it. TASK-024 makes its prepare, finalize, and abandon intents durable before their side effects |
-| No module owned the durable ingress inbox or HUMAN-002 pre-dispatch producer | The eight-module map assigns inbox, validation, collection, authorization, and append to TASK-026; signal, observation, and delivery to TASK-005; TASK-006 only composes them |
+| No module owned the durable ingress inbox or HUMAN-002 pre-dispatch producer | The ingress module assigns inbox, validation, collection, authorization, and append to TASK-026; signal, observation, and delivery to TASK-005; TASK-006 only composes them |
+| No module owned post-gate task integration | TASK-040 assigns `src/orchestrator/integration/` to `runtime`; TASK-042/TASK-046 narrow its admission and policy boundary. No implementation task exists, and TASK-047 owns the next verdict |
+| No module owned protected integration-to-main release merge | TASK-040 assigns `scripts/release/integration-merge/` to `devops`; TASK-042/TASK-046 apply the same exact gate/policy/evidence correction. No implementation task exists, and TASK-047 owns the next verdict |
+| Neither executor can completely observe current bypass actors under its acceptable permission set | TASK-042 returns a separately provisioned repository-owner-controlled `RepositoryPolicyAttestor`; TASK-046 keeps it external and unprovisioned and defines one fail-closed result classifier. It remains outside the implementation map and adds no executor policy-read authority |
+| HUMAN-004 result ingress is not implemented | TASK-026 owns the merge-result adapter and TASK-005 owns signal/observation. Until implemented and validated, both executors are dormant and refuse every merge |
 
 ### TASK-032 Architect output
 

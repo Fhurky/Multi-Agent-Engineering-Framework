@@ -1,6 +1,6 @@
 # ADR-0029: One owner delivers consumed inbox entries to the activation
 
-- Status: Accepted
+- Status: Accepted; extended by proposed [ADR-0042](0042-conditionally-authorized-post-gate-merge-executors.md), as corrected by [ADR-0043](0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md), with a TASK-026-owned exact gate/policy-verified merge-result adapter while TASK-005 remains the sole delivery owner
 - Date: 2026-08-05
 - Deciders: Solution Architect under TASK-028
 - Affects: TASK-005 owns the reader and the delivery; TASK-026 owns the store and, under [ADR-0031](0031-pre-dispatch-ingress-observer-and-collector.md), the appending collector; TASK-003 declares the delivery contract; TASK-006 carries the delivery into the invocation and builds the ledger rows from it

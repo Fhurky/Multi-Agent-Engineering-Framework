@@ -1,6 +1,6 @@
 # ADR-0021: The durable ingress module and the eight-module map
 
-- Status: Accepted; superseded in part by [ADR-0029](0029-ingress-delivery-ownership.md), which names the scheduling-owned delivery interface that this record's responsibility split left implicit. Every other decision below stands.
+- Status: Accepted; superseded in part by [ADR-0029](0029-ingress-delivery-ownership.md), which names the scheduling-owned delivery interface that this record's responsibility split left implicit, and proposed [ADR-0042](0042-conditionally-authorized-post-gate-merge-executors.md) as corrected by [ADR-0043](0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md), which replaces the eight-module count with ten while keeping the policy attestor external. The ingress module, its ownership, level, and all other decisions below stand.
 - Date: 2026-08-05
 - Deciders: Solution Architect under TASK-024
 - Affects: TASK-026 owns the new module; TASK-005 consumes it through one interface; TASK-003 declares that interface; the integration order and wave assignment change for TASK-005 through TASK-008

@@ -1,6 +1,12 @@
 # Agent Workspace Lifecycle
 
-Normative workspace contract for the autonomous runtime. Produced under TASK-016 and amended under TASK-024, TASK-028, and TASK-036. Related decisions: [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md), as amended by [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md), [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md), TASK-028 ADRs [0027](../../adr/0027-finalize-split-around-the-publication-append.md) and [0028](../../adr/0028-nominal-store-issued-durable-append-receipts.md), and TASK-036 decisions [ADR-0039](../../adr/0039-single-nominal-receipt-authority-and-cross-root-conformance.md) and [ADR-0040](../../adr/0040-typed-provider-planning-result-and-phase-observables.md). Implemented by TASK-017.
+Normative workspace contract for the autonomous runtime. Produced under TASK-016 and amended under TASK-024, TASK-028, TASK-036, TASK-040, and TASK-042. Related decisions: [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md), as amended by [ADR-0019](../../adr/0019-durable-intent-receipts-for-side-effects.md), [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md), TASK-028 ADRs [0027](../../adr/0027-finalize-split-around-the-publication-append.md) and [0028](../../adr/0028-nominal-store-issued-durable-append-receipts.md), TASK-036 decisions [ADR-0039](../../adr/0039-single-nominal-receipt-authority-and-cross-root-conformance.md) and [ADR-0040](../../adr/0040-typed-provider-planning-result-and-phase-observables.md), TASK-040 [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md), and TASK-042 [ADR-0043](../../adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md). Implemented by TASK-017.
+
+## Amendment register — TASK-040 and TASK-042
+
+HUMAN-004 does not extend this module. Its push function remains task-branch-only and it gains no merge, GitHub administration, gate, ingress, or release capability. The new runtime integration executor is a separate module at `src/orchestrator/integration/`; the DevOps release executor is separate again. Their contracts are in [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md).
+
+TASK-042 adds no workspace capability. It binds owner verification to the exact final authored commit: target-dependent checks run after that commit, the publication record and PR identify that full OID, and a later content commit invalidates the complete check set. Verification results are recorded in external handoff/PR metadata after the final content commit; committing an evidence paragraph requires a new full rerun. The workspace does not approve the evidence or produce an independent gate verdict.
 
 ## Amendment register — TASK-036
 
@@ -33,7 +39,7 @@ Nothing in this amendment weakens a structural prohibition. Pushing `main`, sett
 
 The TASK-002 architecture assumed the result of that protocol without assigning it. `AgentInvocation` carries a `worktreePath` and a `branch`, and [LIFECYCLE-AND-BOOTSTRAP.md](LIFECYCLE-AND-BOOTSTRAP.md) recorded that "the runtime resolves it at dispatch" — but none of the six modules created the worktree, created the branch, installed the hooks, claimed the lock, validated the scope, published the branch, persisted the handoff, or released the lock. A supervisor built on that architecture has exactly two options at every dispatch, and both defeat the objective: stop and wait for a human, or run every agent in one shared checkout, which is the failure the protocol exists to prevent.
 
-This module owns the protocol. It is the seventh of the eight modules in the map, its source path is `src/orchestrator/workspace/`, and TASK-017 is its sole owner.
+This module owns the protocol. It entered the map as the seventh module; TASK-040's two executor additions make the current map ten without changing this boundary. Its source path is `src/orchestrator/workspace/`, and TASK-017 is its sole owner.
 
 ## Boundaries
 

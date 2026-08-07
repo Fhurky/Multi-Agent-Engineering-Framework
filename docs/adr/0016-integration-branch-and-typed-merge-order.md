@@ -1,6 +1,6 @@
 # ADR-0016: Integration branch and typed merge order
 
-- Status: Accepted; superseded in part by [ADR-0021](0021-durable-ingress-module-and-the-eight-module-map.md), which moves TASK-005 through TASK-008 one wave later after inserting TASK-026 at Wave 4, and by [ADR-0041](0041-cumulative-architecture-lineage-integration-unit.md), which replaces per-task squash and merge-order semantics only for a cumulative amendment lineage. The integration branch, ordinary-task squash method, remaining typed merge order, and contract change control procedure stand.
+- Status: Accepted; superseded in part by [ADR-0021](0021-durable-ingress-module-and-the-eight-module-map.md), which moves TASK-005 through TASK-008 one wave later after inserting TASK-026 at Wave 4, by [ADR-0041](0041-cumulative-architecture-lineage-integration-unit.md), which replaces per-task squash and merge-order semantics only for a cumulative amendment lineage, and by proposed [ADR-0042](0042-conditionally-authorized-post-gate-merge-executors.md) as corrected by [ADR-0043](0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md), which replaces operator execution with two conditional executors under exact gate/policy admission. The integration branch, ordinary-task squash method, typed order, and contract change control procedure stand.
 - Date: 2026-08-05
 - Deciders: Solution Architect under TASK-016
 - Affects: every task that publishes a branch; the Orchestrator's routing; TASK-017's pull-request base
