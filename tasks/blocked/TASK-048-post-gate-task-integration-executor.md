@@ -21,7 +21,10 @@ dependencies:
     satisfied_under: TASK-047 recorded approved at LIN-INTEGRATION-AUTHORITY-REVIEW lineage_round 3, applied atomically to (TASK-046, review, round 1), (TASK-042, review, round 2), and (TASK-040, review, round 3). All three relations closed together.
   - task: TASK-046
     edge: integrated
-    satisfied: false
+    satisfied: true
+    satisfied_at: cf6333b10e628b3b61f3b7f8716b30923725067d
+    satisfied_by: ACT-027 consuming ingress entry seq 37, class branch_integrated
+    satisfied_under: The operator merged pull request 28 into integration/autonomous-runtime at cf6333b10e628b3b61f3b7f8716b30923725067d, mergedAt 2026-08-07T21:06:06Z. All three clauses of the integrated edge were checked individually - review_ready(TASK-046) at f148567d, its single pre_merge_gates entry review closed at approved at 78359ae2, and the branch merged into the integration branch. THIS EDGE BEING SATISFIED DOES NOT MAKE THIS TASK READY - two further integrated() edges remain false.
   - task: TASK-018
     edge: integrated
     satisfied: false
@@ -139,20 +142,26 @@ scope_validation_note: >-
   the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass
   origin/main, c325275, de3a8d6, f123c9a3, 49e3ff47, c95ce600, f148567d, or a review-diff base.
 blocked_reason: >-
-  Three integrated() edges are unsatisfied. integrated(TASK-046) requires the operator to merge the
-  approved integration-authority amendment into integration/autonomous-runtime; its gate closed at
-  ACT-026 and it is now integrable, but no merge has occurred and no Orchestrator activation may
-  perform one. integrated(TASK-018) requires the runtime toolchain, whose review gate TASK-019 has
-  recorded no verdict. integrated(TASK-003) requires the durable state contracts under
-  src/orchestrator/state/contracts/ that this module imports read-only, and TASK-003 is itself
-  blocked. The lineage gate_passed edge IS satisfied - the architecture approval this task waited
-  for exists - and that is precisely why this record exists at all.
+  TWO of three integrated() edges are unsatisfied, down from three at ACT-026, and this record
+  stays blocked. integrated(TASK-046) IS NOW SATISFIED at cf6333b10e628b3b61f3b7f8716b30923725067d,
+  consumed as ingress entry seq 37 at ACT-027 - the operator merged pull request 28 and the
+  approved integration-authority amendment is on integration/autonomous-runtime. That changes this
+  record's dependency state and NOT its lifecycle state. integrated(TASK-018) requires the runtime
+  toolchain, whose review gate TASK-019 has recorded no verdict at any round and whose pull request
+  20 must not be merged before it does; nothing about that changed at ACT-027. integrated(TASK-003)
+  requires the durable state contracts under src/orchestrator/state/contracts/ that this module
+  imports read-only, and TASK-003 is itself blocked; nothing about that changed either. The lineage
+  gate_passed edge IS satisfied and has been since ACT-026. ONE EDGE MOVED AND THIS RECORD DID NOT,
+  which is stated rather than left to arithmetic, and it is the reason TASK-049 became ready at the
+  same activation while this record did not - TASK-049 declares integrated(TASK-046) as its only
+  scheduling dependency and this record declares three.
 exit_condition: >-
-  TASK-046, TASK-018, and TASK-003 are each integrated into integration/autonomous-runtime, each
-  with every gate in its own pre_merge_gates closed. At that point this task is ready and
-  dispatchable AS A DORMANT IMPLEMENTATION under dormancy_contract above. It is NOT then active,
-  and reaching ready never implies that any activation prerequisite or external blocker is
-  satisfied.
+  TASK-018 and TASK-003 are each integrated into integration/autonomous-runtime, each with every
+  gate in its own pre_merge_gates closed. TASK-046 already is, at
+  cf6333b10e628b3b61f3b7f8716b30923725067d, so that clause of this condition is discharged and the
+  remaining two are not. At that point this task is ready and dispatchable AS A DORMANT
+  IMPLEMENTATION under dormancy_contract above. It is NOT then active, and reaching ready never
+  implies that any activation prerequisite or external blocker is satisfied.
 ---
 
 # TASK-048: Post-gate task integration executor
@@ -241,4 +250,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - Verification:
 - Known risks:
 - **Created `blocked` at `ACT-026`**, on the `LIN-INTEGRATION-AUTHORITY-REVIEW` `lineage_round` 3 `approved` verdict at `78359ae2e3dc6e97fb3d60f0b847b84abed08fa6` — **the first implementation task in this graph ever authorized by a passing gate of the lineage that gates it.** It is `blocked` rather than `ready` because three `integrated()` edges are unsatisfied, and it must not be released until all three are.
-- Next owner: nobody yet. The operator owns the merge that satisfies `integrated(TASK-046)`; `reviewer` / `gpt` owns TASK-019, whose verdict releases `integrated(TASK-018)`; and TASK-003 is itself blocked behind the toolchain.
+- **One dependency satisfied at `ACT-027` and the record did not move.** `integrated(TASK-046)` became satisfied at `cf6333b10e628b3b61f3b7f8716b30923725067d`, ingress entry `seq` 37, class `branch_integrated`, when the operator merged pull request 28. All three clauses of that edge were checked individually rather than granted on the strength of the merge existing. **`integrated(TASK-018)` and `integrated(TASK-003)` remain `false`, so this record stays `blocked`** and its `blocked_reason` was rewritten to name only the two that remain. **This is the deliberate contrast with TASK-049**, which declares `integrated(TASK-046)` as its only scheduling dependency and became `ready` at the same activation: one merge, two records, two different outcomes, because the dependency sets differ. **Nothing else about this record changed** — no scope, acceptance criterion, gate relation, activation prerequisite, external blocker, or dormancy clause.
+- Next owner: still nobody. `reviewer` / `gpt` owns TASK-019, whose verdict is the first step toward `integrated(TASK-018)`, and the operator would then own the merge of pull request 20; TASK-003 is itself blocked behind the toolchain. The superseded `ACT-026` statement additionally named the operator's merge for `integrated(TASK-046)`, which has now happened.
