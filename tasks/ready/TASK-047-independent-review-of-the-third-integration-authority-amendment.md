@@ -1,7 +1,7 @@
 ---
 task_id: TASK-047
 title: Independent review of the third integration-authority amendment, round 3
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-047
@@ -11,7 +11,10 @@ write_scope:
 dependencies:
   - task: TASK-046
     edge: review_ready
-    satisfied: false
+    satisfied: true
+    satisfied_at: f148567d716c00d7a24783318c8d6d7031492e7b
+    satisfied_by: ACT-025 consuming ingress entry seq 35, class artifact_published
+    satisfied_under: publication_class bootstrap - immutable published commit f148567d716c00d7a24783318c8d6d7031492e7b, branch pushed to refs/heads/agent/gpt/architect/task-046 on origin, and pull request 28 OPEN against integration/autonomous-runtime. All three conditions are present independently, so no bootstrap allowance is relied on.
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -42,20 +45,52 @@ gate_for:
 parent_task: TASK-001
 publication_class: bootstrap
 supersedes: TASK-044
-blocked_reason: TASK-046 has not published. Its own dependency is satisfied and it is ready and dispatchable, so this task is one step from dispatchable; nothing this task owns can shorten it.
-exit_condition: TASK-046 is review_ready, with an immutable published commit on agent/gpt/architect/task-046 readable from the shared Git common directory, which is the whole bootstrap-class requirement. This task does not wait for TASK-046 to be integrated, because it is the pre-merge gate that lets it be integrated, and it does not wait for TASK-019, TASK-031, or any operator merge of pull request 24, none of which it carries a relation for.
+unblocked_reason: This task declared exactly ONE dependency - review_ready(TASK-046) - and it is satisfied at f148567d716c00d7a24783318c8d6d7031492e7b, consumed by ACT-025 as ingress entry seq 35. It does not wait for TASK-046 to be integrated or to reach done, because it is the pre-merge gate that lets TASK-046 be integrated, and it does not wait for TASK-019, TASK-031, or any operator merge of pull requests 22, 25, or 28, none of which it carries a relation for. The superseded blocked_reason read - TASK-046 has not published. Its own dependency is satisfied and it is ready and dispatchable, so this task is one step from dispatchable; nothing this task owns can shorten it.
+exit_condition: satisfied at ACT-025. TASK-046 is review_ready at f148567d716c00d7a24783318c8d6d7031492e7b on agent/gpt/architect/task-046, published on origin and open as pull request 28, with all three bootstrap-class conditions present independently. This task is ready and dispatchable. The superseded value read - TASK-046 is review_ready, with an immutable published commit on agent/gpt/architect/task-046 readable from the shared Git common directory, which is the whole bootstrap-class requirement.
 governance_decision_context: HUMAN-004, approved at 7dc07488a5b1cac8b1327ebd63bf747adbe03c68 on human/decision/human-004-autonomous-merge, artifact plans/decisions/HUMAN-004-autonomous-merge-authority.md. Read the decision at that commit; do not read it from TASK-040's transcription, from TASK-042's or TASK-046's record, from this record, or from either earlier round report.
 predecessor_round: LIN-INTEGRATION-AUTHORITY-REVIEW lineage_round 2, recorded by TASK-044 at 6f7f0edb63615d7f143dd6c59750a5ea7db701fc, verdict changes-required, published as pull request 27, artifact reports/code-review/TASK-042-INTEGRATION-AUTHORITY-REVIEW-ROUND-2.md. Round 1 was recorded by TASK-041 at ec533fb5bb0055675fb81f72057d5636f7867db3, verdict changes-required, published as pull request 23, artifact reports/code-review/TASK-040-INTEGRATION-AUTHORITY-REVIEW.md. Read both at their own source commits.
-review_target_commit: not yet resolved. It is TASK-046's published branch head, pinned by the TASK-013 activation that consumes TASK-046's publication.
+review_target_commit: f148567d716c00d7a24783318c8d6d7031492e7b
+review_target_commit_note: >-
+  Pinned by ACT-025 to TASK-046's published branch head, under the head-binding rule ACT-009,
+  ACT-013, ACT-015, ACT-018, ACT-020, ACT-021, ACT-022, and ACT-025 each applied. The rule had a
+  single candidate - git rev-list --count e33a62be..f148567d returns 1 - and the pre-correction
+  head cf999eaebe7913a74f2cb573cd2f919816dc9885 named in pull request 28's body is NOT the target:
+  it is reachable from no ref, it is superseded by exactly six insertions, and the owner's record,
+  the pull request, and the published-head evidence bundle all name f148567d. Do not review
+  cf999eae, and do not treat its own two passing check runs as evidence about the target. This
+  value is immutable for round 3: a later content commit on that branch does not retarget this
+  round, it creates the next one.
 review_target_base: c95ce600b40ab2dbac73da44a21bbb7a207c444d
 review_target_applicability: applicable and resolved at ACT-023. The base is TASK-040's own immutable branch point on integration/autonomous-runtime, read with git merge-base agent/gpt/architect/task-040 integration/autonomous-runtime and independently confirmed as the parent of d2c599696d25bc8938ef43514e8dc37aad70b047. It is deliberately the pre-lineage base rather than TASK-046's branch point, because this round carries relations for TASK-040 and TASK-042 as well as for TASK-046 and must therefore see the complete integration-authority amendment rather than only the latest correction to it. It is the same base rounds 1 and 2 used. It is deliberately not de3a8d6, not 8e6a22e1, not 8a4fe763, not origin/main, not 5e5fc8f, and not e33a62be.
 review_target_note: >-
   The reviewed cumulative delta is git diff c95ce600b40ab2dbac73da44a21bbb7a207c444d
-  <TASK-046 published head>. TASK-046's own authored delta against its branch point
+  f148567d716c00d7a24783318c8d6d7031492e7b. TASK-046's own authored delta against its branch point
   e33a62beb8198162db7c37f4e9740269e1454d2d is a DIFFERENT delta and the two must be judged as
   separate provenance sets rather than as one figure. Read the target through Git object access or
   a detached worktree; do not merge it into this branch to assemble the review. Re-derive every
-  figure yourself under MC-011 - this record deliberately states none.
+  figure yourself under MC-011 - this record deliberately states none, and the provenance figures
+  the Orchestrator recorded on TASK-046 are its transcription rather than a substitute for your
+  own enumeration.
+published_head_evidence_to_judge: >-
+  TASK-046 published an external published-head-evidence/v2 bundle rather than only a handoff
+  paragraph, which is a new shape in this graph and is directly in this round's scope through
+  F-044-03. It lives in pull request comment 5217560337 at
+  https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/28#issuecomment-5217560337 as
+  gzip-plus-Base64 canonical UTF-8 JSON, canonical bundle digest
+  076aa8e6575dc5ee2427fbf511967d90606fb6cd5a956ce0289a54639bcb8f4b and author evidence digest
+  382def8190b0be6da92d39ddcc3f9616ee1ca3c4ea1ba183008f0858fa818560. ACT-025 verified the payload
+  is structurally complete and internally consistent - canonical form, both digests, the
+  cross-phase author-digest binding, all twenty-four command records' own evidenceIds, subject
+  binding to the target, exit codes equal to expected, the three-head no-later-content proof, and
+  present_successful exact-head checks - and independently re-derived the remote head, the pull
+  request head, the zero-commits-after counts, and the two passing check runs from Git and the
+  GitHub API. That is a structural check by a role with no authority to judge, and it settles
+  nothing this round decides. Decide for yourself whether the bundle satisfies the obligation the
+  amendment writes, and note that ACT-025 recorded one observation without turning it into a
+  finding - the bundle's seventh control command is git rev-list --count f148567d..f148567d, true
+  by construction, so the pull-request-head half of the no-later-content proof rests entirely on
+  the fourth control command's live gh pr view query. Whether a degenerate proof step meets the
+  schema is yours to judge, in either direction.
 branch_point_of: agent/gpt/reviewer/task-047
 scope_validation_base: git merge-base HEAD integration/autonomous-runtime
 scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet. It is this task's own branch point and is unrelated to review_target_base above, which belongs to the delta under review; findings F-403 and A-209 required the two to stay separate fields.
@@ -121,7 +156,7 @@ This task's single file is path-disjoint from every other reviewer-owned report 
 
 ## Gate and remediation path
 
-This task performs round 3 of the review gate `LIN-INTEGRATION-AUTHORITY-REVIEW`. TASK-046, TASK-042, and TASK-040 become integrable, and pull requests 22, 25, and TASK-046's own, become mergeable, only after this verdict closes all three relations. Findings return to the Orchestrator under TASK-013, which routes remediation and creates the next round; the reviewer never implements the fix. Publishing this report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
+This task performs round 3 of the review gate `LIN-INTEGRATION-AUTHORITY-REVIEW`. TASK-046, TASK-042, and TASK-040 become integrable, and pull requests 22, 25, and **28** — TASK-046's own, `OPEN` against `integration/autonomous-runtime` at head `f148567d`, resolved at `ACT-025` — become mergeable, only after this verdict closes all three relations. Findings return to the Orchestrator under TASK-013, which routes remediation and creates the next round; the reviewer never implements the fix. Publishing this report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
 **Independence.** The architect and the reviewer are both `gpt` while `assignments.architect.llm` stands at `gpt`, so the repository's cross-family preference does not apply. The mandatory guarantee is execution-context separation: this task must not run in TASK-046's execution context, nor in TASK-042's, TASK-040's, TASK-041's, or TASK-044's. No script enforces that today.
 
@@ -143,4 +178,6 @@ Maintained by the Orchestrator under TASK-013 from the reviewer's report and pul
 - Verification:
 - Known risks:
 - **Created `blocked` at `ACT-023`**, one step out, on the unsatisfied `review_ready(TASK-046)` edge. **Its three-relation cohort is the largest this lineage has carried**, and the growth is a recorded consequence of two failing rounds rather than a scope change.
+- **Released `ready` at `ACT-025`**, on the now-satisfied `review_ready(TASK-046)` edge at `f148567d716c00d7a24783318c8d6d7031492e7b`, ingress entry `seq` 35, class `artifact_published`. **This is the only edge that publication released**, verified by enumeration over all 47 records. The three relations, the atomic-application rule, the base `c95ce600b40ab2dbac73da44a21bbb7a207c444d`, the scope, the carried-forward round-1 and round-2 items, and the acceptance criteria are **unchanged**; `ACT-025` bound the target and cleared the dependency and changed nothing else about what this round must decide.
+- **What `ACT-025` deliberately did not do, because it is yours.** It recorded no verdict, closed no relation, resolved and re-dispositioned no finding, and formed no view on whether F-044-01, F-044-02, or F-044-03 is resolved. It did not apply the returned `tasks/**`-owned `gate_passed` narrowing — so the fact this record tells you to check remains true and checkable, and the graph's `gate_passed` definition is still exactly what rounds 1 and 2 evaluated. It adopted no returned `AGENTS.md` text, provisioned nothing, read no policy surface, and created neither executor implementation task. Pull requests 22, 25, and 28 were left unmerged and unmodified.
 - Next owner: orchestrator via TASK-013, to record the verdict and either route remediation or — only on a passing verdict — create the implementation tasks the amendment defines. **There are two of them when they come**, owned separately by `runtime` and `devops`, plus the reviewer, security, QA, and failure-injection validations `HUMAN-004` names. None exists today.
