@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "description": "Check-run contexts that must exist and must conclude success for a reviewed head. A context is identified by the workflow file that produced it and the job name inside that workflow, so renaming a workflow cannot silently satisfy a required context.",
+  "required_app_slug": "github-actions",
+  "required_contexts": [
+    {
+      "workflow_path": ".github/workflows/ci.yml",
+      "job": "validate"
+    },
+    {
+      "workflow_path": ".github/workflows/security.yml",
+      "job": "security"
+    }
+  ]
+}
