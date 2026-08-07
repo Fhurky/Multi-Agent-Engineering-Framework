@@ -1,8 +1,16 @@
 # Post-Gate Merge Executors
 
-Normative contract for the two conditionally authorized merge executors. Authored under TASK-040 from HUMAN-004 at immutable commit `7dc07488a5b1cac8b1327ebd63bf747adbe03c68` and corrected cumulatively under TASK-042 for TASK-041 findings F-041-01, F-041-02, and F-041-04. Related decisions: [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md) as superseded in part by [ADR-0043](../../adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md).
+Normative contract for the two conditionally authorized merge executors. Authored under TASK-040 from HUMAN-004 at immutable commit `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`, corrected cumulatively under TASK-042 for TASK-041 findings F-041-01, F-041-02, and F-041-04, and amended under TASK-046 for TASK-044 findings F-044-01, F-044-02, and F-044-03. Related decisions: [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md) as superseded in part by [ADR-0043](../../adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md) and [ADR-0044](../../adr/0044-single-policy-result-and-two-phase-published-head-evidence.md).
 
-This document authors a contract. It does not approve this amendment, implement either executor, activate either authority, close a gate, change GitHub policy, or create implementation or validation work. TASK-041 recorded `changes-required` at `ec533fb5bb0055675fb81f72057d5636f7867db3`; TASK-044 alone reviews this cumulative correction. Only a later passing independent verdict permits the Orchestrator to consider separately owned implementation work.
+This document authors a contract. It does not approve this amendment, implement either executor, activate either authority, close a gate, change GitHub policy, or create implementation or validation work. TASK-041 recorded `changes-required` at `ec533fb5bb0055675fb81f72057d5636f7867db3`, and TASK-044 recorded `changes-required` at `6f7f0edb63615d7f143dd6c59750a5ea7db701fc`. TASK-047 alone reviews this cumulative TASK-040/TASK-042/TASK-046 correction. Only a later passing independent verdict permits the Orchestrator to consider separately owned implementation work.
+
+## TASK-046 correction register
+
+| Finding | Exact correction | Activation effect |
+|---|---|---|
+| F-044-01 | One ordered `classifyPolicyControl` function normalizes every policy-control state and returns exactly one usable attestation, typed refusal, or HUMAN-004 exception result. Verified credential or repository-policy action always selects the third exception; operational observation failure can select a refusal only after control-plane action is excluded | Overlapping raw symptoms cannot invoke two constructors; current unprovisioned policy control remains fail-closed and produces no plan |
+| F-044-02 | Executors read only immutable PR, check, head, and base state through their narrow merge identities. Separately controlled observer principals alone read policy and the `RepositoryPolicyAttestor` sends exact-subject, signed, fresh, revocation- and drift-checked payloads | Neither executor has an Administration, ruleset, bypass, or policy-observation port |
+| F-044-03 | `published-head-evidence/v2` separates author-produced post-commit/pre-publication command evidence from control-session post-publication remote, pull-request, no-later-content, and check evidence | Admission remains closed until both phases form one complete exact-head bundle; no future publication fact is required before it can exist |
 
 ## TASK-042 correction register
 
@@ -18,8 +26,8 @@ The authorities are intentionally not a single executor parameterized by a targe
 
 | Executor kind | Owning module and source path | Tests | Sole owner role | Only permitted operation |
 |---|---|---|---|---|
-| `task_integration` | Runtime post-gate integration executor, `src/orchestrator/integration/` | `tests/unit/orchestrator/integration/` | `runtime`; implementation task does not exist and remains blocked behind TASK-044 | Squash-merge one admitted task pull request into the configured integration branch, currently `integration/autonomous-runtime` |
-| `release_main` | DevOps release merge executor, `scripts/release/integration-merge/` | `scripts/release/integration-merge/tests/` | `devops`; implementation task does not exist and remains blocked behind TASK-044 | Merge one admitted pull request whose immutable head is the configured integration branch into `main` |
+| `task_integration` | Runtime post-gate integration executor, `src/orchestrator/integration/` | `tests/unit/orchestrator/integration/` | `runtime`; implementation task does not exist and remains blocked behind a passing TASK-047 or later verdict | Squash-merge one admitted task pull request into the configured integration branch, currently `integration/autonomous-runtime` |
+| `release_main` | DevOps release merge executor, `scripts/release/integration-merge/` | `scripts/release/integration-merge/tests/` | `devops`; implementation task does not exist and remains blocked behind a passing TASK-047 or later verdict | Merge one admitted pull request whose immutable head is the configured integration branch into `main` |
 
 Both source and test paths are already within the named role's `write_scope` in `config/agents/settings.yaml`. No role reassignment or write-scope amendment is required. The runtime module imports existing read-only task and gate views from `src/orchestrator/state/contracts/`. The DevOps module is a self-contained release control-plane module and imports no runtime implementation or contract root. Each module owns its executor-specific admission, plan, evidence, GitHub port, and result types. They share this normative protocol, not implementation code.
 
@@ -33,7 +41,7 @@ Conditional authority is represented by an immutable, externally issued record r
 export interface MergeExecutorActivationRecord {
   executor: 'task_integration' | 'release_main';
   governanceDecisionCommit: '7dc07488a5b1cac8b1327ebd63bf747adbe03c68';
-  architectureReview: ImmutablePassingGateRef;       // TASK-044 or a later superseding round
+  architectureReview: ImmutablePassingGateRef;       // TASK-047 or a later superseding round
   implementationReview: ImmutablePassingGateRef;
   implementationSecurityReview: ImmutablePassingGateRef;
   negativeCapabilityTestAttestation: ImmutableArtifactRef;
@@ -50,7 +58,7 @@ All four HUMAN-004 operational conditions must be present: independent architect
 
 F-041-02 is resolved by separating the merge principal from the policy-observation principal. Neither executor App gains Administration, ruleset write, organization administration, bypass, generic Git, arbitrary HTTP, or policy-mutation capability. A third credential is not hidden inside either executor. Instead, a repository-owner-controlled `RepositoryPolicyAttestor` exists in the human-controlled policy plane and exposes one read-only application port: observe the exact declared subject and sign the complete canonical result. Its raw credential and signing key remain outside the repository and outside both executor processes.
 
-The attestor is constructible as a broker over a closed, pinned set of policy-observer principals rather than as an executor permission. That set must include an identity with `Administration: read` for classic protection and an identity with GitHub-recognized write access to every repository, organization, or enterprise ruleset that can apply to the exact ref, because that is the access level GitHub requires to return each ruleset's bypass actors. One principal may satisfy several entries; every principal's stable actor ID, node ID, login or App slug, installation/account scope, permission map, and credential-scope digest is signed in the payload and pinned by the attestor trust root. Each observer credential is broker-confined to the enumerated policy GET operations and has no Contents write, Pull requests write, merge endpoint, generic Git, check/status write, deployment, secret, or executor-token capability. The observer set itself must be absent from every bypass/exemption set. If an applicable parent ruleset cannot be enumerated with complete actors through that boundary, the boundary is not provisioned and must report `PolicyObservationUnavailable`.
+The attestor is constructible as a broker over a closed, pinned set of policy-observer principals rather than as an executor permission. That set must include an identity with `Administration: read` for classic protection and an identity with GitHub-recognized write access to every repository, organization, or enterprise ruleset that can apply to the exact ref, because that is the access level GitHub requires to return each ruleset's bypass actors. One principal may satisfy several entries; every principal's stable actor ID, node ID, login or App slug, installation/account scope, permission map, and credential-scope digest is signed in the payload and pinned by the attestor trust root. Each observer credential is broker-confined to the enumerated policy GET operations and has no Contents write, Pull requests write, merge endpoint, generic Git, check/status write, deployment, secret, or executor-token capability. The observer set itself must be absent from every bypass/exemption set. If an applicable parent ruleset cannot be enumerated with complete actors, normalization records a verified provisioning/permission gap as the third exception, an unknown cause as the single unclassifiable candidate-third exception, or an operational outage with control action excluded as `PolicyObservationUnavailable`. It never treats an incomplete view as an empty actor set.
 
 The boundary is deliberately explicit about GitHub's documented limit:
 
@@ -58,7 +66,7 @@ The boundary is deliberately explicit about GitHub's documented limit:
 - GitHub's [Get a repository ruleset](https://docs.github.com/en/rest/repos/rules?apiVersion=2022-11-28#get-a-repository-ruleset) endpoint can be called with `Metadata: read`, but GitHub states that `bypass_actors` is returned only when the caller has write access to the ruleset.
 - GitHub's [Merge a pull request](https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#merge-a-pull-request) endpoint requires `Contents: write` and supports an exact expected head `sha`; that merge capability does not reveal either missing policy surface.
 
-Therefore no acceptable read-only executor permission can prove the complete effective bypass set. `Metadata: read` plus an omitted property is incomplete, not an empty list. Activation depends on a separately provisioned, human-controlled attestor that can obtain the complete view using privileged policy-plane access while exposing only signed observations to the executors. This dependency is unresolved by TASK-042. Until it is provisioned and independently validated, both executors return `PolicyObservationUnavailable` and construct no plan. This external boundary is not an eleventh implementation module, does not belong to `runtime` or `devops`, and does not change the twelve-node/nineteen-edge import graph.
+Therefore no acceptable read-only executor permission can prove the complete effective bypass set. `Metadata: read` plus an omitted property is incomplete, not an empty list. Activation depends on a separately provisioned, human-controlled attestor that can obtain the complete view using privileged policy-plane access while exposing only signed observations to the executors. This dependency remains unresolved and unprovisioned under TASK-046. While any non-policy activation prerequisite is missing, the ordered result selector returns only `AuthorityNotActivated`. Once those prerequisites are valid, verified absent attestor or observer-credential provisioning selects the third HUMAN-004 exception, not `PolicyObservationUnavailable`; an operational outage selects `PolicyObservationUnavailable` only when credential or repository-policy action is conclusively excluded. Every case constructs no plan. This external boundary is not an eleventh implementation module, does not belong to `runtime` or `devops`, and does not change the target-derived import graph.
 
 ### Exact signed subject and payload
 
@@ -106,7 +114,7 @@ export interface TrustedCurrentPolicyAttestation {
 
 `executorApps` contains both App IDs, installation IDs, node IDs, and the complete granted repository-permission map so one executor cannot be hidden by observing only the active identity. The repository database/node identities and the full `refs/heads/...` value are authoritative; owner/name and a short branch name are comparisons only. The PR, immutable head/base OIDs, admission-context nonce/digest, and phase make the attestation single-subject and non-replayable.
 
-`admissionContextDigest` is constructible before any attestation exists. It is SHA-256 over canonical JSON containing the executor, exact repository/PR/ref/head/base identities, merge method, expected tree, order key, gate and security snapshot digests, required-policy-profile digest, and `admissionContextNonce`. It excludes every attestation field, signature, idempotency key, and final `MergePlan` digest. The attestor signs only after independently recomputing that context from its closed request. This ordering prevents a circular plan/attestation hash dependency.
+`admissionContextDigest` is constructible before any attestation exists. It is SHA-256 over canonical JSON containing the executor, exact repository/PR/ref/head/base identities, merge method, expected tree, order key, gate and security snapshot digests, complete published-head evidence bundle digest, required-policy-profile digest, and `admissionContextNonce`. It excludes every attestation field, signature, idempotency key, and final `MergePlan` digest. The attestor signs only after independently recomputing that context from its closed request. This ordering prevents a circular plan/attestation hash dependency.
 
 `CompleteGitHubPolicyPayload` is canonical JSON and contains all of the following, with no omitted or permission-redacted field:
 
@@ -122,9 +130,9 @@ The attestor signs the canonical payload, not a caller-provided digest. `policyD
 
 ### Freshness, revocation, drift, and fail-closed execution
 
-`observedAt <= issuedAt < expiresAt`, `notBefore <= issuedAt`, and the executor's trusted time must be within `[notBefore, expiresAt)`. `issuedAt - observedAt` and `expiresAt - observedAt` are each at most 60 seconds. The executor must have at least 15 seconds remaining when it begins the merge call. The attestor issues two independently signed current-generation authorizations: `pre_intent` before `recordIntent`, then `pre_mutation` immediately before the external merge mutation. They have distinct canonical attestation digests but must name the same policy digest, exact subject, admission-context nonce/digest, and non-revoked monotonic generation. The revocation/status channel is an online trusted input; inability to read it is `PolicyObservationUnavailable`, not permission to use cached evidence.
+`observedAt <= issuedAt < expiresAt`, `notBefore <= issuedAt`, and the executor's trusted time must be within `[notBefore, expiresAt)`. `issuedAt - observedAt` and `expiresAt - observedAt` are each at most 60 seconds. The executor must have at least 15 seconds remaining when it begins the merge call. The attestor issues two independently signed current-generation authorizations: `pre_intent` before `recordIntent`, then `pre_mutation` immediately before the external merge mutation. They have distinct canonical attestation digests but must name the same policy digest, exact subject, admission-context nonce/digest, and non-revoked monotonic generation. The revocation/status channel is an online trusted input; inability to read it is normalized through `classifyPolicyControl` and is never permission to use cached evidence.
 
-Any addition, removal, reordering with semantic effect, version change, actor change, required-check source change, permission change, issuer/key change, classic-protection change, ruleset applicability change, or unknown field is policy drift. Drift before mutation returns `PolicyDrift`, invalidates the plan and durable receipt, and requires fresh pure admission with a new idempotency key. Expiry returns `PolicyAttestationStale`; signature, subject, digest, completeness, or issuer mismatch returns `PolicyAttestationInvalid`; issuer/key revocation returns `PolicyAttestorRevoked`. None carries a `MergePlan` and none calls GitHub.
+Any addition, removal, reordering with semantic effect, version change, actor change, required-check source change, permission change, issuer/key change, classic-protection change, or ruleset applicability change is a repository-policy or credential action. When verified, `classifyPolicyControl` returns only the third HUMAN-004 exception, invalidates the plan and durable receipt, and requires fresh pure admission with a new idempotency key after the action is independently resolved. An unknown field or an unexplained mismatch that cannot conclusively exclude such an action returns the unclassifiable exception result with the third kind as a candidate. Attestation expiry alone returns `PolicyAttestationStale`; signature, subject, digest, or completeness failure returns `PolicyAttestationInvalid` only when the normalized input proves that no credential or repository-policy action caused it. No non-usable policy result carries a `MergePlan`, persists merge intent, or calls GitHub.
 
 If a change is detected only after an ambiguous external response, recovery never treats the earlier attestation as current. It reconciles the exact PR/commit/tree under a fresh attestation. A merged result whose policy generation cannot be verified becomes `ResultUnverifiable`, publishes no ingress fact, and routes security plus responsible-owner remediation. No failure path asks a human to perform the routine merge.
 
@@ -201,6 +209,7 @@ export interface TaskIntegrationAdmissionInput {
   pullRequest: ImmutablePullRequestObservation;
   base: ImmutableRefObservation;
   changedPaths: readonly string[];
+  publishedHeadEvidence: CompletePublishedHeadEvidenceBundle;
 }
 
 export interface TaskMergeDeclaration {
@@ -221,7 +230,7 @@ Admission derives, without prose substitutes:
 1. `review_ready(target)` under the record's declared `publication_class`.
 2. For every member of `target.pre_merge_gates`, successful `ExecutorGateAdmissibility` at the greatest authoritative contiguous round and the existing gate-closure rule. `gate_passed` alone is not plan evidence. Owner-form gates are invalid. `changes-required`, an open relation, an incomplete atomic relation set, a generic formal acceptance, or any non-passing non-security verdict returns `PreMergeGateNotPassing` and no plan.
 3. No unresolved High or Critical finding in the immutable security snapshot applies to the target unless `accepted_security_risk` contains the exact immutable accepted-risk record for that matching finding and target. The record discharges only the named finding and cannot waive a non-security verdict, another gate, policy evidence, checks, identity, order, or any other admission predicate.
-4. `publication.commit`, the PR head OID, and the declared head OID are equal; the declared source and base branches match the PR; the observed base OID equals the plan's base OID; and every identity is a full immutable OID.
+4. `publication.commit`, the PR head OID, the declared head OID, and `publishedHeadEvidence.targetCommit` are equal; the declared source and base branches match the PR; the observed base OID equals the plan's base OID; every identity is a full immutable OID; and both evidence phases satisfy the exact-head bundle contract below. An absent or incomplete control-session phase returns `PublishedHeadEvidenceIncomplete`; any target, branch, base, command-subject, remote, pull-request, or no-later-content mismatch returns `PublishedHeadEvidenceMismatch`.
 5. The target is the next content integration unit under [INTEGRATION-STRATEGY.md](INTEGRATION-STRATEGY.md). An ordinary task respects dependency/wave order. A cumulative lineage preserves ADR-0041 exactly: only the latest authoritative passing target is content-merged and every predecessor is evidence-only `lineage-subsumed`.
 6. The method is `squash`, the expected post-merge tree is computed from the pinned base and head, and the ADR-0041 cumulative case requires that tree to equal the published target tree.
 7. The changed-path set contains no governance or enforcement path listed in project policy.
@@ -252,6 +261,7 @@ export interface ReleaseGateManifest {
   mergeMethod: 'merge';
   requirements: readonly ReleaseGateRequirement[];
   integrationEvidenceSetDigest: Sha256Hex;
+  publishedHeadEvidenceDigest: Sha256Hex;
   irreversibleProductionCoupling:
     | { coupled: false }
     | { coupled: true; policyCommit: GitOid; authorization: ImmutableHumanDecisionRef | null };
@@ -267,7 +277,7 @@ Release admission additionally requires:
 3. Folding evidence in ascending `IntegrationOrderKey` yields `sourceOid`'s tree, no predecessor is missing, no unit appears twice, and ADR-0041's cumulative-unit rule is intact.
 4. `main` is an ancestor of the integration head and the expected post-merge tree equals the integration head tree. The release method is the ordinary GitHub `merge` method; it preserves the assembled integration history and creates one release merge commit.
 5. No unresolved High or Critical release finding exists except one with an exact `accepted-blocking-security-risk/v1` record admitted through the security-domain rule above.
-6. Every required GitHub check exists on the immutable head, has conclusion exactly `success`, and was produced by the configured GitHub App identity. `neutral`, `skipped`, `timed_out`, `cancelled`, missing, stale, or wrong-publisher results never pass.
+6. The release head has one complete `published-head-evidence/v2` bundle whose target, branch, base, remote, and pull-request identities match the manifest and whose digest equals `publishedHeadEvidenceDigest`. Every required GitHub check additionally exists on that immutable head, has conclusion exactly `success`, and was produced by the configured GitHub App identity. `neutral`, `skipped`, `timed_out`, `cancelled`, missing, stale, or wrong-publisher results never pass; a complete evidence bundle that truthfully records checks as absent does not make them pass.
 7. `irreversibleProductionCoupling.coupled:false` means the main merge is not an irreversible production action. When a later approved policy sets `coupled:true`, admission requires a formal human authorization naming that policy commit and release OID. An absent or unclassifiable authorization produces the typed human exception result; it never turns main merge itself into an implicit exception.
 8. The release diff contains no governance or enforcement change.
 
@@ -281,6 +291,70 @@ export type MergeAdmissionResult<P> =
   | { status: 'refused'; refusal: MergeRefusal }
   | { status: 'human_exception_required'; exception: HumanExceptionRecord };
 
+export type PolicyControlAction =
+  | 'attestor_provisioning_required'
+  | 'observer_credential_grant_required'
+  | 'observer_credential_rotated_or_revoked'
+  | 'executor_or_observer_permission_changed'
+  | 'attestor_issuer_or_key_changed_or_revoked'
+  | 'branch_protection_changed'
+  | 'ruleset_or_ruleset_applicability_changed'
+  | 'required_check_source_changed'
+  | 'bypass_or_exemption_set_changed'
+  | 'repository_authorization_policy_changed';
+
+export type PolicyControlActionState =
+  | {
+      status: 'detected';
+      actions: readonly [PolicyControlAction, ...PolicyControlAction[]];
+      evidence: readonly [ImmutableArtifactRef, ...ImmutableArtifactRef[]];
+    }
+  | { status: 'excluded'; evidence: ImmutableArtifactRef }
+  | {
+      status: 'unknown';
+      candidateActions: readonly [PolicyControlAction, ...PolicyControlAction[]];
+      evidence: readonly ImmutableArtifactRef[];
+    };
+
+export type PolicyAttestationObservation =
+  | { state: 'current_valid'; attestation: TrustedCurrentPolicyAttestation }
+  | {
+      state: 'operationally_unavailable';
+      reason: 'transport_before_authentication' | 'authenticated_rate_limit'
+        | 'github_5xx' | 'attestor_service_outage';
+    }
+  | {
+      state: 'present_invalid';
+      reason: 'signature' | 'subject' | 'digest' | 'completeness'
+        | 'pagination' | 'unknown_payload_member';
+    }
+  | {
+      state: 'present_valid_but_stale';
+      reason: 'not_yet_valid' | 'expired' | 'insufficient_execution_margin';
+    };
+
+export interface PolicyControlFacts {
+  action: PolicyControlActionState;
+  observation: PolicyAttestationObservation;
+}
+
+export type PolicyControlClassification =
+  | { status: 'usable'; attestation: TrustedCurrentPolicyAttestation }
+  | {
+      status: 'refused';
+      refusalCode: 'PolicyObservationUnavailable' | 'PolicyAttestationInvalid'
+        | 'PolicyAttestationStale';
+      evidence: readonly ImmutableArtifactRef[];
+    }
+  | {
+      status: 'human_exception_required';
+      exception: HumanExceptionRecord;
+    };
+
+export declare function classifyPolicyControl(
+  facts: PolicyControlFacts,
+): PolicyControlClassification;
+
 export type MergeRefusalCode =
   | 'AuthorityNotActivated'
   | 'SourceRecordInvalid' | 'ReleaseManifestInvalid'
@@ -289,7 +363,9 @@ export type MergeRefusalCode =
   | 'ReleaseGateDomainMissing' | 'ReleaseGateNotPassing'
   | 'SecurityEvidenceMissing'
   | 'PolicyObservationUnavailable' | 'PolicyAttestationInvalid'
-  | 'PolicyAttestationStale' | 'PolicyDrift' | 'PolicyAttestorRevoked'
+  | 'PolicyAttestationStale'
+  | 'PublishedHeadEvidenceIncomplete' | 'PublishedHeadEvidenceMismatch'
+  | 'PublishedHeadVerificationFailed'
   | 'PublicationMismatch' | 'SourceBranchMismatch' | 'BaseBranchMismatch'
   | 'HeadOidMismatch' | 'BaseOidMismatch' | 'MergeMethodMismatch'
   | 'IntegrationOrderViolation' | 'IntegrationEvidenceIncomplete'
@@ -309,9 +385,41 @@ export interface MergeRefusal {
 }
 ```
 
-Every closed-domain input maps to one member. A case outside the closed domain does not become `UnsupportedOperation`; it becomes the conservative `human_exception_required` result described below. Refusal and exception records are durable before control returns.
+### One policy-control classifier and one result constructor
 
-Known non-admission never calls GitHub. A non-passing or generically accepted independent verdict is `PreMergeGateNotPassing`; invalid or unmatched accepted-risk evidence is `SecurityRiskAcceptanceInvalid`. An unresolved applicable High/Critical finding with no acceptance maps to the first typed human exception, not to a routine refusal. A missing/incomplete attestor is `PolicyObservationUnavailable`; signature/subject/completeness failure, expiry, drift, and revocation use their exact policy codes and carry no plan. A conflict, stale head or base, missing or non-successful check, integration-order violation, protected-path change, or unverifiable observation is non-retryable and produces a remediation request. Transient transport, rate-limit, or server failures are retryable only under the bounded policy. An ambiguous mutation response is reconciled before any retry and otherwise becomes `OutcomeUnknown`.
+`PolicyControlFacts` is the only input to `classifyPolicyControl`. Raw observer, activation, credential-broker, status-channel, and attestation facts are normalized into it once. The normalizer is total: contradictory evidence becomes `action.status:'unknown'`; it never passes simultaneous booleans to separate refusal and exception constructors. `action.status:'excluded'` requires current authoritative evidence that the observed failure was not caused by a credential, issuer, permission, branch-protection, ruleset, required-check-source, bypass-set, or authorization-policy action. A mere lack of change evidence is `unknown`, not `excluded`.
+
+The final `MergeAdmissionResult` constructor is invoked exactly once and returns immediately at the first applicable step:
+
+1. Invalid source/manifest shape returns its exact source refusal.
+2. A missing non-policy activation prerequisite returns `AuthorityNotActivated`. Policy provisioning is deliberately excluded from this step.
+3. `classifyPolicyControl` applies the exhaustive order below. A non-usable result is returned immediately; no later predicate can construct another result.
+4. A missing or mismatched complete published-head evidence bundle returns its exact evidence refusal.
+5. Gate, security, irreversible-production, immutable-identity, order, check, path, tree, intent, and execution predicates run in their documented order. The first non-admission result returns. Only exhaustion of the entire sequence constructs `admitted`.
+
+`classifyPolicyControl` is pure, deterministic, and total:
+
+1. `action.status:'detected'` returns one `human_exception_required` record with kind `change_credentials_or_repository_authorization_policy`. All detected actions are sorted by the `PolicyControlAction` literal order and retained in its evidence record, but they do not create multiple results. The observation state is not mapped separately.
+2. `action.status:'unknown'` returns one `human_exception_required` record with `classification:'unclassifiable'`, `kind:null`, and `candidateKinds:['change_credentials_or_repository_authorization_policy']`. The observation state is not mapped separately.
+3. Only `action.status:'excluded'` examines `observation`. `current_valid` supplies the usable attestation and continues admission; `operationally_unavailable` returns `PolicyObservationUnavailable`; `present_invalid` returns `PolicyAttestationInvalid`; and `present_valid_but_stale` returns `PolicyAttestationStale`.
+
+This partitions the reviewer's overlapping cases. Known missing attestor provisioning or a known missing observer credential is a detected third exception, even though it also makes observation unavailable. A verified ruleset, branch-protection, bypass-set, required-check-source, issuer/key, permission, or authorization-policy change is the same detected third exception, even though an earlier vocabulary called its symptom drift or revocation. An unexplained `401`, `403`, missing issuer, or digest/generation change is `unknown` because a credential or policy action cannot be excluded. Only failures such as a pre-authentication transport outage, authenticated rate limit, GitHub `5xx`, or attestor service outage with control action excluded are operational `PolicyObservationUnavailable` refusals. Attestation time expiry alone is `PolicyAttestationStale`; a malformed otherwise unchanged payload is `PolicyAttestationInvalid`.
+
+Normative counterexamples, each with every unrelated admission input valid:
+
+| Raw policy-control facts | Exactly one result | Results and effects that must be absent |
+|---|---|---|
+| Attestor inventory says unprovisioned and observer credential is absent; observation is unavailable | `human_exception_required/detected/change_credentials_or_repository_authorization_policy` | No `AuthorityNotActivated`, no `PolicyObservationUnavailable`, no plan, no intent, no API call |
+| Two valid signed observations prove an applicable ruleset or bypass actor changed | `human_exception_required/detected/change_credentials_or_repository_authorization_policy` | No `PolicyDrift`, no refusal member, no plan, no intent, no API call |
+| Credential-backed observation returns `401` and the status channel cannot determine whether rotation or revocation occurred | `human_exception_required/unclassifiable`, candidate set containing only the third kind | No detected exception, no refusal member, no plan, no intent, no API call |
+| Pre-authentication transport timeout with credential and repository-policy action authoritatively excluded | `refused/PolicyObservationUnavailable` | No exception member, no plan, no intent, no API call |
+| Otherwise valid attestation expired by one millisecond; control action excluded | `refused/PolicyAttestationStale` | No exception member, no plan, no intent, no API call |
+| Signature or exact-subject mismatch with issuer/key change authoritatively excluded | `refused/PolicyAttestationInvalid` | No exception member, no plan, no intent, no API call |
+| Verified attestor-key revocation plus an invalid signature symptom | `human_exception_required/detected/change_credentials_or_repository_authorization_policy` | No `PolicyAttestationInvalid`, no refusal member, no plan, no intent, no API call |
+
+Every closed-domain input therefore maps to one member. A case that cannot be normalized conclusively does not become `UnsupportedOperation`; it becomes the conservative unclassifiable human-exception result described above. Refusal and exception records are durable before control returns.
+
+Known non-admission never calls GitHub. A non-passing or generically accepted independent verdict is `PreMergeGateNotPassing`; invalid or unmatched accepted-risk evidence is `SecurityRiskAcceptanceInvalid`. An unresolved applicable High/Critical finding with no acceptance maps to the first typed human exception, not to a routine refusal. Policy-control failures use only the classifier above. A conflict, stale head or base, missing or non-successful check, incomplete published-head evidence, integration-order violation, protected-path change, or unverifiable observation is non-retryable and produces a remediation request. Transient transport, rate-limit, or server failures are retryable only under the bounded policy. An ambiguous mutation response is reconciled before any retry and otherwise becomes `OutcomeUnknown`.
 
 ## Plan, durable intent, execute, and recovery
 
@@ -332,6 +440,7 @@ export interface MergePlan {
   orderKey: string;
   gateSnapshotDigest: Sha256Hex;
   securitySnapshotDigest: Sha256Hex;
+  publishedHeadEvidenceDigest: Sha256Hex;
   requiredPolicyProfileDigest: Sha256Hex;
   policyDigest: Sha256Hex;
   effectivePolicyProfileDigest: Sha256Hex;
@@ -354,16 +463,16 @@ export interface MergeEvidenceStore {
 }
 ```
 
-The idempotency key is SHA-256 over canonical JSON of `schema`, executor, repository ID, PR number, head OID, base branch, base OID, method, expected tree OID, order key, gate snapshot digest, security snapshot digest, required-policy-profile digest, current complete-policy digest, effective-policy-profile digest, pre-intent attestation digest, policy generation, and admission-context nonce/digest. The logical durable-store key is `merge-evidence/v1/<repository-id>/<executor>/<idempotency-key>`. The store is crash-safe, append-only, external to the Git repository, and compare-and-put by key. No token or secret is stored in it.
+The idempotency key is SHA-256 over canonical JSON of `schema`, executor, repository ID, PR number, head OID, base branch, base OID, method, expected tree OID, order key, gate snapshot digest, security snapshot digest, published-head evidence bundle digest, required-policy-profile digest, current complete-policy digest, effective-policy-profile digest, pre-intent attestation digest, policy generation, and admission-context nonce/digest. The logical durable-store key is `merge-evidence/v1/<repository-id>/<executor>/<idempotency-key>`. The store is crash-safe, append-only, external to the Git repository, and compare-and-put by key. No token or secret is stored in it.
 
 `recordIntent` either creates the exact plan or returns the already-recorded byte-identical plan. A collision with different bytes is a refusal. It returns an opaque, store-verifiable `DurableMergeIntentReceipt` only after the plan is durable. `execute` requires the receipt and exact plan. Missing, forged, wrong-key, stale-policy, or mismatched evidence returns `IntentReceiptInvalid` before any network mutation.
 
 Execution order is fixed:
 
-1. Re-read the PR, required checks, activation record, and base ref. Require the same head OID and base OID as the plan. Re-run protected-path, `ExecutorGateAdmissibility`, and security checks. Verify the plan's `pre_intent` attestation, current revocation state, exact pre-attestation context, and equality of the signed effective-policy-profile digest with the required-policy-profile digest.
+1. Re-read the PR, required checks, complete published-head evidence bundle, activation record, and base ref. Require the same head OID and base OID as the plan. Re-run protected-path, `ExecutorGateAdmissibility`, and security checks. Verify the plan's `pre_intent` attestation, current revocation state, exact pre-attestation context, and equality of the signed effective-policy-profile digest with the required-policy-profile digest. A missing post-publication phase or a no-later-content mismatch refuses before intent.
 2. Acquire the one durable executor lease for `(repositoryId, baseBranch)`. A lease serializes plans locally; GitHub branch protection remains the authoritative server-side serialization and cannot be bypassed.
 3. Persist intent and verify the store-issued receipt.
-4. Obtain the independently signed `pre_mutation` authorization immediately before mutation. It must carry a different canonical attestation digest and the same admission-context nonce/digest, complete-policy digest, effective-policy-profile digest, generation, repository/ref/PR/head/base subject, and both App identities; its effective digest must still equal the required-profile digest; it must remain unexpired with at least 15 seconds left and show neither App in any complete bypass set. Persist it through `recordPolicyAuthorization` and verify the store-issued receipt before the call. Drift or an unavailable/revoked attestor invalidates the durable plan and refuses. Then call the executor-specific narrow GitHub merge port once with the PR number, exact head OID, and fixed method. The port has no generic ref, push, force, admin, policy-read, policy-write, check-writing, gate-writing, task-writing, or lock-writing operation.
+4. Obtain the independently signed `pre_mutation` authorization immediately before mutation. It must carry a different canonical attestation digest and the same admission-context nonce/digest, complete-policy digest, effective-policy-profile digest, generation, repository/ref/PR/head/base subject, and both App identities; its effective digest must still equal the required-profile digest; it must remain unexpired with at least 15 seconds left and show neither App in any complete bypass set. Persist it through `recordPolicyAuthorization` and verify the store-issued receipt before the call. Re-run `classifyPolicyControl`: a verified credential or repository-policy action produces only the third exception result, an unclassifiable cause produces only its exception result, and an operational failure produces only its mapped refusal. Each invalidates the durable plan. Then call the executor-specific narrow GitHub merge port once with the PR number, exact head OID, and fixed method. The port has no generic ref, push, force, admin, policy-read, policy-write, check-writing, gate-writing, task-writing, or lock-writing operation.
 5. Re-read the PR, merged commit, and protected base. Verify the merged commit is reachable from the protected base, its tree equals `expectedTreeOid`, and the protected base now points to or contains that commit in the expected order. For a cumulative unit, verify the one direct plus ordered lineage-subsumed evidence batch before publication.
 6. Persist the terminal outcome. Only then publish a merge-result artifact for the authorized ingress adapter.
 
@@ -429,12 +538,16 @@ export type HumanExceptionRecord =
     };
 ```
 
-Detection is mechanical:
+Detection is mechanical and the ordered result constructor above permits only one returned union member:
 
-- An applicable unresolved High or Critical finding without an exact accepted-risk record detects the first member. The executor refuses; a human may create the independent acceptance, after which a new immutable input may be evaluated.
+- An applicable unresolved High or Critical finding without an exact accepted-risk record detects the first member. The executor constructs only that exception result; a human may create the independent acceptance, after which a new immutable input may be evaluated.
 - A release manifest whose pinned deployment policy explicitly couples the merge to an irreversible production action detects the second. `coupled:false` does not. `main` merge alone is never evidence of this member.
-- A missing, expired, overprivileged, or changed credential, ruleset, branch protection, required-check source, bypass list, or authorization policy detects the third. The executor does not repair policy or credentials.
-- Any case that cannot be classified conclusively outside these three records `classification:'unclassifiable'`, `kind:null`, and the subset of the three possible `candidateKinds`, then refuses. `unclassifiable` is a result state, not a fourth exception kind; no fourth kind and no discretionary operator pause are representable.
+- Only `classifyPolicyControl` detects the third. Verified missing attestor provisioning; required credential grant; credential rotation or revocation; overprivileged or changed permission; issuer/key change; or changed ruleset, branch protection, required-check source, bypass set, or authorization policy produces one detected third-kind result. Attestation expiry is not credential expiry and remains the stale refusal. An operational outage with control action excluded remains the unavailable refusal.
+- Any case that cannot be classified conclusively outside these three records `classification:'unclassifiable'`, `kind:null`, and the sorted subset of the three possible `candidateKinds`, then returns that single exception result. `unclassifiable` is a result state, not a fourth exception kind; no fourth kind and no discretionary operator pause are representable.
+
+If facts for more than one exception kind coexist, the final constructor uses the fixed order encoded by the admission phases: policy-control result, matching unresolved security-risk result, then irreversible-production result. It returns the first result only. A later evaluation after that exception is resolved may expose the next kind; one input never constructs two `MergeAdmissionResult` members.
+
+The isolated detection fixtures keep all unrelated inputs valid and prove the three kinds remain distinct: a matching unresolved High/Critical finding without exact acceptance returns only the first kind; an explicitly coupled irreversible production action without its authorization returns only the second; and a verified credential grant/rotation/revocation or repository-policy action returns only the third. Each fixture asserts an empty `MergePlan` set, no durable intent, and zero merge API calls.
 
 A human decision may resolve the named exception, but it cannot waive unrelated admission predicates. Routine merging is not an exception.
 
@@ -448,10 +561,10 @@ The implementation APIs make the eight HUMAN-004 prohibitions and the additional
 | Merge with an open/failing/generically accepted gate or non-success check | The only constructor for `MergePlan` is successful `admit`; `ExecutorGateAdmissibility` accepts an authoritative passing verdict or the exact matching High/Critical security-risk record and nothing else; `execute` requires its durable receipt and revalidates. Exhaustive fixtures cover every verdict/acceptance/check state and require no plan/API call |
 | Merge out of order or to another ref | Base branch and method are literal types per executor; PR/head/base/order are bound in the plan and receipt. Property tests mutate each field and require refusal before the API call |
 | Push `main`, set `ALLOW_MAIN_PUSH`, pass `--no-verify`, bypass the pre-push hook, or force-push | Neither module spawns `git push` or any Git mutation command; the GitHub port exposes only `mergePullRequest(pr, sha, fixedMethod)`. The sanitized process environment rejects `ALLOW_MAIN_PUSH` if present. Static command/argument/endpoint allow-list tests prove no push, `--no-verify`, or force operation exists |
-| Bypass branch protection/checks or use an administrator override | Separate GitHub App installations are absent from every bypass list, are not administrators, and use the ordinary merge endpoint. The separate trusted attestor signs the complete effective policy and both App identities; the executor receives no observation or mutation credential. Missing actors, signature/freshness/revocation failure, or drift refuses. Live policy tests prove a deliberately failing required check blocks each App |
+| Bypass branch protection/checks or use an administrator override | Separate GitHub App installations are absent from every bypass list, are not administrators, and use the ordinary merge endpoint. The separate trusted attestor signs the complete effective policy and both App identities; the executor receives no observation or mutation credential. `classifyPolicyControl` maps every missing, invalid, stale, revoked, changed, or unclassifiable state to one fail-closed refusal or exception result. Live policy tests prove a deliberately failing required check blocks each App |
 | Write or merge governance or enforcement changes | Neither executor has a working-tree/filesystem writer. Admission compares the immutable PR diff to the protected-path set and has no override variant. Fixtures include every protected path class |
 | Release a lock or rewrite ownership | Neither executor imports orchestration scripts or exposes filesystem/task-record mutation. Static dependency and process-command tests reject lock release, task mutation, and owner changes |
-| Use mutable identity or treat missing/skipped/timed-out/cancelled as passing | OIDs are required in plan constructors; branch names are selectors only. The check union accepts exactly `success`; exhaustive tests prove every other and unknown value refuses |
+| Use mutable identity or treat missing/skipped/timed-out/cancelled as passing | OIDs are required in plan constructors; branch names are selectors only. A complete two-phase published-head evidence bundle is mandatory, and its no-later-content proof fixes the remote and pull-request head to the target OID. The check union accepts exactly `success`; exhaustive tests prove every other and unknown value refuses |
 
 The release executor's permission to merge into `main` does not collide with the direct-push prohibition. It invokes an ordinary protected pull-request merge through the GitHub API; it cannot construct a Git ref update, cannot spawn `git push`, and cannot set the human emergency variable. Branch rules and required checks decide the server-side merge. This distinction is mandatory in static, mock-API, and live protected-branch tests.
 
@@ -483,9 +596,11 @@ Human intervention remains limited to exactly: (1) formal acceptance of an unres
 
 ### Exact published-head owner verification
 
-Before handoff, every artifact owner must designate the full final authored commit and rerun every declared check whose inputs or results depend on repository content, paths, refs, diffs, topology, links, counts, or policy with `HEAD` equal to that commit. The handoff and pull-request body must record the full commit, each command and material input including its resolved base, and the actual result. After push, the owner must prove the remote branch and pull-request head equal that commit and record GitHub checks as present and successful, present and non-passing, or absent; absence is never success.
+After creating the final authored content commit and before publication, every artifact owner must rerun every declared check whose result depends on repository content, paths, refs, diffs, topology, links, counts, or policy with `HEAD` equal to that full commit. The author phase records, per command, the exact target SHA, branch, absolute working directory, command and material arguments including every resolved base, start and end UTC, explicit integer exit code, and actual result or reproducible derivation.
 
-Any later content commit invalidates all earlier target-dependent owner evidence and requires the complete declared set to be rerun against the new head. External pull-request or handoff metadata that does not change the Git tree does not invalidate it. Owner verification is evidence, not an independent gate verdict, and an owner may not approve their own work.
+After push and pull-request creation or update, a separate control session supplies the publication phase for the same target SHA. It records the local branch, remote branch, and pull-request head OIDs; proves that no commit follows the target on any of those three refs; records the exact GitHub check state as present and successful, present and non-passing, or absent; and gives the same per-command working-directory, start/end-UTC, exit-code, argument, and result fields. The complete bundle requires both phases. A missing control phase, target mismatch, later content commit, omitted field, or non-zero proof command refuses admission; absence of checks is recorded truthfully and never treated as success.
+
+External pull-request or task-handoff metadata may hold both phases because it does not change the target tree. Any later content commit invalidates the author phase and the publication phase and requires the complete declared set to be rebuilt against the new head. Owner verification is evidence, not an independent gate verdict, and an owner may not approve their own work.
 ```
 
 ### Other human-controlled prerequisites
@@ -499,13 +614,125 @@ GitHub policy is authoritative. A repository setting that does not match the com
 
 ## Exact published-head owner evidence
 
-F-041-04 generalizes to every artifact owner. One verification record is admissible only for one exact full Git commit. It contains `targetCommit`, `branch`, resolved scope/diff bases, command, material arguments, working directory, start/end time, exit code, and the command's actual result or derived enumeration. A check is target-dependent when repository content, tree identity, ref identity, changed paths, diff base, link/ADR set, topology, graph, policy, remote head, pull-request head, or GitHub check set can affect its result.
+F-041-04 and F-044-03 generalize to every artifact owner. A check is target-dependent when repository content, tree identity, ref identity, changed paths, diff base, link/ADR set, topology, graph, policy, remote head, pull-request head, or GitHub check set can affect its result. The durable evidence is external to the authored target tree and uses this exact schema:
 
-The owner first creates the final authored content commit. With `HEAD` equal to that commit, the owner reruns the complete declared target-dependent set and records the full commit on every result. No later content commit may reuse those results. If content changes, even only an evidence paragraph, every earlier target-dependent result becomes stale and the complete set is repeated. External PR-body or handoff metadata may be updated afterward because it does not change the Git tree.
+```ts
+export interface PublishedHeadCommandEvidence {
+  schema: 'published-head-command-evidence/v2';
+  evidenceId: Sha256Hex;
+  phase: 'author_pre_publication' | 'control_post_publication';
+  producer: {
+    role: string;
+    executionSessionId: string; // opaque, non-secret audit identity
+  };
+  targetCommit: GitOid;         // full 40-hex SHA
+  branch: string;
+  workingDirectory: AbsolutePath;
+  startedAtUtc: IsoTimestamp;
+  endedAtUtc: IsoTimestamp;
+  executable: string;
+  arguments: readonly string[];
+  renderedCommand: string;
+  materialArguments: Readonly<Record<string, string | number | boolean>>;
+  resolvedBases: Readonly<Record<string, GitOid>>;
+  headBefore: GitOid;
+  headAfter: GitOid;
+  expectedExitCode: number;
+  exitCode: number;
+  actualResult: {
+    summary: string;
+    outputDigest: Sha256Hex | null;
+    derivation: string | null;
+  };
+}
 
-Publication evidence additionally proves the remote branch OID and pull-request head OID equal `targetCommit`. The exact GitHub check-rollup state for that OID is recorded as `present_successful`, `present_nonpassing`, or `absent`; an empty array, zero check runs, or zero statuses is `absent`. This evidence never supplies or substitutes for an independent review/security/QA/performance verdict.
+export interface AuthorPrePublicationEvidence {
+  phase: 'author_pre_publication';
+  targetCommit: GitOid;
+  branch: string;
+  authoredParents: readonly [GitOid, ...GitOid[]];
+  resolvedBases: Readonly<Record<string, GitOid>>;
+  declaredCheckIds: readonly string[];
+  commands: readonly [PublishedHeadCommandEvidence, ...PublishedHeadCommandEvidence[]];
+  completedAtUtc: IsoTimestamp;
+  canonicalAuthorEvidenceDigest: Sha256Hex;
+}
 
-TASK-042 applies this rule to itself: its final handoff and cumulative pull-request body are written only after the final authored commit and carry all repeated target-dependent results against that exact commit. No content commit follows those runs.
+export interface NoLaterContentProof {
+  targetCommit: GitOid;
+  branch: string;
+  remoteRef: string;
+  pullRequestNumber: number;
+  localBranchHeadOid: GitOid;
+  remoteBranchHeadOid: GitOid;
+  pullRequestHeadOid: GitOid;
+  commitsAfterTarget: { localBranch: 0; remoteBranch: 0; pullRequestHead: 0 };
+  observedAtUtc: IsoTimestamp;
+  proofCommandEvidenceIds: readonly [Sha256Hex, ...Sha256Hex[]];
+}
+
+export interface ExactHeadCheckEvidence {
+  targetCommit: GitOid;
+  queriedAtUtc: IsoTimestamp;
+  state: 'present_successful' | 'present_nonpassing' | 'absent';
+  totalCount: number;
+  checks: readonly {
+    name: string;
+    appId: number;
+    startedAtUtc: IsoTimestamp | null;
+    completedAtUtc: IsoTimestamp | null;
+    conclusion: string | null;
+  }[];
+}
+
+export interface ControlPostPublicationEvidence {
+  phase: 'control_post_publication';
+  targetCommit: GitOid;
+  branch: string;
+  authorEvidenceDigest: Sha256Hex;
+  resolvedBases: Readonly<Record<string, GitOid>>;
+  declaredCheckIds: readonly string[];
+  commands: readonly [PublishedHeadCommandEvidence, ...PublishedHeadCommandEvidence[]];
+  noLaterContent: NoLaterContentProof;
+  exactHeadChecks: ExactHeadCheckEvidence;
+  completedAtUtc: IsoTimestamp;
+}
+
+export interface CompletePublishedHeadEvidenceBundle {
+  schema: 'published-head-evidence/v2';
+  status: 'complete';
+  targetCommit: GitOid;
+  branch: string;
+  author: AuthorPrePublicationEvidence;
+  control: ControlPostPublicationEvidence;
+  canonicalBundleDigest: Sha256Hex;
+}
+```
+
+All three self-identifying digests use the [repository canonical JSON rules](INTERFACE-CONTRACTS.md#canonical-serialization) and an exact top-level omitted-field projection. `PublishedHeadCommandEvidence.evidenceId` is the lowercase SHA-256 of canonical JSON for the complete command record with the `evidenceId` property omitted. `AuthorPrePublicationEvidence.canonicalAuthorEvidenceDigest` is the lowercase SHA-256 of canonical JSON for the complete author record with the `canonicalAuthorEvidenceDigest` property omitted. `CompletePublishedHeadEvidenceBundle.canonicalBundleDigest` is the lowercase SHA-256 of canonical JSON for the complete bundle with the `canonicalBundleDigest` property omitted. In each case exactly that named top-level property is absent during hashing; it is not set to `null`, an empty string, or a placeholder, and no other property is omitted. The computed digest is inserted only after hashing. Verification removes the same one property, independently recomputes the digest, and compares lowercase hexadecimal bytes exactly.
+
+The author phase exists only after the final content commit and before publication. With `HEAD` equal to `targetCommit`, the author runs the complete declared local target-dependent set. Every command record must contain the exact target SHA, branch, absolute working directory, start and end UTC, executable, arguments, material arguments, every resolved base, explicit expected and actual integer exit codes, `headBefore`, `headAfter`, and the actual result or reproducible derivation. `headBefore`, `headAfter`, and the enclosing target must be identical. The command IDs and complete declared set are canonicalized into the author evidence digest. A missing field or omitted declared check is `PublishedHeadEvidenceIncomplete`; an exit code other than the declared expected code is `PublishedHeadVerificationFailed`.
+
+The control phase can exist only after the exact target is pushed and the pull request exists or is updated. A control session distinct from the author record verifies the author digest, executes the remote/ref/PR/check queries, and records the same command fields. `NoLaterContentProof` is valid only when all three observed heads equal `targetCommit`, each commits-after-target count is literal zero, every proof command record names that target and exits as expected, and `control.completedAtUtc` is no earlier than `author.completedAtUtc`. This phase is where remote-head, pull-request-head, GitHub check-run, and no-later-content facts belong; requiring them in the pre-publication phase would be impossible and is prohibited.
+
+`ExactHeadCheckEvidence` records the observed state, not a desired state. `totalCount:0` or an empty rollup is `absent`; any present non-success terminal or in-progress check is `present_nonpassing`; only a non-empty complete required set whose members all have `conclusion:'success'` is `present_successful`. A truthful `absent` record can make the evidence bundle structurally complete, but the separate required-check admission predicate still returns `RequiredCheckMissing`. This evidence never supplies or substitutes for an independent review, security, QA, or performance verdict.
+
+The bundle is complete only when both phases use the same target, branch, resolved-base map, and declared check set; `control.authorEvidenceDigest` equals `author.canonicalAuthorEvidenceDigest`; every control command carries that same subject; and the no-later-content proof is valid. Before that point admission returns `PublishedHeadEvidenceIncomplete`. Any SHA, branch, base, digest, command-subject, remote, pull-request, or later-content discrepancy returns `PublishedHeadEvidenceMismatch`. A later content commit invalidates both phases, even if it changes only an evidence paragraph; the author reruns the full local set and the control session repeats publication evidence against the new head. External PR-body and task-handoff metadata may store or extend the bundle because they do not change the target tree.
+
+Normative fixtures:
+
+| Fixture | Expected result |
+|---|---|
+| Author commands name `H`, run after commit `H`, contain working directory/start/end/exit/result, and no control phase exists yet | Incomplete bundle; `PublishedHeadEvidenceIncomplete`; no plan, intent, or API call |
+| Author evidence names `H0`, then content commit `H1` becomes local/remote/PR head | `PublishedHeadEvidenceMismatch`; all `H0` results stale; no plan, intent, or API call |
+| Author phase names `H`; control phase proves local, remote, and PR heads equal `H`, all three later-commit counts are zero, and exact-head checks are present and successful | Complete evidence prerequisite; admission continues but is not implied |
+| A command omits its working directory, UTC start/end, explicit exit code, exact target SHA, or actual result/derivation | `PublishedHeadEvidenceIncomplete`; no plan, intent, or API call |
+| A declared command exits differently from `expectedExitCode` | `PublishedHeadVerificationFailed`; no plan, intent, or API call |
+| Control proves all heads equal `H` and truthfully records zero check runs | Bundle structurally complete, then required-check evaluation returns `RequiredCheckMissing`; no plan, intent, or API call |
+| Control reuses check results from `H0` while remote and PR heads equal `H1` | `PublishedHeadEvidenceMismatch`; no plan, intent, or API call |
+| A producer hashes a record with its digest field included, set to `null`, empty, or replaced by a placeholder | Digest verification fails; only omission of the one named top-level digest property is valid; no plan, intent, or API call |
+
+TASK-046 uses this practicable split for its own publication. The Architect handoff can contain only the real author phase after the final TASK-046 commit. The later control session must independently publish that exact commit, verify and record the remote/PR/no-later-content facts, and collect the actual exact-head check state. Until that real control phase exists, the bundle remains incomplete by design; no future check-run data may be fabricated in the author phase.
 
 ## Ingress, scheduling, and HUMAN-002
 
@@ -525,7 +752,7 @@ Source code for either executor may land before TASK-026/TASK-005 complete only 
 Both implementation tasks must provide, and independent review/security/QA must validate:
 
 1. Exact success fixtures for one ordinary task, one ADR-0041 cumulative lineage, and one release manifest containing all seven aggregate domains.
-2. An exhaustive admission table proving every refusal and all three exception classifications produce no merge API call. Its required F-041-01 fixture supplies an authoritative `changes-required` review verdict plus a generic formal acceptance and asserts `PreMergeGateNotPassing`, no `MergePlan`, no durable intent, and zero merge API calls. Parallel fixtures cover every non-security gate and a security acceptance whose target, finding, severity, evidence digest, verdict, or round differs by one field. Only the exact matching High/Critical security record is admissible.
+2. An exhaustive admission table proving every refusal and all three exception classifications produce no merge API call. Its required F-041-01 fixture supplies an authoritative `changes-required` review verdict plus a generic formal acceptance and asserts `PreMergeGateNotPassing`, no `MergePlan`, no durable intent, and zero merge API calls. Parallel fixtures cover every non-security gate and a security acceptance whose target, finding, severity, evidence digest, verdict, or round differs by one field. Only the exact matching High/Critical security record is admissible. F-044-01 fixtures reproduce every policy-control counterexample above, including simultaneous unavailable/credential-missing, ruleset-change/drift, key-revocation/invalid-signature, and unknown-cause inputs, and assert exactly one result member.
 3. Immutable head/base race tests, including a base change between initial planning and execute, and a required-check source mismatch.
 4. Conflict, 4xx, 5xx, rate-limit, timeout, dropped response, crash-before-call, crash-after-call-before-result, and result-tree-mismatch failure injection.
 5. Idempotency tests proving one mutation across process restart and ambiguous response, and proving `OutcomeUnknown` prevents a blind second call.
@@ -533,8 +760,8 @@ Both implementation tasks must provide, and independent review/security/QA must 
 7. Live protected-branch tests with both App identities: failing checks block; neither App bypasses; task integration can only squash into integration; release can only merge the integration PR into `main`; direct and force pushes fail.
 8. Result-adapter deduplication, append-committed/signal-absent recovery, scheduler wake-up, exact `BranchIntegrated` projection, and no self-trigger path.
 9. Release lineage fixtures accepting runtime/operator/mixed provenance only when every content unit has equivalent immutable evidence, and refusing any missing, duplicate, reordered, or unverifiable unit.
-10. Policy-attestation fixtures covering exact repository/ref/PR/head/base/App subjects, canonical digest and Ed25519 signature, full parent/repository ruleset enumeration, explicit empty and non-empty bypass sets, pagination, 60-second freshness, 15-second execution margin, key/issuer revocation, and every semantic drift field. Missing or permission-redacted `bypass_actors` must be `PolicyObservationUnavailable`, never an empty set.
+10. Policy-attestation fixtures covering exact repository/ref/PR/head/base/App subjects, canonical digest and Ed25519 signature, full parent/repository ruleset enumeration, explicit empty and non-empty bypass sets, pagination, 60-second freshness, 15-second execution margin, key/issuer revocation, and every semantic change field. Missing or permission-redacted `bypass_actors` is never an empty set: a verified permission/credential action selects the third exception, an unclassifiable cause selects its single candidate-third exception, and only an operational failure with control action excluded selects `PolicyObservationUnavailable`.
 11. A live attestor boundary test proving neither executor process or opaque merge client can obtain the observer credential, invoke Administration/ruleset endpoints, mutate policy, issue an attestation, or suppress revocation; the attestor port cannot call a merge endpoint.
-12. Published-head evidence fixtures that add a final content commit after a passing check set and assert the earlier evidence is stale, then rerun every declared target-dependent check and bind the replacement record to the new full head. An empty GitHub check rollup is represented as absent.
+12. Published-head evidence fixtures for every row in the normative table above. They assert complete command fields, separate author/control phases, exact target equality, three-ref no-later-content proof, invalidation after a later content commit, and no plan/intent/API call before the complete exact-head bundle exists. An empty GitHub check rollup is represented as absent and then fails the required-check predicate.
 
 No executor is operational until those results are immutable members of its activation record.

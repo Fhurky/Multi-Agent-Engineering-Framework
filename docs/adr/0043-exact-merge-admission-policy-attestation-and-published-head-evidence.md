@@ -1,6 +1,6 @@
 # ADR-0043: Exact Merge Admission, Trusted Policy Attestation, and Published-Head Evidence
 
-- Status: Proposed under TASK-042; independent TASK-044 review pending
+- Status: TASK-044 recorded changes-required; superseded in part by proposed [ADR-0044](0044-single-policy-result-and-two-phase-published-head-evidence.md); independent TASK-047 review pending
 - Date: 2026-08-07
 - Decision owner: Solution Architect
 - Governance authority: HUMAN-004 at `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`

@@ -1,6 +1,6 @@
 # ADR-0042: Conditionally Authorized Post-Gate Merge Executors
 
-- Status: TASK-041 recorded changes-required; superseded in part by proposed [ADR-0043](0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md); TASK-044 review pending
+- Status: TASK-041 and TASK-044 recorded changes-required; superseded in part by proposed [ADR-0043](0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md), whose affected clauses are further superseded by proposed [ADR-0044](0044-single-policy-result-and-two-phase-published-head-evidence.md); TASK-047 review pending
 - Date: 2026-08-06
 - Decision owner: Solution Architect
 - Governance authority: HUMAN-004 at `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`

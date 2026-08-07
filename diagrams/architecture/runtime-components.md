@@ -1,9 +1,9 @@
 # Runtime Component Diagram
 
-Source diagram for the autonomous runtime and release merge control-plane decomposition. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-036, TASK-040, and TASK-042.
+Source diagram for the autonomous runtime and release merge control-plane decomposition. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-036, TASK-040, TASK-042, and TASK-046.
 
 - Specification: [COMPONENT-BOUNDARIES.md](../../docs/architecture/runtime/COMPONENT-BOUNDARIES.md)
-- Decisions: [ADR-0002](../../docs/adr/0002-runtime-component-boundaries-and-module-ownership.md), superseded in part by [ADR-0011](../../docs/adr/0011-agent-workspace-lifecycle-module.md), [ADR-0021](../../docs/adr/0021-durable-ingress-module-and-the-eight-module-map.md), and proposed [ADR-0042](../../docs/adr/0042-conditionally-authorized-post-gate-merge-executors.md); [ADR-0014](../../docs/adr/0014-live-run-control-and-process-tree-ownership.md); [ADR-0019](../../docs/adr/0019-durable-intent-receipts-for-side-effects.md), amended by [ADR-0028](../../docs/adr/0028-nominal-store-issued-durable-append-receipts.md); [ADR-0029](../../docs/adr/0029-ingress-delivery-ownership.md); [ADR-0031](../../docs/adr/0031-pre-dispatch-ingress-observer-and-collector.md); [ADR-0043](../../docs/adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md)
+- Decisions: [ADR-0002](../../docs/adr/0002-runtime-component-boundaries-and-module-ownership.md), superseded in part by [ADR-0011](../../docs/adr/0011-agent-workspace-lifecycle-module.md), [ADR-0021](../../docs/adr/0021-durable-ingress-module-and-the-eight-module-map.md), and proposed [ADR-0042](../../docs/adr/0042-conditionally-authorized-post-gate-merge-executors.md); [ADR-0014](../../docs/adr/0014-live-run-control-and-process-tree-ownership.md); [ADR-0019](../../docs/adr/0019-durable-intent-receipts-for-side-effects.md), amended by [ADR-0028](../../docs/adr/0028-nominal-store-issued-durable-append-receipts.md); [ADR-0029](../../docs/adr/0029-ingress-delivery-ownership.md); [ADR-0031](../../docs/adr/0031-pre-dispatch-ingress-observer-and-collector.md); [ADR-0043](../../docs/adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md); [ADR-0044](../../docs/adr/0044-single-policy-result-and-two-phase-published-head-evidence.md)
 
 Amended by TASK-016: the seventh module `workspace/` is added with TASK-017 as its owner; the control inbox is added as the live-run control transport owned by TASK-007; the owned process tree is added under TASK-004.
 
@@ -16,6 +16,8 @@ Amended by TASK-036: the collector's append/deduplicate outcome is total and ret
 Amended by TASK-040: the ninth module is the runtime task integration executor and the tenth is the separate DevOps release merge executor. Both use a narrow protected-PR API after durable intent and publish verified results for TASK-026's adapter. Neither appends, pushes a protected ref, mutates a gate or policy, or imports the other. TASK-041 recorded `changes-required`.
 
 Amended by TASK-042: generic formal acceptance cannot reach a plan, and a separate human-controlled policy attestor supplies complete fresh signed branch/ruleset/bypass evidence. The attestor is an external trust boundary, not an eleventh module or import node; neither executor receives its privileged observation credential. Activation and implementation work remain blocked behind TASK-044 and the returned control-plane dependencies.
+
+Amended by TASK-046: TASK-044 recorded `changes-required`. Executor identities read only immutable PR, check, head, and base state and invoke their one exact merge endpoint. Only separately controlled policy-observer principals reach branch-protection, ruleset, required-check-source, bypass, and authorization-policy reads; executors receive signed exact-subject attestations after freshness, revocation, and drift checks. Implementation work remains blocked behind a passing TASK-047 or later verdict and the unprovisioned control-plane dependencies.
 
 Each box names its owning task. No module has two owners. Arrows are permitted import or call directions; any edge not shown is a boundary violation.
 
@@ -66,8 +68,8 @@ flowchart TB
   repo[("Repository<br/>worktrees, agent branches,<br/>task locks, remote, pull requests")]
   github[("GitHub protected branches<br/>required checks, no bypass,<br/>ordinary PR merge endpoint")]
   mergeEvidence[("External merge evidence<br/>append-only intent + outcome<br/>by executor/idempotency key")]
-  policyAttestor[/"Human-controlled policy attestor<br/>complete classic + inherited rulesets<br/>complete bypass actors, signed + fresh"/]
-  policyCredential[("Isolated policy observation credential<br/>never exposed to either executor")]
+  policyAttestor[/"Human-controlled RepositoryPolicyAttestor<br/>complete classic + inherited rulesets<br/>complete bypass actors, signed + fresh"/]
+  policyObservers[("Separately controlled policy-observer principals<br/>Administration/ruleset reads as required;<br/>never exposed to either executor")]
   scripts[/"scripts/orchestration/*.ps1<br/>scripts/setup/install-git-hooks.ps1<br/>human-controlled, invoked never edited"/]
 
   operator --> cli
@@ -90,12 +92,12 @@ flowchart TB
   ingress -- "adapters read published facts" --> repo
   ingress -- "validate terminal merge result" --> mergeEvidence
 
-  integration -- "fixed PR, head SHA, squash;<br/>never push" --> github
-  releaseMerge -- "fixed integration PR, head SHA, merge;<br/>never push" --> github
-  policyCredential -. "privileged observation only" .-> policyAttestor
-  policyAttestor -. "plan-bound signed attestation;<br/>no merge capability" .-> integration
-  policyAttestor -. "plan-bound signed attestation;<br/>no merge capability" .-> releaseMerge
-  policyAttestor -. "observe current controls" .-> github
+  integration -- "read PR/check/head/base;<br/>fixed PR + exact head squash; never push" --> github
+  releaseMerge -- "read release PR/check/head/base;<br/>fixed exact-head merge; never push" --> github
+  policyObservers -. "complete observed policy facts;<br/>privileged observation only" .-> policyAttestor
+  policyObservers -. "authoritative branch-protection,<br/>ruleset, bypass, check-source reads" .-> github
+  policyAttestor -. "signed exact-subject attestation;<br/>fresh + revocation/drift checked;<br/>no merge capability" .-> integration
+  policyAttestor -. "signed exact-subject attestation;<br/>fresh + revocation/drift checked;<br/>no merge capability" .-> releaseMerge
   integration --> mergeEvidence
   releaseMerge --> mergeEvidence
   github --> repo
@@ -138,8 +140,8 @@ flowchart TB
 | `recovery/` | TASK-008 | `src/orchestrator/recovery/**` |
 | `workspace/` | TASK-017 | `src/orchestrator/workspace/**` |
 | `ingress/`, the inbox store | TASK-026 | `src/orchestrator/ingress/**` |
-| `integration/` | Future `runtime` implementation task after a passing TASK-044 or later verdict | `src/orchestrator/integration/**`, tests under `tests/unit/orchestrator/integration/**` |
-| `scripts/release/integration-merge/` | Future `devops` implementation task after a passing TASK-044 or later verdict | `scripts/release/integration-merge/**` |
+| `integration/` | Future `runtime` implementation task after a passing TASK-047 or later verdict | `src/orchestrator/integration/**`, tests under `tests/unit/orchestrator/integration/**` |
+| `scripts/release/integration-merge/` | Future `devops` implementation task after a passing TASK-047 or later verdict | `scripts/release/integration-merge/**` |
 
 Ten rows and ten distinct source paths. The eight existing modules retain task owners; the two proposed modules have distinct future owner roles and are not one component. `scripts/orchestration/**` and `scripts/setup/install-git-hooks.ps1` are human-controlled and appear here as an invoked boundary. No module's write scope includes them.
 
@@ -152,10 +154,11 @@ Stated here because the previous version of this diagram contradicted the worksp
 | `workspace/` | The human-controlled scripts | Hook verification and installation, worktree and branch creation, task-lock claim, write-scope validation, task-lock release |
 | `workspace/` | **Direct Git and the pull-request API** | `git add --` with the declared scope patterns, `git commit`, `git push` of exactly one derived refspec, and look-up-then-create-or-update of the pull request |
 | `ingress/` | **Read-only** Git | Its adapters read facts other owners already published. They never write a ref, a commit, or a working tree |
-| `integration/` | Narrow GitHub API | Read immutable PR/check/policy state and invoke only the exact-head squash merge into the configured integration branch |
-| `scripts/release/integration-merge/` | Separate narrow GitHub API identity | Read immutable release/PR/check/policy state and invoke only the exact-head protected merge from integration into `main` |
+| `integration/` | Narrow GitHub API identity | Read immutable PR, check, head, and base state and invoke only the exact-head squash merge into the configured integration branch |
+| `scripts/release/integration-merge/` | Separate narrow GitHub API identity | Read immutable release manifest, PR, check, head, and base state and invoke only the exact-head protected merge from integration into `main` |
+| External `RepositoryPolicyAttestor` through separately controlled observer principals | Policy-observation API port unavailable to either executor | Read authoritative branch protection, all applicable rulesets, required-check sources, bypass/exemption actors, and authorization-policy state; emit only a signed exact-subject fresh attestation |
 
-No other module reaches the repository. Neither executor spawns `git push`, and neither receives a generic ref, administration, policy-observation, or policy-mutation port. The external attestor observes policy and returns only a signed payload; it is not a repository module and has no executor merge port.
+No other repository module reaches the repository. Neither executor spawns `git push`, and neither receives a generic ref, Administration, ruleset, bypass, policy-observation, or policy-mutation port. The external attestor and its separately controlled observer principals own the only policy reads and return only signed exact-subject, fresh, revocation- and drift-checked payloads; they are not repository modules and have no executor merge port or Contents-write identity.
 
 ## Invariants visible in this diagram
 
