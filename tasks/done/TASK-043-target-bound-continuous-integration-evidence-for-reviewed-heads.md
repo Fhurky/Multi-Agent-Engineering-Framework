@@ -1,7 +1,7 @@
 ---
 task_id: TASK-043
 title: Target-bound continuous-integration evidence for reviewed heads
-status: review
+status: done
 owner_role: devops
 llm: claude
 branch: agent/claude/devops/task-043
@@ -60,17 +60,73 @@ round_1_verdict_note: >-
 integrable: true
 integrable_reason: >-
   review is this task's only declared pre_merge_gate and its only required_gate, and that relation
-  is now CLOSED at approved. Under the integrated edge definition this record is review_ready with
-  every pre-merge gate closed, so PULL REQUEST 24 MAY BE MERGED. ACT-023 did not merge it, did not
+  is CLOSED at approved. Under the integrated edge definition this record is review_ready with
+  every pre-merge gate closed, so PULL REQUEST 24 WAS MERGEABLE - and at ACT-024 it is MERGED. The
+  superseded ACT-023 value read - PULL REQUEST 24 MAY BE MERGED. ACT-023 did not merge it, did not
   modify it, and did not comment on or approve it: the merge into integration/autonomous-runtime is
   a separate externally visible operation performed by the operator, and no Orchestrator activation
   may perform it. Performing it produces a branch_integrated ingress fact for a later activation
-  and is what moves this record to done.
+  and is what moves this record to done. That is exactly what happened, and ACT-024 consumed the
+  fact rather than producing it.
+integrated: true
+integrated_at: f123c9a3e16072c4f215acd73ca2a14414158143
+integrated_evidence: >-
+  CONTENT-MERGED, not lineage-subsumed. The operator merged pull request 24 into
+  integration/autonomous-runtime at merge commit f123c9a3e16072c4f215acd73ca2a14414158143,
+  mergedAt 2026-08-07T11:43:28Z, mergedBy Fhurky, read from the GitHub API at ACT-024 rather than
+  from a dispatch hint. The commit has exactly two parents in this order - first parent
+  26c548a5f416e487ef6fae35a1b676d6711aa83d, the ACT-023 task-state synchronization commit whose
+  twelve changed paths are all under tasks/**, and second parent
+  37a48249c03509e929fed2c8d27a1ff4f152f8db, this task's published head and the exact artifact
+  TASK-045 approved. The parent order is recorded because it is what makes the merge auditable -
+  the first parent carries the integration branch's own history and the second carries the
+  contributed content, which is the ordinary shape of a GitHub pull-request merge and is not a
+  claim about which parent is more authoritative. The merge is content-exact - git diff --numstat
+  26c548a5 f123c9a3 returns exactly the four scripts/ci/** files this task authored, with 322, 488,
+  15, and 317 insertions and zero deletions; the combined diff git diff-tree -c f123c9a3 returns
+  the same four paths, so no conflict resolution altered any of them; and git diff 37a48249
+  f123c9a3 -- scripts/ci/ is EMPTY, so the integrated tree equals the approved publication tree at
+  every judged path. Under MC-012 the branch_integrated entry's content_hash therefore equals the
+  artifact_published entry's, and it does. The shared value is recorded in full on both ledger
+  rows and abbreviates to 8a256814...9a57537 at both seq 30 and seq 34; it was computed
+  independently at ACT-024 as SHA-256 over the entry-point artifact at each source commit, rather
+  than copied from row 30, and the equality is a consequence of tree equality rather than an
+  assumption behind it. The
+  source branch agent/claude/devops/task-043 was NOT deleted and still resolves to 37a48249 both
+  locally and at refs/heads/agent/claude/devops/task-043 on origin.
+integration_validation_evidence: >-
+  Recorded as the control operator's stated validation together with what ACT-024 could verify
+  independently, with the two kept separate. The operator states that exact-head validate and
+  security checks plus scripts/ci/assert-check-runs.ps1 were run before the merge, and that the
+  merge followed TASK-045's approval of the sole pre-merge relation. INDEPENDENTLY VERIFIED AT
+  ACT-024 - the exact head 37a48249 carries total_count 2 check runs, both completed with
+  conclusion success, validate id 92797952346 completed 2026-08-07T07:13:27Z and security id
+  92797952368 completed 07:13:26Z, re-read from the check-runs endpoint; and this activation
+  extracted this task's own assert-check-runs.ps1 from the integration head into a temporary
+  location outside the repository and ran it read-only against that commit, obtaining
+  check_runs_total=2 matched_check_runs=2 unmatched_check_runs=0, both contexts state=pass code=OK,
+  and result=pass code=OK exit=0. RECORDED AS AN ABSENCE AND NEVER AS A SUCCESS - the merge commit
+  f123c9a3 itself carries total_count 0 check runs, and the same assertion run against it returns
+  check_runs_total=0, both contexts E_NO_CHECK_RUNS, result=fail exit=4 with the message that
+  absent continuous integration is not passing continuous integration. That is this task's own tool
+  reporting its own subject about the commit that landed it. The gate rested on the exact head,
+  which is what LIN-CI-EVIDENCE-REVIEW round 1 judged and what the exact-head contract requires, so
+  nothing is known to be wrong; whether an integration commit must itself carry target-bound
+  evidence is a question no round has been asked and is recorded here as an open risk rather than
+  decided by this role, which authors no finding.
 parent_task: TASK-001
 published_commit: 37a48249c03509e929fed2c8d27a1ff4f152f8db
 published_branch: agent/claude/devops/task-043
 published_remote_ref: refs/heads/agent/claude/devops/task-043
 pull_request: 24
+pull_request_state: >-
+  MERGED at ACT-024, superseding OPEN. Read from the GitHub API at this activation - state MERGED,
+  mergeCommit.oid f123c9a3e16072c4f215acd73ca2a14414158143, mergedAt 2026-08-07T11:43:28Z, mergedBy
+  Fhurky, baseRefName integration/autonomous-runtime, headRefName agent/claude/devops/task-043,
+  headRefOid 37a48249c03509e929fed2c8d27a1ff4f152f8db unchanged from publication, changedFiles 4,
+  additions 1142, deletions 0. This is the first pull request in this graph to reach MERGED against
+  integration/autonomous-runtime, and the first task pull request of any kind to be merged since
+  pull request 19 reached main on 2026-08-05.
 publication: published
 publication_note: >-
   Recorded by ACT-022 from the repository and the GitHub API rather than from the owner's
@@ -147,7 +203,18 @@ authored_delta: >-
   scripts/setup/**, docs/**, src/**, tests/**, reports/**, or tasks/** appears in the delta,
   which is the exclusion set this record made load-bearing.
 integration_state: >-
-  GATE CLOSED, NOT YET INTEGRATED. As of ACT-023 the review relation is closed at approved, so the
+  GATE CLOSED AND INTEGRATED. As of ACT-024 the review relation is closed at approved at
+  18cbdfadf3d55e94bbc88bacadfb8adc8d3bf159 and the branch is merged into
+  integration/autonomous-runtime at f123c9a3e16072c4f215acd73ca2a14414158143. The complete
+  lifecycle predicate therefore holds - every gate in gate_tasks is closed AND the task is
+  integrated - so this record moves from review to done. It is the first implementation-class
+  record in this graph to reach done, and the first record in any class to complete the full
+  publish, gate, integrate, done cycle within its own lineage rather than by lineage subsumption:
+  the eight LIN-ARCH-REVIEW records reached done at ACT-017, one of them content-merged and seven
+  by subsumption, after their gate had closed at a different task's round. ACT-024 CONSUMED the
+  merge and did not perform it, did not modify pull request 24 afterwards, and closed, reopened,
+  commented on, or approved nothing. The superseded ACT-023 value read - GATE CLOSED, NOT YET
+  INTEGRATED. As of ACT-023 the review relation is closed at approved, so the
   condition that blocked the merge is discharged and pull request 24 may be merged. It has not
   been. There is no BranchIntegrated fact for this task, no content is merged, the branch
   agent/claude/devops/task-043 is ahead of integration/autonomous-runtime, and this record stays
@@ -264,4 +331,7 @@ Maintained by the Orchestrator under TASK-013 from the DevOps owner's commit, pu
 - **Two limitations the reviewer recorded and deliberately did not make findings**, carried here as the reviewer's statements and routed to nobody, because a limitation a gate owner declines to promote is not one this role may promote. First, the GitHub REST surface cannot fully distinguish a never-created run from a created-then-deleted one in a user-owned repository with no audit log, so the determination rests on strong causal evidence rather than a per-event delivery receipt. Second, the offline suite is not called by the human-controlled baseline workflow and the assertion is not itself a required status check; neither was an acceptance criterion of this task, and both are control-plane changes outside agent authority. The reviewer additionally records that `5e5fc8f` and `296b14f` still have no checks and that **their** rounds must not treat absence as success.
 - **Transition at `ACT-023`: gate CLOSED, `integrable: false` → `true`, lifecycle placement unchanged at `review`.** **Pull request 24 may now be merged**, by the operator, and **`ACT-023` did not merge it**. `done` additionally requires integration, which has not occurred; the merge is a separate externally visible operation that produces its own `branch_integrated` ingress fact for a later activation.
 - **The reviewer's own lock statement and the durable state are both recorded and neither overwrites the other.** The report records `Task lock released: no, per the user's explicit instruction`; the shared lock directory read directly at `ACT-023` holds exactly one entry, `task-013.json`, and no `task-045.json`, so `ci-toolchain` and every per-task lock other than the Orchestrator's are free. Release happened outside that execution, which is the same divergence this graph has recorded since TASK-021.
-- **Next owner: the user / operator**, for the merge of pull request 24 into `integration/autonomous-runtime` — **permitted for the first time and not performed here.** The superseded statement, from `ACT-022`, read: **Next owner: reviewer / gpt via TASK-045**, `LIN-CI-EVIDENCE-REVIEW` round 1, **`ready` and dispatchable at `ACT-022`** on the satisfied edge. Its target is `37a48249c03509e929fed2c8d27a1ff4f152f8db` over base `8a4fe763d2f7819bf979f9a70c26993baa1d86c6`. The alternative branch — the **user**, on an enumerated human prerequisite — is closed for this round, because the owner returned none.
+- **Transition at `ACT-024`: `review` → `done`, on ingress entry `seq` 34, class `branch_integrated`.** The operator merged **pull request 24** into `integration/autonomous-runtime` at **`f123c9a3e16072c4f215acd73ca2a14414158143`**, `mergedAt` `2026-08-07T11:43:28Z`, `mergedBy` `Fhurky`, first parent `26c548a5f416e487ef6fae35a1b676d6711aa83d` and second parent `37a48249c03509e929fed2c8d27a1ff4f152f8db`. **Every clause of the `integrated` edge was checked individually rather than accepted from the merge's existence**: `review_ready(TASK-043)` at `37a48249` under the `runtime` publication class on all three of its conditions; every entry of `pre_merge_gates` — exactly one, `review` — closed at `approved` at `18cbdfad`; and the branch merged into the integration branch per the integration order. **The merge is content-exact and the equality was computed rather than assumed**: `git diff 37a48249 f123c9a3 -- scripts/ci/` is empty, and the `MC-012` `content_hash` identity between `seq` 30 and `seq` 34 holds.
+- **The one thing this integration does not do, stated because it would be easy to read as more.** **No `integrated()` edge anywhere in this graph names TASK-043** — checked by enumeration over all 47 records rather than by recalling the wave diagram — so **no task unblocked, no `blocked_reason` changed, and no dependency became satisfied.** TASK-003 … TASK-008, TASK-017, and TASK-026 each still wait on `integrated(TASK-018)` or a further upstream integration, and TASK-018 is still `review` with its own `review` gate open at TASK-019. This is the first integration in this graph that releases nothing, and that is a property of where `scripts/ci/**` sits in the dependency order rather than a defect.
+- **The merge commit carries no check runs of its own, and that is recorded as an absence.** `f123c9a3` returns `total_count` 0. This activation ran this task's **own** `assert-check-runs.ps1`, extracted read-only from the integration head, against both commits: `37a48249` returns `result=pass code=OK exit=0` with `matched_check_runs=2`, and `f123c9a3` returns `result=fail code=E_NO_CHECK_RUNS exit=4`. **The gate rested on the exact head, which is what the exact-head contract requires and what TASK-045 judged**, so nothing is known to be wrong. **Whether an integration commit must itself carry target-bound evidence has never been put to any round**, and it is recorded here as an open question and an open risk rather than as a finding, which this role has no authority to make.
+- **Next owner: none.** This record is `done`. Its gate is closed, its artifact is integrated, and nothing downstream waits on it. The superseded `ACT-023` statement read: **Next owner: the user / operator**, for the merge of pull request 24 into `integration/autonomous-runtime` — **permitted for the first time and not performed here.** The superseded statement, from `ACT-022`, read: **Next owner: reviewer / gpt via TASK-045**, `LIN-CI-EVIDENCE-REVIEW` round 1, **`ready` and dispatchable at `ACT-022`** on the satisfied edge. Its target is `37a48249c03509e929fed2c8d27a1ff4f152f8db` over base `8a4fe763d2f7819bf979f9a70c26993baa1d86c6`. The alternative branch — the **user**, on an enumerated human prerequisite — is closed for this round, because the owner returned none.
