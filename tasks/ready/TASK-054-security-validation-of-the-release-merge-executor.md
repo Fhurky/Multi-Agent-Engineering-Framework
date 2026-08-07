@@ -1,7 +1,7 @@
 ---
 task_id: TASK-054
 title: Security validation of the integration-to-main release merge executor
-status: blocked
+status: ready
 owner_role: security
 llm: gpt
 branch: agent/gpt/security/task-054
@@ -12,7 +12,18 @@ resource_lock: null
 dependencies:
   - task: TASK-049
     edge: review_ready
-    satisfied: false
+    satisfied: true
+    satisfied_at: 9fb2eb0ca7c02101fd067452824e2612fda5cc0c
+    satisfied_by: ACT-028 consuming ingress entry seq 38, class artifact_published
+    satisfied_under: >-
+      TASK-049 declares publication_class runtime, and all three of that class's conditions hold
+      INDEPENDENTLY, each checked separately at ACT-028 - the immutable published commit
+      9fb2eb0ca7c02101fd067452824e2612fda5cc0c; the branch agent/claude/devops/task-049 present at
+      refs/heads/agent/claude/devops/task-049 on origin under git ls-remote; and pull request 30,
+      OPEN and not a draft against integration/autonomous-runtime with headRefOid equal to that
+      commit. THIS IS THIS TASK'S ONLY SCHEDULING DEPENDENCY. SATISFYING IT AUTHORIZES A SECURITY
+      ASSESSMENT AND NOTHING ELSE - it is not a verdict, it closes no relation, and it does not make
+      TASK-049 integrable or activatable.
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -38,14 +49,21 @@ normative_architecture_source: >-
   docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md sections "GitHub identity and
   human-controlled policy", "Trusted current-policy observation boundary", and "Required evidence
   and validation fixtures", with ADR-0043 and ADR-0044. Read at that exact identifier.
-review_target_commit: pending TASK-049 publication
-review_target_base: >-
-  reproducible expression. The authored-delta base is TASK-049's own immutable branch point,
-  git merge-base agent/claude/devops/task-049 integration/autonomous-runtime, resolved by the
-  Orchestrator at the activation that consumes TASK-049's publication and pinned here then.
+review_target_commit: 9fb2eb0ca7c02101fd067452824e2612fda5cc0c
+review_target_base: d63864bcb25fc8897b21c09f8f687e390f85808d
 review_target_applicability: >-
-  applicable, declared as a reproducible expression because the assessed artifact does not exist
-  yet. It becomes resolved at the activation that consumes TASK-049's publication.
+  applicable and RESOLVED at ACT-028. The assessed target is the immutable published head
+  9fb2eb0ca7c02101fd067452824e2612fda5cc0c, bound rather than the branch name, and the authored-delta
+  base is d63864bcb25fc8897b21c09f8f687e390f85808d, re-derived at ACT-028 with git merge-base
+  agent/claude/devops/task-049 integration/autonomous-runtime and equal to the value both phases of
+  the owner's evidence bundle declare. THE TARGET AND THE BASE ARE BOUND TOGETHER AND NEITHER IS
+  EVER RETARGETED, under findings F-403 and A-209. The delta is 38 paths, 12034 insertions, 0
+  deletions, every path under scripts/release/integration-merge/**.
+review_target_ancestry_note: >-
+  012bdb8360a7a1b4e61b362d9302f731ad817078 is this branch's first authored commit and is AUTHORING
+  ANCESTRY, not the target. The two commits differ only in published-head-evidence.ts and its test;
+  scripts/release/integration-merge/index.ts is byte-identical at both. 012bdb8 carries two passing
+  check runs of its own; they are facts about that commit and are NOT evidence about the target.
 branch_point_of: integration/autonomous-runtime
 scope_validation_base: git merge-base HEAD integration/autonomous-runtime
 scope_validation_applicability: >-
@@ -56,12 +74,26 @@ scope_validation_note: >-
   git merge-base HEAD integration/autonomous-runtime, and pass that exact value to -BaseRef.
   Record the resolved value in the report.
 blocked_reason: >-
-  review_ready(TASK-049) is unsatisfied. TASK-049 is itself blocked on integrated(TASK-046), so
-  this task is at least two steps out.
+  NOT BLOCKED. Cleared at ACT-028. The single edge review_ready(TASK-049) is satisfied at
+  9fb2eb0ca7c02101fd067452824e2612fda5cc0c and this task is dispatchable. The superseded ACT-026
+  value read - review_ready(TASK-049) is unsatisfied. TASK-049 is itself blocked on
+  integrated(TASK-046), so this task is at least two steps out.
 exit_condition: >-
-  TASK-049 is review_ready under its declared publication_class runtime - immutable published
-  commit, branch pushed to origin, and an open or updated pull request, all three present
-  independently.
+  DISCHARGED at ACT-028. TASK-049 is review_ready under its declared publication_class runtime, with
+  the immutable published commit, the branch on origin, and the open pull request all three present
+  independently. WHAT REACHING READY DOES NOT MEAN - this task now owes a verdict and holds none.
+  Reaching ready authorizes an independent security assessment; it authorizes no approval, no merge,
+  no integration, and no activation-record member.
+verdict_authority_note: >-
+  This task alone may produce the implementationSecurityReview member of the approved
+  MergeExecutorActivationRecord for the release executor, and it may do so only by recording a
+  passing verdict of its own. TASK-049's exact-head GitHub check runs - including the security check
+  run, id 93013249507, concluded success - its published-head-evidence/v2 bundle, its owner-recorded
+  check-repository.ps1 result, the independent control session's rerun, and the Orchestrator's own
+  reproduction of the test figures are ALL owner-side or consumer-side evidence and NONE of them is
+  a security verdict. A passing repository security workflow is not a threat model. Judge them; do
+  not inherit them. High and critical findings block delivery until resolved or formally accepted by
+  an authorized human, and no such acceptance exists.
 ---
 
 # TASK-054: Security validation of the integration-to-main release merge executor
@@ -135,4 +167,6 @@ Maintained by the Orchestrator under TASK-013 from this owner's report and pull 
 - Verification:
 - Known risks:
 - **Created `blocked` at `ACT-026`**, two steps out, on the unsatisfied `review_ready(TASK-049)` edge.
-- Next owner: nobody yet. TASK-049 must publish first, and TASK-049 is itself blocked.
+- **Transition at `ACT-028`: `blocked` → `ready`, on ingress entry `seq` 38, class `artifact_published`.** TASK-049 published at **`9fb2eb0ca7c02101fd067452824e2612fda5cc0c`** and opened pull request 30, satisfying `review_ready(TASK-049)` — this record's **only** scheduling dependency — on all three `runtime`-class conditions checked individually. The target and base are pinned above and are never retargeted. **`ACT-028` recorded no verdict, resolved no finding, and closed no relation.**
+- **Two control-plane facts `ACT-028` re-read and recorded as facts to assess against, never as authorization to change anything.** **(1)** `main` and `integration/autonomous-runtime` are **unprotected**, the repository ruleset list is **empty**, no required check is pinned to an expected App source, no bypass-actor set exists, the two least-privilege executor GitHub Apps and their token broker do not exist, the external evidence store does not exist, and **no `RepositoryPolicyAttestor` is provisioned** — the state `LIN-INTEGRATION-AUTHORITY-REVIEW` round 3 read live and recorded. **This task must not provision, request, configure, or simulate any of it**, and the module under assessment must be judged on whether it **fails closed** in that state rather than on whether the state is acceptable. **(2)** TASK-049's suite declares 416 tests and executes 405; the **11** unexecuted cases are the live protected-branch and attestor-boundary fixtures, `todo` and deliberately unsatisfiable while that control plane is absent. Whether a security verdict may pass with them outstanding is this round's judgment; the Orchestrator reproduced the figures and judged nothing.
+- Next owner: **this task**, `security` / `gpt`, `ready` and dispatchable, sole write scope `reports/security/TASK-049-RELEASE-MERGE-EXECUTOR-SECURITY.md`, no resource lock, branching from `integration/autonomous-runtime` with the branch point resolved inside its own worktree. It runs in parallel with TASK-053 and TASK-055 on the same target with pairwise-disjoint report paths, and **must not run in any of their execution contexts, nor in TASK-049's, nor in TASK-048's, TASK-050's, TASK-051's, or TASK-052's.** The superseded `ACT-026` statement read: **Next owner: nobody yet. TASK-049 must publish first, and TASK-049 is itself blocked.**

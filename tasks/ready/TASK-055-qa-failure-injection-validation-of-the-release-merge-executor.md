@@ -1,7 +1,7 @@
 ---
 task_id: TASK-055
 title: QA failure-injection and negative-capability validation of the release merge executor
-status: blocked
+status: ready
 owner_role: qa
 llm: gemini
 branch: agent/gemini/qa/task-055
@@ -12,7 +12,18 @@ resource_lock: null
 dependencies:
   - task: TASK-049
     edge: review_ready
-    satisfied: false
+    satisfied: true
+    satisfied_at: 9fb2eb0ca7c02101fd067452824e2612fda5cc0c
+    satisfied_by: ACT-028 consuming ingress entry seq 38, class artifact_published
+    satisfied_under: >-
+      TASK-049 declares publication_class runtime, and all three of that class's conditions hold
+      INDEPENDENTLY, each checked separately at ACT-028 - the immutable published commit
+      9fb2eb0ca7c02101fd067452824e2612fda5cc0c; the branch agent/claude/devops/task-049 present at
+      refs/heads/agent/claude/devops/task-049 on origin under git ls-remote; and pull request 30,
+      OPEN and not a draft against integration/autonomous-runtime with headRefOid equal to that
+      commit. THIS IS THIS TASK'S ONLY SCHEDULING DEPENDENCY, and it is deliberately NOT the
+      control_plane_dependency below, which is an external human-controlled blocker rather than a
+      scheduling edge. SATISFYING THIS EDGE AUTHORIZES A VALIDATION AND NOTHING ELSE.
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -49,14 +60,31 @@ control_plane_dependency: >-
   human-controlled blocker, not a scheduling dependency of this task, and it is the reason this
   gate is retrospective rather than pre-merge. A verdict recorded before that provisioning exists
   MUST state which items could not be executed and MUST NOT record an unexecuted item as passing.
-review_target_commit: pending TASK-049 publication
-review_target_base: >-
-  reproducible expression. The authored-delta base is TASK-049's own immutable branch point,
-  git merge-base agent/claude/devops/task-049 integration/autonomous-runtime, resolved by the
-  Orchestrator at the activation that consumes TASK-049's publication and pinned here then.
+review_target_commit: 9fb2eb0ca7c02101fd067452824e2612fda5cc0c
+review_target_base: d63864bcb25fc8897b21c09f8f687e390f85808d
 review_target_applicability: >-
-  applicable, declared as a reproducible expression because the validated artifact does not exist
-  yet. It becomes resolved at the activation that consumes TASK-049's publication.
+  applicable and RESOLVED at ACT-028. The validated target is the immutable published head
+  9fb2eb0ca7c02101fd067452824e2612fda5cc0c, bound rather than the branch name, and the authored-delta
+  base is d63864bcb25fc8897b21c09f8f687e390f85808d, re-derived at ACT-028 with git merge-base
+  agent/claude/devops/task-049 integration/autonomous-runtime and equal to the value both phases of
+  the owner's evidence bundle declare. THE TARGET AND THE BASE ARE BOUND TOGETHER AND NEITHER IS
+  EVER RETARGETED, under findings F-403 and A-209. The delta is 38 paths, 12034 insertions, 0
+  deletions, every path under scripts/release/integration-merge/**.
+review_target_ancestry_note: >-
+  012bdb8360a7a1b4e61b362d9302f731ad817078 is this branch's first authored commit and is AUTHORING
+  ANCESTRY, not the target. The two commits differ only in published-head-evidence.ts and its test.
+  The unexecuted-fixture registry tests/live-control-plane.blocked.test.ts is byte-identical at both.
+observed_test_result: >-
+  RECORDED AS AN OBSERVATION FOR THIS ROUND TO JUDGE, NOT AS A RESULT THIS ROUND MAY INHERIT.
+  scripts/release/integration-merge/run-tests.ps1 at the exact target returns exit 0 with tests 416,
+  suites 0, pass 405, fail 0, cancelled 0, skipped 0, TODO 11. The owner reported those figures, an
+  independent control session reported the same, and ACT-028 reproduced them a third time by running
+  the suite read-only from an isolated git archive export of the module at 9fb2eb0c, outside every
+  worktree and touching no tracked file. THE ELEVEN TODO CASES ARE THE DELIBERATELY UNEXECUTED LIVE
+  CONTROL-PLANE AND ATTESTOR FIXTURES registered in tests/live-control-plane.blocked.test.ts - six
+  for evidence item 7 and five for item 11. AN UNEXECUTED FIXTURE IS NOT A PASSING ONE. Three
+  concurring reproductions of a count are evidence about a count and are not a QA verdict; this
+  round decides what the 405 and the 11 mean.
 branch_point_of: integration/autonomous-runtime
 scope_validation_base: git merge-base HEAD integration/autonomous-runtime
 scope_validation_applicability: >-
@@ -67,14 +95,29 @@ scope_validation_note: >-
   git merge-base HEAD integration/autonomous-runtime, and pass that exact value to -BaseRef.
   Record the resolved value in the report.
 blocked_reason: >-
-  review_ready(TASK-049) is unsatisfied. TASK-049 is itself blocked on integrated(TASK-046), so
-  this task is at least two steps out.
+  NOT BLOCKED. Cleared at ACT-028. The single edge review_ready(TASK-049) is satisfied at
+  9fb2eb0ca7c02101fd067452824e2612fda5cc0c and this task is dispatchable. The absent control plane is
+  an external human-controlled blocker on eleven fixture items, NOT a scheduling dependency, and it
+  does not block this task from starting or from recording a verdict that states them unexecuted.
+  The superseded ACT-026 value read - review_ready(TASK-049) is unsatisfied. TASK-049 is itself
+  blocked on integrated(TASK-046), so this task is at least two steps out.
 exit_condition: >-
-  TASK-049 is review_ready under its declared publication_class runtime - immutable published
-  commit, branch pushed to origin, and an open or updated pull request, all three present
-  independently. Note that this gate is retrospective, so TASK-049 may be integrated before this
-  verdict exists; that ordering is registered in the aggregate and retrospective gate register with
-  its recorded risk, and it never permits the executor to be activated.
+  DISCHARGED at ACT-028. TASK-049 is review_ready under its declared publication_class runtime, with
+  the immutable published commit, the branch on origin, and the open pull request all three present
+  independently. This gate is retrospective, so TASK-049 may be integrated before this verdict
+  exists; that ordering is registered in the aggregate and retrospective gate register with its
+  recorded risk, and IT NEVER PERMITS THE EXECUTOR TO BE ACTIVATED. WHAT REACHING READY DOES NOT
+  MEAN - this task now owes a verdict and holds none, and the eleven live fixtures are still
+  unexecutable because the control plane is still absent.
+verdict_authority_note: >-
+  This task alone may validate the negativeCapabilityTestAttestation member of the approved
+  MergeExecutorActivationRecord for the release executor. A VERDICT RECORDED BEFORE THE CONTROL PLANE
+  IS PROVISIONED MUST STATE WHICH ITEMS COULD NOT BE EXECUTED AND MUST NOT RECORD AN UNEXECUTED ITEM
+  AS PASSING - that obligation is unchanged by the publication and is now live rather than
+  prospective. The 405 executed and passing offline cases, the exact-head GitHub check runs, the
+  published-head-evidence/v2 bundle, and the three concurring reproductions of the 416/405/0/11
+  figures are ALL evidence and NONE of them is a QA verdict. Never fake, stub, or provision a live
+  fixture to make it pass.
 ---
 
 # TASK-055: QA failure-injection and negative-capability validation of the release merge executor
@@ -157,4 +200,7 @@ Maintained by the Orchestrator under TASK-013 from this owner's report and pull 
 - Verification:
 - Known risks:
 - **Created `blocked` at `ACT-026`**, two steps out, on the unsatisfied `review_ready(TASK-049)` edge.
-- Next owner: nobody yet. TASK-049 must publish first, and TASK-049 is itself blocked.
+- **Transition at `ACT-028`: `blocked` → `ready`, on ingress entry `seq` 38, class `artifact_published`.** TASK-049 published at **`9fb2eb0ca7c02101fd067452824e2612fda5cc0c`** and opened pull request 30, satisfying `review_ready(TASK-049)` — this record's **only** scheduling dependency — on all three `runtime`-class conditions checked individually. The target and base are pinned above and are never retargeted. **`ACT-028` recorded no verdict, resolved no finding, and closed no relation.**
+- **`control_plane_dependency` is unchanged and is now live rather than prospective.** `ACT-028` re-read the state that record field anticipated and found it as round 3 recorded it: `main` and `integration/autonomous-runtime` **unprotected**, the ruleset list **empty**, no required check pinned to an expected App source, no bypass-actor set, no executor GitHub Apps or token broker, no external evidence store, and **no provisioned `RepositoryPolicyAttestor`**. Evidence item 7's six live protected-branch fixtures and item 11's five attestor-boundary fixtures therefore **still cannot execute**, and the owner registered exactly those **11** as `todo` rather than stubbing them — which is what this record required. **`ACT-028` provisioned, configured, requested, and simulated none of it.**
+- **The 416 / 405 / 0 / 11 figures were reproduced three times and judged zero times.** The owner reported them, an independent control session reported them, and `ACT-028` reproduced them a third time by running `run-tests.ps1` read-only from an isolated `git archive` export of the module at the exact target — outside every worktree, touching no tracked file, exit 0. **Reproducing a count is not validating a suite**, and whether 405 executed cases plus 11 declared-unexecuted obligations can support a passing QA verdict is this round's judgment alone.
+- Next owner: **this task**, `qa` / `gemini`, `ready` and dispatchable, sole write scope `reports/qa/TASK-049-RELEASE-MERGE-EXECUTOR-QA.md`, no resource lock, branching from `integration/autonomous-runtime` with the branch point resolved inside its own worktree. It runs in parallel with TASK-053 and TASK-054 on the same target with pairwise-disjoint report paths, and **must not run in any of their execution contexts, nor in TASK-049's, nor in TASK-048's, TASK-050's, TASK-051's, or TASK-052's.** The superseded `ACT-026` statement read: **Next owner: nobody yet. TASK-049 must publish first, and TASK-049 is itself blocked.**
