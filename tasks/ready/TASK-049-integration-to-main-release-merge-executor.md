@@ -1,7 +1,7 @@
 ---
 task_id: TASK-049
 title: Integration-to-main release merge executor
-status: blocked
+status: ready
 owner_role: devops
 llm: claude
 branch: agent/claude/devops/task-049
@@ -20,7 +20,10 @@ dependencies:
     satisfied_under: TASK-047 recorded approved at LIN-INTEGRATION-AUTHORITY-REVIEW lineage_round 3, applied atomically to (TASK-046, review, round 1), (TASK-042, review, round 2), and (TASK-040, review, round 3). All three relations closed together.
   - task: TASK-046
     edge: integrated
-    satisfied: false
+    satisfied: true
+    satisfied_at: cf6333b10e628b3b61f3b7f8716b30923725067d
+    satisfied_by: ACT-027 consuming ingress entry seq 37, class branch_integrated
+    satisfied_under: The operator merged pull request 28 into integration/autonomous-runtime at cf6333b10e628b3b61f3b7f8716b30923725067d, mergedAt 2026-08-07T21:06:06Z. All three clauses of the integrated edge were checked individually - review_ready(TASK-046) at f148567d, its single pre_merge_gates entry review closed at approved at 78359ae2, and the branch merged into the integration branch per the approved order. This is this task's ONLY scheduling dependency besides the already-satisfied lineage gate_passed edge, which is why this record becomes ready and TASK-048 does not. SATISFYING THIS EDGE SATISFIES NO ACTIVATION PREREQUISITE AND CLEARS NO EXTERNAL BLOCKER.
 required_gates:
   - review
   - security
@@ -122,24 +125,57 @@ scope_validation_applicability: >-
   It is this task's own branch point and is unrelated to review_target_base above; findings F-403
   and A-209 require the two to stay separate fields.
 scope_validation_note: >-
-  Branch from integration/autonomous-runtime AFTER TASK-046 is integrated, then resolve the
-  immutable branch point inside the worktree with git merge-base HEAD
-  integration/autonomous-runtime and pass that exact value to -BaseRef. Record the resolved value
-  in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main,
-  c325275, de3a8d6, f123c9a3, 49e3ff47, c95ce600, f148567d, or a review-diff base.
+  TASK-046 IS NOW INTEGRATED, so this instruction is executable. Branch from
+  integration/autonomous-runtime, which resolves to cf6333b10e628b3b61f3b7f8716b30923725067d as
+  read at ACT-027, then resolve the immutable branch point inside the worktree with git merge-base
+  HEAD integration/autonomous-runtime and pass that exact value to -BaseRef. The resolved value is
+  expected to be cf6333b if the branch is created from the current head and the head has not moved,
+  but it MUST be resolved inside the worktree rather than assumed from this note, because the
+  integration branch is mutable and this role does not control when it moves. Record the resolved
+  value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main,
+  c325275, de3a8d6, f123c9a3, 49e3ff47, 8250f236, c95ce600, f148567d, or a review-diff base.
 blocked_reason: >-
-  One integrated() edge is unsatisfied. integrated(TASK-046) requires the operator to merge the
-  approved integration-authority amendment into integration/autonomous-runtime; its gate closed at
-  ACT-026 and it is now integrable, but no merge has occurred and no Orchestrator activation may
-  perform one. This task deliberately does NOT declare integrated(TASK-018): its module is a
-  self-contained release control-plane module under scripts/release/**, it imports no runtime
-  implementation and no contract root, and TASK-043 established the precedent that a script-scoped
-  devops task carries no toolchain edge. The lineage gate_passed edge IS satisfied.
+  NOT BLOCKED. Cleared at ACT-027. Every scheduling dependency this record declares is satisfied -
+  the LIN-INTEGRATION-AUTHORITY-REVIEW lineage_round 3 gate_passed edge at
+  78359ae2e3dc6e97fb3d60f0b847b84abed08fa6 since ACT-026, and integrated(TASK-046) at
+  cf6333b10e628b3b61f3b7f8716b30923725067d since ACT-027. This task deliberately does NOT declare
+  integrated(TASK-018): its module is a self-contained release control-plane module under
+  scripts/release/**, it imports no runtime implementation and no contract root, and TASK-043
+  established the precedent that a script-scoped devops task carries no toolchain edge. That
+  narrower dependency set is the whole reason this record is ready while TASK-048, which declares
+  three integrated() edges, is not. THE SUPERSEDED ACT-026 VALUE READ - One integrated() edge is
+  unsatisfied. integrated(TASK-046) requires the operator to merge the approved
+  integration-authority amendment into integration/autonomous-runtime; its gate closed at ACT-026
+  and it is now integrable, but no merge has occurred and no Orchestrator activation may perform
+  one. The lineage gate_passed edge IS satisfied.
+readiness_qualification: >-
+  READY AS A DORMANT IMPLEMENTATION ONLY, AND THAT QUALIFICATION IS THE MOST IMPORTANT SENTENCE ON
+  THIS RECORD. ready here means exactly one thing - a scheduler may dispatch this task's owner to
+  write source that CANNOT ACT. It does not mean this executor may run, may be activated, may be
+  configured, may be credentialed, or may perform, attempt, or simulate any merge. NOT ONE
+  ACTIVATION PREREQUISITE IS SATISFIED - the approved MergeExecutorActivationRecord still lacks
+  implementationReview, which TASK-053 alone may produce; implementationSecurityReview, which
+  TASK-054 alone may produce; negativeCapabilityTestAttestation, which TASK-055 alone may validate;
+  requiredGitHubPolicyProfile with its immutable digest; and policyAttestorTrustRoot. Five of the
+  seven immutable members do not exist. NOT ONE EXTERNAL CONTROL-PLANE BLOCKER IS CLEARED - the
+  exact AGENTS.md amendment is unauthored and only a human may author it, main and
+  integration/autonomous-runtime are both unprotected, the repository ruleset list is empty, no
+  required checks are pinned to their expected App sources, no bypass-actor set is configured, the
+  two least-privilege executor GitHub Apps and their token broker do not exist, the external
+  evidence store does not exist, and no RepositoryPolicyAttestor with its pinned observer principal
+  set, signing key, trust root, and revocation service is provisioned. Round 3 read the live
+  control plane and recorded that state; ACT-027 read no policy surface and provisioned,
+  configured, requested, and simulated nothing. UNDER dormancy_contract THE ACTIVATION RECORD IS
+  INVALID, admit RETURNS AuthorityNotActivated, AND NO MERGE SIDE EFFECT MAY OCCUR. This record's
+  own exit_condition said in advance that reaching ready never implies any of the above, and
+  reaching it has not changed that.
 exit_condition: >-
-  TASK-046 is integrated into integration/autonomous-runtime with every gate in its own
-  pre_merge_gates closed. At that point this task is ready and dispatchable AS A DORMANT
-  IMPLEMENTATION under dormancy_contract above. It is NOT then active, and reaching ready never
-  implies that any activation prerequisite or external blocker is satisfied.
+  DISCHARGED at ACT-027. TASK-046 is integrated into integration/autonomous-runtime at
+  cf6333b10e628b3b61f3b7f8716b30923725067d with every gate in its own pre_merge_gates closed, so
+  this task is now ready and dispatchable AS A DORMANT IMPLEMENTATION under dormancy_contract
+  above. It is NOT active, and reaching ready did not imply and does not imply that any activation
+  prerequisite or external blocker is satisfied - see readiness_qualification, which enumerates the
+  five missing activation-record members and the unprovisioned control plane individually.
 ---
 
 # TASK-049: Integration-to-main release merge executor
@@ -226,4 +262,7 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - Verification:
 - Known risks:
 - **Created `blocked` at `ACT-026`**, on the `LIN-INTEGRATION-AUTHORITY-REVIEW` `lineage_round` 3 `approved` verdict at `78359ae2e3dc6e97fb3d60f0b847b84abed08fa6`. It is `blocked` rather than `ready` because `integrated(TASK-046)` is unsatisfied, and it must not be released until it is.
-- Next owner: nobody yet. The operator owns the merge that satisfies `integrated(TASK-046)`.
+- **Transition at `ACT-027`: `blocked` → `ready`, on ingress entry `seq` 37, class `branch_integrated`.** The operator merged pull request 28 into `integration/autonomous-runtime` at **`cf6333b10e628b3b61f3b7f8716b30923725067d`**, satisfying `integrated(TASK-046)` — this record's **only** scheduling dependency besides the lineage `gate_passed` edge satisfied at `ACT-026`. All three clauses of the `integrated` edge were checked individually rather than granted on the strength of the merge existing. **`ACT-027` merged nothing and simulated nothing; it consumed the fact.**
+- **THIS RECORD IS READY AS A DORMANT IMPLEMENTATION AND AS NOTHING ELSE.** No activation prerequisite is satisfied and no external control-plane blocker is cleared. **Five of the seven immutable `MergeExecutorActivationRecord` members do not exist** — `implementationReview` (TASK-053 alone), `implementationSecurityReview` (TASK-054 alone), `negativeCapabilityTestAttestation` (TASK-055 alone), `requiredGitHubPolicyProfile` with its digest, and `policyAttestorTrustRoot`. The `AGENTS.md` amendment is unauthored and only a human may author it. `main` and `integration/autonomous-runtime` are unprotected, the ruleset list is empty, and no `RepositoryPolicyAttestor` is provisioned. Under `dormancy_contract` the activation record is invalid, `admit` returns `AuthorityNotActivated`, and **no merge side effect may occur.** See `readiness_qualification`, which enumerates each one. **The owner must write source that cannot act, must not provision, request, configure, or simulate any control-plane state, and must not assert that any prerequisite is met.**
+- **Why this record is `ready` and TASK-048 is not, stated because the same merge produced both outcomes.** This record declares one `integrated()` edge and TASK-048 declares three; the merge satisfied the one they share and neither of the other two. TASK-048 stays `blocked` on `integrated(TASK-018)` and `integrated(TASK-003)`.
+- Next owner: **`devops` / `claude` for this task**, `ready` and dispatchable, `scripts/release/integration-merge/**`, no resource lock, branching from `integration/autonomous-runtime` at `cf6333b10e628b3b61f3b7f8716b30923725067d` with the branch point resolved inside its own worktree. The superseded `ACT-026` statement read: **Next owner: nobody yet. The operator owns the merge that satisfies `integrated(TASK-046)`** — which the operator has now performed.
