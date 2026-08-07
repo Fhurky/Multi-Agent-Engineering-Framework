@@ -23,11 +23,49 @@ gate_tasks:
   - task: TASK-045
     gate: review
     round: 1
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 18cbdfadf3d55e94bbc88bacadfb8adc8d3bf159
+    relation_status: closed
     gate_class: point
     retrospective: false
     gate_lineage: LIN-CI-EVIDENCE-REVIEW
     lineage_round: 1
+gate_status: >-
+  CLOSED. The review gate's status is the verdict recorded at its highest round, which is round 1
+  and records approved at 18cbdfadf3d55e94bbc88bacadfb8adc8d3bf159 on agent/gpt/reviewer/task-045,
+  artifact reports/code-review/TASK-043-CI-EVIDENCE-REVIEW.md, published as pull request 26. Under
+  gate-round rule 3 a gate is closed when its highest round records approved, and this is the
+  second gate relation ever closed in this graph after the eight LIN-ARCH-REVIEW round-8 relations,
+  and the first ever closed at a lineage's first round. The verdict was authored by TASK-045 and is
+  transcribed here by the Orchestrator; this role produces no verdict and closed nothing on its own
+  authority.
+round_1_verdict: >-
+  approved, recorded by TASK-045 at 18cbdfadf3d55e94bbc88bacadfb8adc8d3bf159, published as pull
+  request 26, artifact reports/code-review/TASK-043-CI-EVIDENCE-REVIEW.md, 126 lines. One verdict
+  applied to the single relation this task carries. NO FINDING OF ANY SEVERITY WAS RECORDED - the
+  first report in this graph to record none, stated explicitly in its own findings table rather
+  than omitted. All twelve scope items are met. F-041-03 is recorded resolved. The reviewer
+  executed the assertion rather than reading it - 82 offline assertions passing, five constructed
+  full-entry-point cases each exiting 4 on zero check runs and on skipped, cancelled, timed_out,
+  and neutral, and live demonstrations returning exit 0 for ec533fb and for this task's own head
+  and exit 4 with E_NO_CHECK_RUNS for 5e5fc8f and 296b14f. It independently corroborated GitHub
+  Actions incident qcvjkzcs7j74 from the status feed and enumerated 102 repository workflow runs
+  with zero on 2026-08-06. It states that pull request 24 may be merged with respect to this review
+  relation, that it does not merge it, and that it approves no other relation or lineage.
+round_1_verdict_note: >-
+  The verdict is recorded here by the Orchestrator and was authored by TASK-045. This role
+  transcribes a gate owner's judgment and never produces, softens, or anticipates one. No finding
+  was created, resolved, re-dispositioned, merged, or split by ACT-023, and the F-041-03
+  disposition is TASK-045's rather than this role's.
+integrable: true
+integrable_reason: >-
+  review is this task's only declared pre_merge_gate and its only required_gate, and that relation
+  is now CLOSED at approved. Under the integrated edge definition this record is review_ready with
+  every pre-merge gate closed, so PULL REQUEST 24 MAY BE MERGED. ACT-023 did not merge it, did not
+  modify it, and did not comment on or approve it: the merge into integration/autonomous-runtime is
+  a separate externally visible operation performed by the operator, and no Orchestrator activation
+  may perform it. Performing it produces a branch_integrated ingress fact for a later activation
+  and is what moves this record to done.
 parent_task: TASK-001
 published_commit: 37a48249c03509e929fed2c8d27a1ff4f152f8db
 published_branch: agent/claude/devops/task-043
@@ -109,10 +147,17 @@ authored_delta: >-
   scripts/setup/**, docs/**, src/**, tests/**, reports/**, or tasks/** appears in the delta,
   which is the exclusion set this record made load-bearing.
 integration_state: >-
-  NOT INTEGRABLE. review is declared in pre_merge_gates and the relation is open with no verdict
-  at any round. ACT-022 neither merged, modified, closed, reopened, commented on, nor approved
-  pull request 24, and no Orchestrator activation may perform that merge. Pull request 24 must
-  not be merged before TASK-045 records a passing verdict.
+  GATE CLOSED, NOT YET INTEGRATED. As of ACT-023 the review relation is closed at approved, so the
+  condition that blocked the merge is discharged and pull request 24 may be merged. It has not
+  been. There is no BranchIntegrated fact for this task, no content is merged, the branch
+  agent/claude/devops/task-043 is ahead of integration/autonomous-runtime, and this record stays
+  in review rather than moving to done, because done requires every gate closed AND the task
+  integrated. ACT-023 neither merged, modified, closed, reopened, commented on, nor approved pull
+  request 24. The superseded ACT-022 value read - NOT INTEGRABLE. review is declared in
+  pre_merge_gates and the relation is open with no verdict at any round. ACT-022 neither merged,
+  modified, closed, reopened, commented on, nor approved pull request 24, and no Orchestrator
+  activation may perform that merge. Pull request 24 must not be merged before TASK-045 records a
+  passing verdict.
 branch_point_of: integration/autonomous-runtime
 scope_validation_base: 8a4fe763d2f7819bf979f9a70c26993baa1d86c6
 scope_validation_applicability: applicable and resolved at ACT-022, read with git merge-base 37a48249c03509e929fed2c8d27a1ff4f152f8db integration/autonomous-runtime. It coincides with review_target_base for this record because this task's branch point and the base of the delta under review are the same commit; the two fields remain separately declared and separately resolved, because findings F-403 and A-209 required them to stay separate questions rather than one shared value, and a coincidence of value is not a merger of questions.
@@ -215,4 +260,8 @@ Maintained by the Orchestrator under TASK-013 from the DevOps owner's commit, pu
 - **Transition at `ACT-022`:** `ready` → `review` on ingress entry `seq` 30, class `artifact_published`. **`review_ready(TASK-043)` is satisfied on all three `runtime`-class conditions independently** — immutable commit, pushed branch, and an open pull request — so publication-classes rule 2, which states that a `local-only` publication never satisfies this edge for a `runtime`-class task, **could have blocked it and did not have to**. TASK-045 moved `blocked` → `ready` on that edge. **No gate was closed, no verdict was authored, and F-041-03 keeps the disposition TASK-041 recorded.**
 - **Why `remediation_completed` was not the class, stated rather than assumed.** This commit is a remediation owner publishing the fix for a routed finding, which matches a class **above** `artifact_published` in precedence. `MC-016` states the rule that resolves it: the classes are separated by the work the fact triggers, `remediation_completed`'s work is to route the fix to a new gate task in the next round, and that round — TASK-045 — already exists, created by `ACT-021`. Only `artifact_published`'s work remained.
 - **Relationship to TASK-019, recorded and deliberately not acted on.** TASK-018's head `296b14f` is in the same zero-check-run condition, and TASK-019's own round carries the same obligation to judge an absent run, placed on it by `ACT-018`. If this task's determination generalizes it would bear on that round too. **TASK-019's record, target, base, round, relations, scope, and acceptance criteria were not changed by `ACT-021`**, because its round is independent, its target is immutable, and retargeting or amending a dispatched round on the strength of another lineage's finding is what findings F-403 and A-209 exist to prevent. The relationship is recorded here and in the activation log so a later reader finds it rather than rediscovering it.
-- **Next owner: reviewer / gpt via TASK-045**, `LIN-CI-EVIDENCE-REVIEW` round 1, **`ready` and dispatchable at `ACT-022`** on the satisfied edge. Its target is `37a48249c03509e929fed2c8d27a1ff4f152f8db` over base `8a4fe763d2f7819bf979f9a70c26993baa1d86c6`. The alternative branch — the **user**, on an enumerated human prerequisite — is closed for this round, because the owner returned none.
+- **Round 1 recorded `approved` at `ACT-023`**, at `18cbdfadf3d55e94bbc88bacadfb8adc8d3bf159` on `agent/gpt/reviewer/task-045`, published as **pull request 26** with two passing GitHub check runs of its own. **The relation `(TASK-043, review, round 1)` is CLOSED** — the second gate relation ever closed in this graph and the first ever closed at a lineage's first round. **`F-041-03` is `resolved`**, in the reviewer's own words and as the reviewer's disposition rather than this role's. **No finding of any severity was recorded**, and all twelve scope items were judged `met`. The reviewer **ran** the assertion rather than reading it, constructing its own zero-check-run and non-`success` cases and reproducing the documented demonstrations at the exact commit identifiers, and it independently corroborated the GitHub Actions incident determination from the status feed and from a 102-run enumeration with zero runs on 2026-08-06.
+- **Two limitations the reviewer recorded and deliberately did not make findings**, carried here as the reviewer's statements and routed to nobody, because a limitation a gate owner declines to promote is not one this role may promote. First, the GitHub REST surface cannot fully distinguish a never-created run from a created-then-deleted one in a user-owned repository with no audit log, so the determination rests on strong causal evidence rather than a per-event delivery receipt. Second, the offline suite is not called by the human-controlled baseline workflow and the assertion is not itself a required status check; neither was an acceptance criterion of this task, and both are control-plane changes outside agent authority. The reviewer additionally records that `5e5fc8f` and `296b14f` still have no checks and that **their** rounds must not treat absence as success.
+- **Transition at `ACT-023`: gate CLOSED, `integrable: false` → `true`, lifecycle placement unchanged at `review`.** **Pull request 24 may now be merged**, by the operator, and **`ACT-023` did not merge it**. `done` additionally requires integration, which has not occurred; the merge is a separate externally visible operation that produces its own `branch_integrated` ingress fact for a later activation.
+- **The reviewer's own lock statement and the durable state are both recorded and neither overwrites the other.** The report records `Task lock released: no, per the user's explicit instruction`; the shared lock directory read directly at `ACT-023` holds exactly one entry, `task-013.json`, and no `task-045.json`, so `ci-toolchain` and every per-task lock other than the Orchestrator's are free. Release happened outside that execution, which is the same divergence this graph has recorded since TASK-021.
+- **Next owner: the user / operator**, for the merge of pull request 24 into `integration/autonomous-runtime` — **permitted for the first time and not performed here.** The superseded statement, from `ACT-022`, read: **Next owner: reviewer / gpt via TASK-045**, `LIN-CI-EVIDENCE-REVIEW` round 1, **`ready` and dispatchable at `ACT-022`** on the satisfied edge. Its target is `37a48249c03509e929fed2c8d27a1ff4f152f8db` over base `8a4fe763d2f7819bf979f9a70c26993baa1d86c6`. The alternative branch — the **user**, on an enumerated human prerequisite — is closed for this round, because the owner returned none.

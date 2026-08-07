@@ -1,7 +1,7 @@
 ---
 task_id: TASK-044
 title: Independent review of the second integration-authority amendment, round 2
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-044
@@ -20,7 +20,11 @@ gate_for:
   - task: TASK-042
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 6f7f0edb63615d7f143dd6c59750a5ea7db701fc
+    remediated_by: TASK-046
+    revalidated_by: TASK-047
+    relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
@@ -28,7 +32,11 @@ gate_for:
   - task: TASK-040
     gate: review
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 6f7f0edb63615d7f143dd6c59750a5ea7db701fc
+    remediated_by: TASK-046
+    revalidated_by: TASK-047
+    relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
@@ -36,6 +44,58 @@ gate_for:
 parent_task: TASK-001
 publication_class: bootstrap
 supersedes: TASK-041
+recorded_verdict: >-
+  changes-required. ONE verdict applied ATOMICALLY to both relations - (TASK-042, review, round 1)
+  and (TASK-040, review, round 2) - which the report states applies "without a split outcome". Both
+  relations STAY OPEN and both are superseded by round 3 rather than rewritten. Round-1
+  dispositions - F-041-01 resolved, F-041-02 partially resolved, F-041-04 partially resolved, and
+  F-041-03 explicitly NOT re-dispositioned because TASK-043 is not judged by this round. Three new
+  findings - F-044-01, F-044-02, and F-044-03 - all Medium, all recorded blocking, all
+  architect-owned, and all routed to TASK-046. The report states that the Orchestrator "must not
+  create either executor implementation task" and that implementation authorization is denied for
+  both. It states affirmatively that it found NO path by which generic formal acceptance can
+  construct a merge plan and NO contract path by which the release executor can reach main other
+  than the exact-head pull-request merge API under authoritative branch protection. It records that
+  the live control plane is not activation-ready - GitHub returned "Branch not protected" for both
+  main and integration/autonomous-runtime, the ruleset list is empty, and no RepositoryPolicyAttestor
+  artifact exists - and states that this is a correctly returned dependency rather than permission
+  to trust an absent control plane.
+published_commit: 6f7f0edb63615d7f143dd6c59750a5ea7db701fc
+published_branch: agent/gpt/reviewer/task-044
+published_remote_ref: refs/heads/agent/gpt/reviewer/task-044
+pull_request: 27
+publication: published
+publication_note: >-
+  Recorded by ACT-023 from the repository and the GitHub API rather than from the owner's
+  statement. The branch carries exactly one authored commit past its branch point, so the
+  head-binding rule had a single candidate and no authoring-ancestry commit to exclude. git
+  ls-remote origin refs/heads/agent/gpt/reviewer/task-044 resolves to
+  6f7f0edb63615d7f143dd6c59750a5ea7db701fc, and pull request 27 reports the same headRefOid, OPEN
+  against integration/autonomous-runtime, not a draft, MERGEABLE with mergeStateStatus CLEAN,
+  created 2026-08-07T09:11:18Z, changedFiles 1. All three bootstrap-class conditions hold
+  independently, so the rule 1 allowance was available and unused.
+target_bound_check_runs: >-
+  Present and successful, read from repos/Fhurky/Multi-Agent-Engineering-Framework/commits/
+  6f7f0edb63615d7f143dd6c59750a5ea7db701fc/check-runs at ACT-023. total_count 2, both completed
+  with conclusion success - security, check run id 92822851489, completed 2026-08-07T09:11:34Z, and
+  validate, check run id 92822851310, completed 09:11:36Z, both from app github-actions. gh pr
+  checks 27 independently reports both pass. The legacy combined-status endpoint returns state
+  pending with zero contexts; both surfaces were read. This is the sixth published head in this
+  graph to carry executed passing check runs and it is recorded as a fact about this commit and
+  nothing else.
+authored_delta: >-
+  1 path, 203 insertions, 0 deletions against the resolved branch point
+  8e6a22e1d4fa6fe8db440b9afa96444ee60db9a0, recomputed by ACT-023 with git diff --numstat. The
+  single path is reports/code-review/TASK-042-INTEGRATION-AUTHORITY-REVIEW-ROUND-2.md, which is
+  this task's entire declared write scope and its sole Expected artifacts entry. The out-of-scope
+  residue is empty by enumeration rather than by inference; no path under tasks/**, docs/**,
+  scripts/**, .github/**, src/**, or tests/** appears, so the reviewer did not touch the artifact
+  it judged.
+lock_state_note: >-
+  The report records that the TASK-044 lock "remains held for the Orchestrator handoff" and that it
+  was not released. The shared lock directory at C:/Users/furko/Desktop/mulit-llm/.git/agent-locks,
+  read directly at ACT-023, holds exactly one entry, task-013.json, and no task-044.json. Both facts
+  are recorded and neither overwrites the other; release happened outside this execution.
 exit_condition_satisfied_at: >-
   ACT-022. The superseded blocked_reason read - TASK-042 has not published. Its own dependency is
   satisfied and it is ready and dispatchable, so this task is one step from dispatchable; nothing
@@ -73,9 +133,9 @@ review_target_note: >-
   worktree; do not merge it into this branch to assemble the review. Re-derive every figure
   yourself under MC-011.
 branch_point_of: agent/gpt/reviewer/task-044
-scope_validation_base: git merge-base HEAD integration/autonomous-runtime
-scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet. It is this task's own branch point and is unrelated to review_target_base above, which belongs to the delta under review; findings F-403 and A-209 required the two to stay separate fields.
-scope_validation_note: Branch from integration/autonomous-runtime, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the report; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, de3a8d6, c95ce600, or a review-diff base.
+scope_validation_base: 8e6a22e1d4fa6fe8db440b9afa96444ee60db9a0
+scope_validation_applicability: applicable and resolved at ACT-023, superseding the reproducible expression git merge-base HEAD integration/autonomous-runtime that this record carried before the branch existed. It is this task's own branch point and is unrelated to review_target_base above, which belongs to the delta under review; findings F-403 and A-209 required the two to stay separate fields, and here they hold genuinely different values - 8e6a22e1 for the branch point and c95ce600 for the cumulative base of the delta judged.
+scope_validation_note: The owner created agent/gpt/reviewer/task-044 from the head of integration/autonomous-runtime, which had moved to 8e6a22e1d4fa6fe8db440b9afa96444ee60db9a0, and recorded that resolved value in the report. Prescription and execution agree, which is the outcome A-209 exists to check for. The owner ran scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 8e6a22e1d4fa6fe8db440b9afa96444ee60db9a0 and recorded pass with only its own report path changed; ACT-023 recomputed the same delta independently. TASK-045 branched from the same commit, which is a coincidence of scheduling and not a relation between the two rounds. Never pass origin/main, c325275, de3a8d6, c95ce600, 5e5fc8f, or a review-diff base.
 ---
 
 # TASK-044: Independent review of the second integration-authority amendment, round 2
@@ -104,7 +164,7 @@ TASK-041 recorded one durable verdict — `changes-required` at `LIN-INTEGRATION
 
 - **Judge the continuous-integration evidence for your own immutable target explicitly.** Round 1 recorded **F-041-03** because GitHub created zero check runs for `5e5fc8f`: an empty `statusCheckRollup`, a check-runs `total_count` of zero, and a combined status whose literal `pending` is GitHub's default for zero contexts rather than a running check. Read the check runs for your target at its exact commit identifier and state what you find. **An unexecuted workflow is not a passing check, a `skipped` conclusion is not a `success`, and an empty rollup is an absence.** State what the evidence means for a verdict that would permit implementation tasks for two merge-capable components. This is the same obligation `ACT-018` placed on TASK-019 and `ACT-020` placed on TASK-041, and it is the third consecutive round to carry it.
 - **Re-derive every figure from the target tree.** Under `MC-011`, inherit no count from TASK-042's record, from TASK-040's record, from this record, or from the round-1 report. **This record deliberately states no count of the module map, the edge set, the level partition, the ADR sequence, the pair set, or the record set.**
-- **Judge whether round 1's `met` items survived.** Round 1 judged twenty-two of twenty-six scope items `met`. TASK-042 was told not to re-author or regress them. Verify that independently rather than accepting it: a regression in a previously satisfied property is a blocking finding for this round, and a majority of satisfied checks is not a verdict.
+- **Judge whether round 1's `met` items survived.** Round 1's scope table holds twenty-six rows, of which **20 are `met` and 6 are `not met`** — corrected in place at `ACT-023` under **`MC-018`**, which records that this bullet, and the `ACT-021` statement it was written from, said "twenty-two of twenty-six". **This round recounted the predecessor rather than inheriting either figure**, as `MC-011` requires and as the correction now records, and reached 20 and 6 independently. TASK-042 was told not to re-author or regress them. Verify that independently rather than accepting it: a regression in a previously satisfied property is a blocking finding for this round, and a majority of satisfied checks is not a verdict.
 - **Judge whether F-041-04's obligation was met by the amendment and by its own publication.** The finding required owner verification to be bound to the published head, both as a contract obligation and in TASK-042's own handoff. Both halves are yours to check.
 - **Judge a returned dependency on its merits.** TASK-042 was told that if GitHub cannot expose complete branch-protection and bypass-actor state under an acceptable read boundary, the contract must fail closed and **return** the unresolved control-plane dependency rather than claim activation is implementable. A correctly returned dependency is a resolution of F-041-02, not a failure to resolve it — and an amendment that claims constructibility it does not have is a blocking finding.
 
@@ -160,13 +220,26 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
+- **Commit or pull request:** one authored commit, `6f7f0edb63615d7f143dd6c59750a5ea7db701fc` `review(TASK-044): assess corrected integration authority`, on `agent/gpt/reviewer/task-044` over branch point `8e6a22e1d4fa6fe8db440b9afa96444ee60db9a0`. Pushed to `origin` and opened as **pull request 27**, `OPEN` against `integration/autonomous-runtime`, head `6f7f0edb`, not a draft, `MERGEABLE` / `CLEAN`. It is ingress entry **`seq` 33**, class `gate_verdict_recorded`.
+- **The verdict: `changes-required`, applied atomically to both relations.** `(TASK-042, review, round 1)` and `(TASK-040, review, round 2)` **stay open together** and are superseded by round 3 at TASK-047; neither is rewritten. The report states the verdict "applies atomically and without a split outcome to both".
+- **The report's own instruction to this role, quoted rather than paraphrased**: the Orchestrator "**must not create either executor implementation task**: neither the runtime-owned task-integration executor nor the DevOps-owned integration-to-main release executor may proceed." Its handoff repeats it: "The Orchestrator must not create runtime or DevOps executor implementation tasks on this verdict." **`ACT-023` created neither, and created no validation task for either.**
+- **Round-1 dispositions, recorded as the reviewer recorded them.** **F-041-01 `resolved`** — admission now requires the authoritative verdict itself to pass and permits only exact matching `accepted-blocking-security-risk/v1` evidence in the security domain, with the reviewer's own independently constructed counterexample returning `PreMergeGateNotPassing` before durable intent or any merge call. **F-041-02 `partially resolved`** — the normative contract correctly returns the attestor as an unprovisioned human-controlled dependency and fails closed, but the component diagram contradicts the boundary; residue tracked by **F-044-02**. **F-041-04 `partially resolved`** — the exact-head obligation is now a general contract requirement and the target has one authored commit with no later content commit, but the owner's own evidence omits working directories, start/end times, and exit codes; residue tracked by **F-044-03**. **F-041-03 is explicitly not re-dispositioned here and TASK-043 is not judged**; its disposition is TASK-045's, recorded `resolved` in the same consumed range.
+- **Three new findings, all `Medium`, all recorded blocking, all `architect`-owned, all routed to TASK-046.** **F-044-01** — policy-control inputs have two incompatible result constructors, so the "closed, total, mutually exclusive" `MergeAdmissionResult` is not deterministically classifiable and `HUMAN-004`'s third exception boundary is not reproducible. **F-044-02** — `diagrams/architecture/runtime-components.md:155-158` reintroduces executor-side policy reads that the F-041-02 correction removes. **F-044-03** — TASK-042's own publication does not satisfy the exact-head evidence schema the amendment itself imposes at `POST-GATE-MERGE-EXECUTORS.md:502`. The report states: "All three findings are architect-owned. None is routed to the Orchestrator as its responsible owner."
+- **Two negative statements the report makes affirmatively, quoted because they matter as much as the findings.** On the independent-gate path: "I found no path in the corrected executor contract by which generic formal acceptance of a non-security review, QA, performance, documentation, deployment, or rollback verdict can construct a merge plan." On the release surface: "I found no contract path by which the release executor can reach `main` other than the ordinary exact-head pull-request merge API under authoritative branch protection and required checks," and the three findings "do not create a second mutation mechanism."
+- **The live control plane was read and recorded as not activation-ready.** GitHub returned "Branch not protected" for both `main` and `integration/autonomous-runtime`, the repository ruleset list was empty, and no non-document `RepositoryPolicyAttestor` artifact exists in the target, so "either executor must therefore construct no plan." The report states plainly that this "is a correctly returned dependency, not permission to trust an absent control plane," and that it "does not interpret those administrative facts as authorization to configure or alter them." **`ACT-023` provisioned nothing and configured nothing.**
+- **Every figure was re-derived from the target tree under `MC-011` and none was inherited.** 43 TASK-named Markdown paths and 41 parsed unique records at the target; 74 `gate_tasks`, 74 `gate_for`, 74 exact mirrored tuples, nine lineages; 629 relative file links and 54 fragment links with zero broken; ADRs contiguous `0001`–`0043`; 10 module rows, 12 nodes, 19 unique edges, five levels, two contract roots with no path between them. **Those are figures about the target tree at `e33a62be`, which descends from `5e5fc8f` and predates the `ACT-021` effects; the committed tree at `ACT-023` holds 47 records, 80 and 80 pairs, and ten lineages.** Both are accurate about different trees, which is the `MC-011` staleness in its declared form, and the reviewer states its own derivation rather than inheriting one.
+- **It recounted round 1's scope table rather than inheriting a number, and that recount is what produced `MC-018`.** The report states: "TASK-044 says round 1 marked 22 of 26 items met. The predecessor report's actual 26-row table contains 20 met and 6 not met. Under `MC-011`, I inherited neither number." Its own recount returns **21 `met` and 5 `not met`**, with one formerly-`met` total-result row regressing under F-044-01 and two formerly-non-`met` rows now `met`. It adds: "The arithmetic is explanatory only; no majority determines the verdict."
+- **One qualification the reviewer records about the check-run evidence for its own target**, carried here because it is a limitation the reviewer stated rather than a finding it raised: the two successful check runs are attached to `head_sha` `e33a62be`, but the `pull_request` workflows checked out GitHub's synthetic merge commit `c7a7c1a2127babd32f487e94d2783391ab9fe0f4`, so "the exact evidence is therefore successful PR-merge-result validation associated with `e33a62be`, not a claim that Actions checked out raw `e33a62be`." Independent local exact-target checks cover the raw immutable tree.
+- **Verification, as the owner recorded it.** At the exact target: architect assignment; architect scope validation against `5e5fc8f` with 19 changed files; `git diff --check` over both `5e5fc8f..e33a62be` and `c95ce600..e33a62be`; framework validation for 13 roles; orchestration unit checks; repository security checks; the integration-order fixture with one content step, zero conflicts, target/result tree equality, and the expected legacy 19-conflict regression; the link, fragment, ADR, task/gate/lineage, and topology enumerations; zero forbidden changed paths with protected and lineage objects identical; and remote, PR, target, parent, and one-authored-commit identity — all **PASS**. On its own branch: reviewer scope validation against `8e6a22e1` with only its report path changed, `git diff --cached --check`, framework, orchestration, and repository checks — all **PASS**.
+- **Verification the Orchestrator performed independently at `ACT-023`, not inherited:** the commit identity and its single parent `8e6a22e1…`; the branch and remote ref both resolving to it; pull request 27's `headRefOid`, state, base, draft flag, mergeability, and creation time; the 1-path / 203-insertion authored delta against `8e6a22e1`; the empty out-of-scope residue; both check runs at that exact identifier with their ids and completion times, plus `gh pr checks 27`; the zero-context combined status; `content_hash` `05de46655a6cec4c70dddc70f2cb6d499d367a2c2ca7522949a4e633070c08e5`; `fact_id` `82c847256bf464ee53f96b4413066dbe14bbb7da03831c8103c75e626bc28f98`; the round-1 report's 26-row scope table recounted as 20 `met` and 6 `not met`; and, as controls for the hashing procedure, the byte-for-byte reproduction of `seq` 29's, `seq` 30's, and `seq` 31's `fact_id`. **The report was read from the Git object at the target commit and not from any dispatch hint.**
+- **Known risks, as the owner recorded them:** F-044-01, F-044-02, and F-044-03 are the remaining blockers, and implementation authorization is denied for both executors. No TASK-043 judgment, no pull-request change, no merge or push, no task-state edit, and no lock release was performed by the reviewer.
+- **The task lock.** The report records that the TASK-044 lock "remains held for the Orchestrator handoff". The later durable fact is that the shared lock directory at `ACT-023` holds exactly one entry, `task-013.json`, and no `task-044.json`. Both are recorded and neither overwrites the other; no lock was claimed or released by this activation.
+- **Independence.** TASK-042's owner and this task's owner are both `gpt` while `assignments.architect.llm` stands at `gpt`, so the cross-family preference did not apply and **execution-context separation was the only guarantee**. The report records a separate worktree isolated from the primary checkout and from the architect's worktree, and reading the target through immutable Git objects and a temporary detached worktree that was never merged into this branch. **No script enforces the separation.**
 - **Blocked at `ACT-021`:** `review_ready(TASK-042)` was unsatisfied because TASK-042 had not published.
 - **Unblocked at `ACT-022`:** `review_ready(TASK-042)` is satisfied at `e33a62beb8198162db7c37f4e9740269e1454d2d`, ingress entry `seq` 31, class `artifact_published`. `blocked` → `ready`. **Target `e33a62beb8198162db7c37f4e9740269e1454d2d` over base `c95ce600b40ab2dbac73da44a21bbb7a207c444d`, both pinned and immutable. Pull request 22 and pull request 25 must not be merged before this round records a passing verdict**, and no implementation task for either merge executor may be created before it — there are **two** of them when they come, owned separately by `runtime` and `devops`, plus the reviewer, security, QA, and failure-injection validations `HUMAN-004` names.
 - **Your two-relation cohort is unchanged and was deliberately not merged with TASK-045's.** You carry `(TASK-042, review, round 1)` and `(TASK-040, review, round 2)` at `LIN-INTEGRATION-AUTHORITY-REVIEW` round 2, applied **atomically**. TASK-043 published in the same consumed range as TASK-042, which made joining the two lineages look tidier than it did at `ACT-021`; `ACT-022` declined, because a gate task holding two `review_ready` dependencies of unfixed order makes `gate_class` non-computable and produces the `aggregate` plus `retrospective: false` combination this graph records as absent. Both your relations stay `point`. **TASK-043's artifact is not yours to judge.**
 - **Three dependencies the amendment returns rather than resolves, and the Orchestrator acted on none of them — which is a fact you should verify rather than assume.** TASK-042 returns the exact `AGENTS.md` amendment text; `AGENTS.md` is unchanged in the target and in the repository. It returns the exact `tasks/**`-owned `gate_passed` narrowing; **`ACT-022` deliberately did not apply it**, because applying it on the strength of an unjudged amendment would place this role's own unreviewed edit inside the delta you are about to judge, so the graph's `gate_passed` definition is exactly what round 1 evaluated. And it returns the human-controlled `RepositoryPolicyAttestor` as an unresolved control-plane dependency that fails closed as `PolicyObservationUnavailable`; **nothing was provisioned, no credential granted, no branch protection, ruleset, required check, or App configured.** Your own scope already states that a correctly returned dependency resolves F-041-02 and that a claim of constructibility the amendment does not have is blocking; **the same test applies to the other two returns.**
 - **Continuous-integration evidence exists for your target, which is new for this lineage.** `e33a62be` carries `total_count` 2 check runs, `validate` and `security`, both `success`, recorded at `ACT-022` from the API and by `gh pr checks 25`. **Read them yourself at that exact identifier.** Round 1's target `5e5fc8f` still carries **zero**, re-queried at `ACT-022` — so the condition F-041-03 names persists on TASK-040's own head even though it does not on TASK-042's, and your obligation to state what the evidence means for a verdict permitting two merge-capable components is unchanged and is the **third** consecutive round to carry it.
 - **One figure in TASK-042's own evidence is stale against the current record set, and it is recorded rather than resolved.** The owner's final-tree enumeration reports 41 unique task records, 74 `gate_tasks`, 74 `gate_for`, and nine lineages; the committed tree at `ACT-022` holds **45**, **77**, **77**, and **ten**. Both are accurate about different trees — the owner enumerated its own published target, which descends from `5e5fc8f` and predates the `ACT-021` effects that created TASK-042 … TASK-045 and `LIN-CI-EVIDENCE-REVIEW`. **This is the `MC-011` staleness in its declared form, and whether the amendment's own contract handles it correctly is your judgment**; the Orchestrator recorded both figures and decided nothing.
-- Next owner: orchestrator via TASK-013, to record the verdict and either route remediation or — only on a passing verdict — create the implementation tasks the amendment defines.
+- **Closed at `ACT-023`:** `ready` → `done`. The single durable verdict is recorded and applied atomically to both relations, **which stay open**; `done` describes this gate task, not the gates it carried. Round 3 is a **new** task, TASK-047, not a re-entry into this one.
+- **Next owner: architect / gpt for TASK-046**, `ready` and dispatchable on the satisfied `gate_recorded(TASK-044)` edge at `6f7f0edb63615d7f143dd6c59750a5ea7db701fc`, carrying **F-044-01**, **F-044-02**, and **F-044-03** together with the F-041-02 and F-041-04 residues, branching from `e33a62be`, and holding the free `architecture-docs` lock as its eleventh registered holder. **Reviewer / gpt for TASK-047** records `LIN-INTEGRATION-AUTHORITY-REVIEW` round 3 over **three** relations and is `blocked` until TASK-046 publishes. **Pull requests 22 and 25 must not be merged**, and **no implementation or validation task for either merge executor exists or may be created** until a round of this lineage records a passing verdict. The superseded statement read: Next owner: orchestrator via TASK-013, to record the verdict and either route remediation or — only on a passing verdict — create the implementation tasks the amendment defines.
