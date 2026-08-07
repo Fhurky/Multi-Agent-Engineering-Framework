@@ -1,7 +1,7 @@
 ---
 task_id: TASK-045
 title: Independent review of the target-bound continuous-integration evidence
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-045
@@ -11,7 +11,9 @@ write_scope:
 dependencies:
   - task: TASK-043
     edge: review_ready
-    satisfied: false
+    satisfied: true
+    satisfied_at: 37a48249c03509e929fed2c8d27a1ff4f152f8db
+    satisfied_by: ACT-022 consuming ingress entry seq 30, class artifact_published
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -25,12 +27,38 @@ gate_for:
     lineage_round: 1
 parent_task: TASK-001
 publication_class: bootstrap
-blocked_reason: TASK-043 has not published. Its own dependency is satisfied and it is ready and dispatchable, so this task is one step from dispatchable; nothing this task owns can shorten it.
-exit_condition: TASK-043 is review_ready under its declared runtime publication class, which requires an immutable published commit AND a pushed branch AND an open or updated pull request. A local-only publication does not satisfy this edge for a runtime-class task; an unavailable remote is a blocked outcome for TASK-043 rather than a local-only success, and in that case this task stays blocked. This task also does not become dispatchable if TASK-043 returns an enumerated human prerequisite instead of publishing; that outcome is a dependency_unsatisfiable handoff routed to the user, not a publication.
+exit_condition_satisfied_at: >-
+  ACT-022. The superseded blocked_reason read - TASK-043 has not published. Its own dependency is
+  satisfied and it is ready and dispatchable, so this task is one step from dispatchable; nothing
+  this task owns can shorten it. The superseded exit_condition read - TASK-043 is review_ready
+  under its declared runtime publication class, which requires an immutable published commit AND a
+  pushed branch AND an open or updated pull request. A local-only publication does not satisfy this
+  edge for a runtime-class task; an unavailable remote is a blocked outcome for TASK-043 rather than
+  a local-only success, and in that case this task stays blocked. This task also does not become
+  dispatchable if TASK-043 returns an enumerated human prerequisite instead of publishing; that
+  outcome is a dependency_unsatisfiable handoff routed to the user, not a publication.
+  ACT-022 checked all four clauses individually rather than accepting the edge wholesale.
+  Immutable published commit - 37a48249c03509e929fed2c8d27a1ff4f152f8db, the head of
+  agent/claude/devops/task-043 and its only authored commit. Pushed branch - git ls-remote origin
+  refs/heads/agent/claude/devops/task-043 resolves to the same commit. Open pull request - number
+  24, OPEN against integration/autonomous-runtime, headRefOid equal to that commit, not a draft,
+  MERGEABLE and CLEAN. So the publication is published rather than local-only and the runtime-class
+  rule 2 that would have blocked this edge did not have to apply. Enumerated human prerequisite -
+  TASK-043 returned NONE, recording in pull request 24 that no member of its contingency set
+  applies, so the fourth clause is inapplicable rather than merely unmet.
 finding_context: F-041-03, High, recorded by TASK-041 at LIN-INTEGRATION-AUTHORITY-REVIEW lineage_round 1 at ec533fb5bb0055675fb81f72057d5636f7867db3, responsible owner role devops, routed to TASK-043 by ACT-021. Read the round-1 report at that commit; do not read the finding from TASK-043's record alone.
-review_target_commit: not yet published. The activation that consumes TASK-043's publication pins it, bound to the branch head rather than to any earlier authored commit.
-review_target_base: git merge-base agent/claude/devops/task-043 integration/autonomous-runtime
-review_target_applicability: applicable, declared as a reproducible expression because TASK-043's branch and artifact do not exist yet. It is TASK-043's own immutable branch point on integration/autonomous-runtime and the Orchestrator pins the resolved value at the activation that consumes the publication. It is deliberately not this task's own branch point and not origin/main.
+review_target_commit: 37a48249c03509e929fed2c8d27a1ff4f152f8db
+review_target_base: 8a4fe763d2f7819bf979f9a70c26993baa1d86c6
+review_target_applicability: applicable and resolved at ACT-022. It is TASK-043's own immutable branch point on integration/autonomous-runtime, read with git merge-base 37a48249c03509e929fed2c8d27a1ff4f152f8db integration/autonomous-runtime and independently confirmed as the single parent of TASK-043's only authored commit. It supersedes the reproducible expression git merge-base agent/claude/devops/task-043 integration/autonomous-runtime that this record carried before publication. It is deliberately not this task's own branch point, not origin/main, not de3a8d6, not 4615114, and not c95ce600.
+review_target_note: >-
+  The reviewed delta is git diff 8a4fe763d2f7819bf979f9a70c26993baa1d86c6
+  37a48249c03509e929fed2c8d27a1ff4f152f8db, which the Orchestrator recomputed as 4 paths, 1142
+  insertions, and 0 deletions, all created and all under scripts/ci/**. The target is bound to the
+  branch head, and here the head-binding rule had a single candidate because git log
+  8a4fe763..37a48249 returns exactly one commit. Read the target through Git object access or a
+  detached worktree; do not merge it into this branch to assemble the review. Re-derive the figures
+  yourself under MC-011 - this record and the Orchestrator's count are both statements about the
+  target tree, not substitutes for reading it.
 branch_point_of: agent/gpt/reviewer/task-045
 scope_validation_base: git merge-base HEAD integration/autonomous-runtime
 scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet. It is this task's own branch point and is unrelated to review_target_base above, which belongs to the delta under review; findings F-403 and A-209 required the two to stay separate fields.
@@ -111,5 +139,10 @@ Maintained by the Orchestrator under TASK-013 from the reviewer's report and pul
 - Commit or pull request:
 - Verification:
 - Known risks:
-- **Blocked at `ACT-021`:** `review_ready(TASK-043)` is unsatisfied because TASK-043 has not published.
-- Next owner: orchestrator via TASK-013, to record the verdict and either route remediation or close the relation.
+- **Blocked at `ACT-021`:** `review_ready(TASK-043)` was unsatisfied because TASK-043 had not published.
+- **Unblocked at `ACT-022`:** `review_ready(TASK-043)` is satisfied at `37a48249c03509e929fed2c8d27a1ff4f152f8db`, ingress entry `seq` 30, class `artifact_published`. `blocked` → `ready`. **Target `37a48249c03509e929fed2c8d27a1ff4f152f8db` over base `8a4fe763d2f7819bf979f9a70c26993baa1d86c6`, both pinned and immutable.**
+- **What TASK-043 published and what it did not, recorded so you read the target rather than this summary.** Four created files under `scripts/ci/**` — the entry point `assert-check-runs.ps1`, the pure verdict module `check-run-evidence.ps1`, `required-checks.json`, and the offline suite `test-check-run-evidence.ps1`. It **returned no human prerequisite**, recording that no member of its enumerated contingency set applies, so the branch of your obligations covering a returned prerequisite is inapplicable this round — but the branch covering **whether a returned prerequisite the evidence does not support was avoided** is not, and the converse question is live: judge whether the owner was right that none was required. **Its determination is that GitHub Actions incident `qcvjkzcs7j74` explains the absence**, not a repository configuration defect. That is the owner's determination; **yours is whether the evidence supports it**, and its own recorded limitation — that a created-then-deleted run is not fully distinguishable through the REST API for a user-owned repository with no audit log — is part of what you judge.
+- **Its own published head carries two passing check runs**, `validate` and `security`, `total_count` 2, both `success`, read by the Orchestrator from the API at `37a48249` and independently by `gh pr checks 24`. **Read them yourself at that exact identifier**; your record already required that an absence be recorded as an absence, and the converse duty applies here — a presence recorded by another role is not your reading of it.
+- **`5e5fc8f` and `296b14f` still carry zero check runs**, re-queried at `ACT-022`. TASK-043 records that the remedy is a new trigger event on branches its exclusions forbid it to touch, and it produced none. **The Orchestrator confirmed independently that nothing was re-run, cancelled, approved, or otherwise mutated on pull requests 20, 21, 22, or 23.**
+- **One observation TASK-043 recorded outside its own scope, passed through without a finding.** Pull request 21 also received no runs from two synchronize events **after** the incident resolved, and it is the only one of the four that is `mergeable: false` / `dirty`. The owner recorded the correlation as an observation and raised no finding because PR 21 is outside its scope. **The Orchestrator likewise raised none.** Whether it bears on the determination is yours.
+- Next owner: orchestrator via TASK-013, to record the verdict and either route remediation to `devops` in a new round of this lineage, route it to the **user** if the finding names a human-controlled control-plane action, or close the relation.

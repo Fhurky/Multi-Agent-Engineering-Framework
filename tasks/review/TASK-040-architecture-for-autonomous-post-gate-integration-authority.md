@@ -47,12 +47,29 @@ gate_status: >-
   and is pending. Round 1 recorded changes-required and is durable and superseded, never
   rewritten. This record is therefore NOT INTEGRABLE - review is in its pre_merge_gates and that
   gate now carries a durable failing verdict at round 1 and no verdict at round 2. Pull request
-  22 must not be merged.
+  22 must not be merged. At ACT-022 the round-2 gate owner TASK-044 became DISPATCHABLE, because
+  this record's remediation TASK-042 published at e33a62beb8198162db7c37f4e9740269e1454d2d and
+  satisfied review_ready(TASK-042). That is a change in the round-2 owner's readiness and NOT a
+  change in this gate's status, in this record's verdict, or in its integrability.
+round_2_owner_state: >-
+  TASK-044 is ready and dispatchable as of ACT-022. It records one verdict applied atomically to
+  two relations - (TASK-042, review, round 1) and (TASK-040, review, round 2) - over target
+  e33a62beb8198162db7c37f4e9740269e1454d2d and the pre-lineage base
+  c95ce600b40ab2dbac73da44a21bbb7a207c444d, which is this record's own immutable branch point and
+  is chosen so that the round sees the complete integration-authority amendment rather than only
+  the correction to it. Nothing about this record's artifact changed - 5e5fc8f remains the
+  immutable round-1 target forever, its authored delta, publication facts, bases, and the recorded
+  absence of any check run at that head are all unchanged, and the remediation is a new amendment
+  on a new branch judged at a new round rather than a re-authoring of this one. The round-1 target
+  5e5fc8f was re-queried at ACT-022 and still returns total_count 0 check runs, recorded again as
+  an absence and never as a success.
 integrable: false
 integrable_reason: >-
-  review is declared in pre_merge_gates and the relation is open. ACT-021 neither merged,
-  modified, closed, reopened, commented on, nor approved pull request 22, and no Orchestrator
-  activation may perform that merge. HUMAN-004's own text states that existing pull requests
+  review is declared in pre_merge_gates and the relation is open. Neither ACT-021 nor ACT-022
+  merged, modified, closed, reopened, commented on, or approved pull request 22, and no
+  Orchestrator activation may perform that merge. Pull request 25, which the TASK-042 owner
+  states supersedes pull request 22 in content without modifying or closing it, is likewise open
+  and unmerged and is equally gated. HUMAN-004's own text states that existing pull requests
   continue to obey their current gates and that the decision "does not retroactively authorize
   a gate bypass".
 parent_task: TASK-001

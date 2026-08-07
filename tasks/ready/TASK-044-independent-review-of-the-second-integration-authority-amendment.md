@@ -1,7 +1,7 @@
 ---
 task_id: TASK-044
 title: Independent review of the second integration-authority amendment, round 2
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-044
@@ -11,7 +11,9 @@ write_scope:
 dependencies:
   - task: TASK-042
     edge: review_ready
-    satisfied: false
+    satisfied: true
+    satisfied_at: e33a62beb8198162db7c37f4e9740269e1454d2d
+    satisfied_by: ACT-022 consuming ingress entry seq 31, class artifact_published
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -34,13 +36,42 @@ gate_for:
 parent_task: TASK-001
 publication_class: bootstrap
 supersedes: TASK-041
-blocked_reason: TASK-042 has not published. Its own dependency is satisfied and it is ready and dispatchable, so this task is one step from dispatchable; nothing this task owns can shorten it.
-exit_condition: TASK-042 is review_ready, with an immutable published commit on agent/gpt/architect/task-042 readable from the shared Git common directory. This task does not wait for TASK-042 to be integrated, because it is the pre-merge gate that lets it be integrated, and it does not wait for TASK-043, which is reviewed independently by TASK-045 in a separate lineage.
+exit_condition_satisfied_at: >-
+  ACT-022. The superseded blocked_reason read - TASK-042 has not published. Its own dependency is
+  satisfied and it is ready and dispatchable, so this task is one step from dispatchable; nothing
+  this task owns can shorten it. The superseded exit_condition read - TASK-042 is review_ready,
+  with an immutable published commit on agent/gpt/architect/task-042 readable from the shared Git
+  common directory. This task does not wait for TASK-042 to be integrated, because it is the
+  pre-merge gate that lets it be integrated, and it does not wait for TASK-043, which is reviewed
+  independently by TASK-045 in a separate lineage. ACT-022 checked the clauses individually.
+  Immutable published commit - e33a62beb8198162db7c37f4e9740269e1454d2d, the head of
+  agent/gpt/architect/task-042 and its only authored commit, readable from the shared Git common
+  directory, which is the whole bootstrap-class requirement; it is additionally pushed to origin
+  and opened as pull request 25, so all three bootstrap conditions hold independently and the
+  rule 1 allowance was available and unused. Not integrated, and this task correctly did not wait
+  for that - pull request 25 and pull request 22 are both open and unmerged, which is the state
+  this gate exists to change. Not waiting for TASK-043 - TASK-043 also published at ACT-022, in
+  the same consumed range, and that is a coincidence of scheduling rather than a relation; this
+  round carries no relation for TASK-043 and TASK-045 alone judges it.
 governance_decision_context: HUMAN-004, approved at 7dc07488a5b1cac8b1327ebd63bf747adbe03c68 on human/decision/human-004-autonomous-merge, artifact plans/decisions/HUMAN-004-autonomous-merge-authority.md. Read the decision at that commit; do not read it from TASK-040's transcription, from TASK-042's record, from this record, or from the round-1 report.
 predecessor_round: LIN-INTEGRATION-AUTHORITY-REVIEW lineage_round 1, recorded by TASK-041 at ec533fb5bb0055675fb81f72057d5636f7867db3, verdict changes-required, published as pull request 23, artifact reports/code-review/TASK-040-INTEGRATION-AUTHORITY-REVIEW.md.
-review_target_commit: not yet published. The activation that consumes TASK-042's publication pins it, bound to the branch head rather than to any earlier authored commit.
+review_target_commit: e33a62beb8198162db7c37f4e9740269e1454d2d
 review_target_base: c95ce600b40ab2dbac73da44a21bbb7a207c444d
-review_target_applicability: applicable and resolved at ACT-021 for the base, and pending for the target. The base is TASK-040's own immutable branch point on integration/autonomous-runtime, read with git merge-base agent/gpt/architect/task-040 integration/autonomous-runtime at ACT-021 and independently confirmed as the parent of d2c599696d25bc8938ef43514e8dc37aad70b047. It is deliberately the pre-lineage base rather than TASK-042's branch point, because this round carries a relation for TASK-040 as well as for TASK-042 and must therefore see the complete integration-authority amendment rather than only the correction to it. It is deliberately not de3a8d6, not 4615114, not origin/main, and not 5e5fc8f.
+review_target_applicability: applicable and resolved - the base at ACT-021 and the target at ACT-022, and both were re-derived from the repository at ACT-022 rather than carried forward. The base is TASK-040's own immutable branch point on integration/autonomous-runtime, read with git merge-base agent/gpt/architect/task-040 integration/autonomous-runtime and independently confirmed as the parent of d2c599696d25bc8938ef43514e8dc37aad70b047. It is deliberately the pre-lineage base rather than TASK-042's branch point, because this round carries a relation for TASK-040 as well as for TASK-042 and must therefore see the complete integration-authority amendment rather than only the correction to it. It is deliberately not de3a8d6, not 4615114, not 8a4fe763, not origin/main, and not 5e5fc8f.
+review_target_note: >-
+  The reviewed cumulative delta is git diff c95ce600b40ab2dbac73da44a21bbb7a207c444d
+  e33a62beb8198162db7c37f4e9740269e1454d2d, which the Orchestrator recomputed as 19 paths, 1106
+  insertions, and 91 deletions. TASK-042's own authored delta against its branch point 5e5fc8f is a
+  DIFFERENT delta over the same 19 paths - 457 insertions and 99 deletions - and the two are
+  recorded as separate provenance sets rather than one figure. The path-count coincidence is a
+  coincidence. The target is bound to the branch head, and here the head-binding rule had a single
+  candidate because git log 5e5fc8f..e33a62be returns exactly one commit; the round-1 target had
+  two authored commits and that is what produced F-041-04, so the condition that finding arose from
+  does not recur in this publication's shape. Unlike LIN-ARCH-REVIEW rounds 5 through 8, this
+  target reaches its predecessor by TRUE ANCESTRY - 5e5fc8f is the literal parent - so no
+  import-fidelity obligation arises. Read the target through Git object access or a detached
+  worktree; do not merge it into this branch to assemble the review. Re-derive every figure
+  yourself under MC-011.
 branch_point_of: agent/gpt/reviewer/task-044
 scope_validation_base: git merge-base HEAD integration/autonomous-runtime
 scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet. It is this task's own branch point and is unrelated to review_target_base above, which belongs to the delta under review; findings F-403 and A-209 required the two to stay separate fields.
@@ -65,9 +96,9 @@ TASK-041 recorded one durable verdict — `changes-required` at `LIN-INTEGRATION
 
 ## Review target
 
-**Not yet resolved.** The target is TASK-042's published head, bound to the branch head rather than to any earlier authored commit, pinned by the activation that consumes the publication. The base is **`c95ce600b40ab2dbac73da44a21bbb7a207c444d`**, resolved and immutable.
+**Resolved at `ACT-022`.** The target is **`e33a62beb8198162db7c37f4e9740269e1454d2d`**, TASK-042's published head on `agent/gpt/architect/task-042`, opened as **pull request 25**. The base is **`c95ce600b40ab2dbac73da44a21bbb7a207c444d`**. Both are immutable and pinned.
 
-**Bind the head.** The round-1 target had two authored commits and the second changed two in-scope documents, which is what produced finding F-041-04. If TASK-042's publication has more than one authored commit, the same rule applies, and the same finding is available if the owner's evidence does not cover the head.
+**The head-binding rule had a single candidate here, and that is a fact about this publication rather than a discharge of your obligation.** `git log 5e5fc8f..e33a62be` returns exactly one commit, so there is no second authored commit and no authoring-ancestry commit to exclude. The round-1 target had two, and the second changed two in-scope documents its owner's recorded verification did not cover — which is finding **F-041-04**. **That specific shape does not recur here, and the finding's general obligation does**: verify that the owner's declared target-dependent checks were rerun against **this** commit and that no content commit followed them, which is the obligation the amendment itself now claims to impose on every owner.
 
 ## Obligations this round carries that its scope list does not already imply
 
@@ -132,5 +163,10 @@ Maintained by the Orchestrator under TASK-013 from the reviewer's report and pul
 - Commit or pull request:
 - Verification:
 - Known risks:
-- **Blocked at `ACT-021`:** `review_ready(TASK-042)` is unsatisfied because TASK-042 has not published. **Pull request 22 must not be merged before this round records a passing verdict**, and no implementation task for either merge executor may be created before it — there are **two** of them when they come, owned separately by `runtime` and `devops`, plus the reviewer, security, QA, and failure-injection validations `HUMAN-004` names.
+- **Blocked at `ACT-021`:** `review_ready(TASK-042)` was unsatisfied because TASK-042 had not published.
+- **Unblocked at `ACT-022`:** `review_ready(TASK-042)` is satisfied at `e33a62beb8198162db7c37f4e9740269e1454d2d`, ingress entry `seq` 31, class `artifact_published`. `blocked` → `ready`. **Target `e33a62beb8198162db7c37f4e9740269e1454d2d` over base `c95ce600b40ab2dbac73da44a21bbb7a207c444d`, both pinned and immutable. Pull request 22 and pull request 25 must not be merged before this round records a passing verdict**, and no implementation task for either merge executor may be created before it — there are **two** of them when they come, owned separately by `runtime` and `devops`, plus the reviewer, security, QA, and failure-injection validations `HUMAN-004` names.
+- **Your two-relation cohort is unchanged and was deliberately not merged with TASK-045's.** You carry `(TASK-042, review, round 1)` and `(TASK-040, review, round 2)` at `LIN-INTEGRATION-AUTHORITY-REVIEW` round 2, applied **atomically**. TASK-043 published in the same consumed range as TASK-042, which made joining the two lineages look tidier than it did at `ACT-021`; `ACT-022` declined, because a gate task holding two `review_ready` dependencies of unfixed order makes `gate_class` non-computable and produces the `aggregate` plus `retrospective: false` combination this graph records as absent. Both your relations stay `point`. **TASK-043's artifact is not yours to judge.**
+- **Three dependencies the amendment returns rather than resolves, and the Orchestrator acted on none of them — which is a fact you should verify rather than assume.** TASK-042 returns the exact `AGENTS.md` amendment text; `AGENTS.md` is unchanged in the target and in the repository. It returns the exact `tasks/**`-owned `gate_passed` narrowing; **`ACT-022` deliberately did not apply it**, because applying it on the strength of an unjudged amendment would place this role's own unreviewed edit inside the delta you are about to judge, so the graph's `gate_passed` definition is exactly what round 1 evaluated. And it returns the human-controlled `RepositoryPolicyAttestor` as an unresolved control-plane dependency that fails closed as `PolicyObservationUnavailable`; **nothing was provisioned, no credential granted, no branch protection, ruleset, required check, or App configured.** Your own scope already states that a correctly returned dependency resolves F-041-02 and that a claim of constructibility the amendment does not have is blocking; **the same test applies to the other two returns.**
+- **Continuous-integration evidence exists for your target, which is new for this lineage.** `e33a62be` carries `total_count` 2 check runs, `validate` and `security`, both `success`, recorded at `ACT-022` from the API and by `gh pr checks 25`. **Read them yourself at that exact identifier.** Round 1's target `5e5fc8f` still carries **zero**, re-queried at `ACT-022` — so the condition F-041-03 names persists on TASK-040's own head even though it does not on TASK-042's, and your obligation to state what the evidence means for a verdict permitting two merge-capable components is unchanged and is the **third** consecutive round to carry it.
+- **One figure in TASK-042's own evidence is stale against the current record set, and it is recorded rather than resolved.** The owner's final-tree enumeration reports 41 unique task records, 74 `gate_tasks`, 74 `gate_for`, and nine lineages; the committed tree at `ACT-022` holds **45**, **77**, **77**, and **ten**. Both are accurate about different trees — the owner enumerated its own published target, which descends from `5e5fc8f` and predates the `ACT-021` effects that created TASK-042 … TASK-045 and `LIN-CI-EVIDENCE-REVIEW`. **This is the `MC-011` staleness in its declared form, and whether the amendment's own contract handles it correctly is your judgment**; the Orchestrator recorded both figures and decided nothing.
 - Next owner: orchestrator via TASK-013, to record the verdict and either route remediation or — only on a passing verdict — create the implementation tasks the amendment defines.
