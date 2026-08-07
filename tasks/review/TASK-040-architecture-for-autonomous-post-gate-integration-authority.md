@@ -37,35 +37,63 @@ gate_tasks:
   - task: TASK-044
     gate: review
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 6f7f0edb63615d7f143dd6c59750a5ea7db701fc
+    remediated_by: TASK-046
+    revalidated_by: TASK-047
+    relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
     lineage_round: 2
+  - task: TASK-047
+    gate: review
+    round: 3
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
+    lineage_round: 3
 gate_status: >-
-  OPEN. The review gate's status is the verdict recorded at its highest round, which is round 2
-  and is pending. Round 1 recorded changes-required and is durable and superseded, never
+  OPEN. The review gate's status is the verdict recorded at its highest round, which is round 3 and
+  is pending. Rounds 1 and 2 both recorded changes-required, at ec533fb5bb0055675fb81f72057d5636f7867db3
+  and at 6f7f0edb63615d7f143dd6c59750a5ea7db701fc, and both are durable and superseded, never
   rewritten. This record is therefore NOT INTEGRABLE - review is in its pre_merge_gates and that
-  gate now carries a durable failing verdict at round 1 and no verdict at round 2. Pull request
-  22 must not be merged. At ACT-022 the round-2 gate owner TASK-044 became DISPATCHABLE, because
-  this record's remediation TASK-042 published at e33a62beb8198162db7c37f4e9740269e1454d2d and
-  satisfied review_ready(TASK-042). That is a change in the round-2 owner's readiness and NOT a
-  change in this gate's status, in this record's verdict, or in its integrability.
-round_2_owner_state: >-
-  TASK-044 is ready and dispatchable as of ACT-022. It records one verdict applied atomically to
-  two relations - (TASK-042, review, round 1) and (TASK-040, review, round 2) - over target
-  e33a62beb8198162db7c37f4e9740269e1454d2d and the pre-lineage base
-  c95ce600b40ab2dbac73da44a21bbb7a207c444d, which is this record's own immutable branch point and
-  is chosen so that the round sees the complete integration-authority amendment rather than only
-  the correction to it. Nothing about this record's artifact changed - 5e5fc8f remains the
-  immutable round-1 target forever, its authored delta, publication facts, bases, and the recorded
-  absence of any check run at that head are all unchanged, and the remediation is a new amendment
-  on a new branch judged at a new round rather than a re-authoring of this one. The round-1 target
-  5e5fc8f was re-queried at ACT-022 and still returns total_count 0 check runs, recorded again as
-  an absence and never as a success.
+  gate now carries two durable failing verdicts and no verdict at round 3. Pull request 22 must not
+  be merged. The superseded ACT-022 value read - OPEN. The review gate's status is the verdict
+  recorded at its highest round, which is round 2 and is pending. Round 1 recorded changes-required
+  and is durable and superseded, never rewritten. This record is therefore NOT INTEGRABLE - review
+  is in its pre_merge_gates and that gate now carries a durable failing verdict at round 1 and no
+  verdict at round 2. Pull request 22 must not be merged. At ACT-022 the round-2 gate owner TASK-044
+  became DISPATCHABLE, because this record's remediation TASK-042 published at
+  e33a62beb8198162db7c37f4e9740269e1454d2d and satisfied review_ready(TASK-042). That is a change in
+  the round-2 owner's readiness and NOT a change in this gate's status, in this record's verdict, or
+  in its integrability.
+round_2_verdict: >-
+  changes-required, recorded by TASK-044 at 6f7f0edb63615d7f143dd6c59750a5ea7db701fc, published as
+  pull request 27, artifact reports/code-review/TASK-042-INTEGRATION-AUTHORITY-REVIEW-ROUND-2.md.
+  ONE verdict applied ATOMICALLY to (TASK-042, review, round 1) and to this record's round-2
+  relation; the report states it applies "without a split outcome" and that both relations remain
+  non-passing. Implementation authorization is DENIED for both executors for the second consecutive
+  round, and the report instructs the Orchestrator not to create either executor implementation
+  task. Three new findings - F-044-01, F-044-02, F-044-03 - all Medium, all blocking, all
+  architect-owned, routed to TASK-046 and revalidated by TASK-047 at round 3. This record's own
+  artifact is unchanged and is not re-authored - 5e5fc8f stays the immutable round-1 target forever
+  and the remediation chain runs TASK-042 then TASK-046 on new branches at new rounds.
+round_3_owner_state: >-
+  TASK-047 is blocked as of ACT-023, one step out, on review_ready(TASK-046). It records one verdict
+  applied atomically to THREE relations - (TASK-046, review, round 1), (TASK-042, review, round 2),
+  and (TASK-040, review, round 3) - over the target TASK-046 will publish and the pre-lineage base
+  c95ce600b40ab2dbac73da44a21bbb7a207c444d, which is this record's own immutable branch point and is
+  chosen so that the round sees the complete integration-authority amendment rather than only the
+  latest correction to it. That is the same reasoning ACT-021 applied when it gave TASK-044 the same
+  base. Nothing about this record's artifact changed at ACT-023, and the round-1 target 5e5fc8f was
+  re-queried again and still returns total_count 0 check runs, recorded once more as an absence and
+  never as a success.
 integrable: false
 integrable_reason: >-
-  review is declared in pre_merge_gates and the relation is open. Neither ACT-021 nor ACT-022
+  review is declared in pre_merge_gates and the relation is open, now carrying durable failing
+  verdicts at rounds 1 and 2 and no verdict at round 3. Neither ACT-021, ACT-022, nor ACT-023
   merged, modified, closed, reopened, commented on, or approved pull request 22, and no
   Orchestrator activation may perform that merge. Pull request 25, which the TASK-042 owner
   states supersedes pull request 22 in content without modifying or closing it, is likewise open
@@ -100,8 +128,12 @@ round_1_verdict: >-
   Four findings - F-041-01 High, F-041-02 High, F-041-03 High, F-041-04 Medium. Three are
   architect-owned and routed to TASK-042; F-041-03 is devops-owned and routed to TASK-043.
   Implementation authorization is DENIED for both executors at this round, in the report's own
-  words. Twenty-two of twenty-six scope items were judged met, and that did not make the verdict
-  passing. This record's own artifact is unchanged and is not re-authored: the remediation is a
+  words. Its scope table holds twenty-six rows, of which 20 are met and 6 are not met - corrected
+  in place at ACT-023 under MC-018, which records that this field previously read "Twenty-two of
+  twenty-six scope items were judged met" and that the recount was performed two ways over the
+  report at ec533fb and reached independently by round 2. The figure never determined the verdict
+  and nothing else in this field changes. This record's own artifact is unchanged and is not
+  re-authored: the remediation is a
   new amendment on a new branch, judged at a new round, and 5e5fc8f stays the immutable round-1
   target forever.
 round_1_verdict_note: >-
@@ -302,4 +334,6 @@ Maintained by the Orchestrator under TASK-013 from the owner's commit and pull r
 - Governance decision consumed: **`HUMAN-004`, approved** at `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`, consumed by TASK-013 activation `ACT-019` as ingress entry `seq` 27. Its boundaries are transcribed above and its full text is at `plans/decisions/HUMAN-004-autonomous-merge-authority.md` at that commit. **The decision authorizes a capability; it does not create one, and this amendment does not create one either.**
 - **Round 1 recorded `changes-required` at `ACT-021`**, at `ec533fb5bb0055675fb81f72057d5636f7867db3`, published as pull request 23 with two passing GitHub check runs of its own. The relation `(TASK-040, review, round 1)` **stays open** and is superseded by round 2. **Three of the four findings are architect-owned and routed to TASK-042**; **F-041-03 is devops-owned and routed to TASK-043**. **Implementation authorization is denied for both executors at this round**, and `ACT-021` created no implementation or validation task for either. This record's artifact is unchanged: `5e5fc8f` stays the immutable round-1 target, the remediation is a new amendment on a new branch, and no verdict was rewritten.
 - **The absent continuous-integration run became a recorded finding rather than a note.** `ACT-020` recorded the zero check runs as an absence and left the judgment to TASK-041; TASK-041 judged it, made it **F-041-03**, and stated "**Absent CI is not passing CI**". `ACT-021` re-read the same surfaces and the target's check-run total is still zero. The gap is now owned, routed, and revalidated, which is what recording an absence rather than inferring a success was for.
-- **Next owner: architect / gpt for TASK-042**, `ready` and dispatchable now on the satisfied `gate_recorded(TASK-041)` edge at `ec533fb`, branching from this record's own published head `5e5fc8f` and holding the free `architecture-docs` lock as its tenth registered holder; and **devops / claude for TASK-043**, `ready` and dispatchable in parallel with a disjoint scope. **Reviewer / gpt for TASK-044** records round 2 over two relations and is `blocked` until TASK-042 publishes; **reviewer / gpt for TASK-045** records `LIN-CI-EVIDENCE-REVIEW` round 1 and is `blocked` until TASK-043 publishes. **Pull request 22 must not be merged before a `LIN-INTEGRATION-AUTHORITY-REVIEW` round records a passing verdict**, which is this task's declared `pre_merge_gates: [review]` and which `HUMAN-004`'s own text restates rather than relaxes. The `AGENTS.md` amendment, the GitHub branch-protection and required-check configuration, and the least-privilege credential remain the **user's**, authorized and unperformed. The superseded statement, from `ACT-020`, read: **reviewer / gpt for TASK-041**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 1, `ready` and dispatchable now on the satisfied `review_ready(TASK-040)` edge at `5e5fc8f`. It records one verdict applied to the single relation it carries. **Only a passing TASK-041 verdict permits the Orchestrator to create the implementation and validation tasks**, which are separately owned by `runtime` and `devops` and do not exist. The further superseded statement, from `ACT-019`, read: **architect / gpt for this task**, `ready` and dispatchable now.
+- **Round 2 recorded `changes-required` at `ACT-023`**, at `6f7f0edb63615d7f143dd6c59750a5ea7db701fc` on `agent/gpt/reviewer/task-044`, published as **pull request 27** with two passing GitHub check runs of its own. **The verdict was applied atomically to this record's round-2 relation and to `(TASK-042, review, round 1)`**, both of which **stay open** and are superseded by round 3. Round 1's own `changes-required` at `ec533fb` is untouched and stays durable. **Three new findings — F-044-01, F-044-02, and F-044-03, all Medium, all blocking, all `architect`-owned — were routed to TASK-046**, and **implementation authorization is denied for both executors for the second consecutive round**, in the report's own words: the Orchestrator "must not create either executor implementation task". `ACT-023` created neither, and created no validation task for either. **This record's artifact is unchanged**: `5e5fc8f` stays the immutable round-1 target, and `total_count` 0 at that head was re-queried at `ACT-023` and re-recorded as an absence.
+- **What round 2 found affirmatively about the amendment's safety, recorded because it bounds what the findings mean.** It found **no** path by which generic formal acceptance of a non-security verdict can construct a merge plan — the F-041-01 counterexample it constructed itself returns `PreMergeGateNotPassing` before durable intent or any merge call — and **no** contract path by which the release executor could reach `main` other than the exact-head pull-request merge API under authoritative branch protection. It also read the live control plane and recorded that **`main` and `integration/autonomous-runtime` are both unprotected, the ruleset list is empty, and no attestor artifact exists**, so activation "must remain impossible", while stating that it "does not interpret those administrative facts as authorization to configure or alter them". **`ACT-023` configured nothing.**
+- **Next owner: architect / gpt for TASK-046**, `ready` and dispatchable on the satisfied `gate_recorded(TASK-044)` edge at `6f7f0edb63615d7f143dd6c59750a5ea7db701fc`, branching from TASK-042's published head `e33a62be` and holding the free `architecture-docs` lock as its eleventh registered holder; and **reviewer / gpt for TASK-047**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 3, `blocked` until TASK-046 publishes, recording **one** verdict applied atomically to **three** relations over the same pre-lineage base `c95ce600`. **Pull request 22 must not be merged before a round of this lineage records a passing verdict**, which rounds 1 and 2 did not supply. The superseded statement, from `ACT-021`, read: **Next owner: architect / gpt for TASK-042**, `ready` and dispatchable now on the satisfied `gate_recorded(TASK-041)` edge at `ec533fb`, branching from this record's own published head `5e5fc8f` and holding the free `architecture-docs` lock as its tenth registered holder; and **devops / claude for TASK-043**, `ready` and dispatchable in parallel with a disjoint scope. **Reviewer / gpt for TASK-044** records round 2 over two relations and is `blocked` until TASK-042 publishes; **reviewer / gpt for TASK-045** records `LIN-CI-EVIDENCE-REVIEW` round 1 and is `blocked` until TASK-043 publishes. **Pull request 22 must not be merged before a `LIN-INTEGRATION-AUTHORITY-REVIEW` round records a passing verdict**, which is this task's declared `pre_merge_gates: [review]` and which `HUMAN-004`'s own text restates rather than relaxes. The `AGENTS.md` amendment, the GitHub branch-protection and required-check configuration, and the least-privilege credential remain the **user's**, authorized and unperformed. The superseded statement, from `ACT-020`, read: **reviewer / gpt for TASK-041**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 1, `ready` and dispatchable now on the satisfied `review_ready(TASK-040)` edge at `5e5fc8f`. It records one verdict applied to the single relation it carries. **Only a passing TASK-041 verdict permits the Orchestrator to create the implementation and validation tasks**, which are separately owned by `runtime` and `devops` and do not exist. The further superseded statement, from `ACT-019`, read: **architect / gpt for this task**, `ready` and dispatchable now.

@@ -26,11 +26,55 @@ gate_tasks:
   - task: TASK-044
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 6f7f0edb63615d7f143dd6c59750a5ea7db701fc
+    remediated_by: TASK-046
+    revalidated_by: TASK-047
+    relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
     lineage_round: 2
+  - task: TASK-047
+    gate: review
+    round: 2
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
+    lineage_round: 3
+gate_status: >-
+  OPEN. The review gate's status is the verdict recorded at its highest round, which is round 2 and
+  is pending. Round 1 recorded changes-required at 6f7f0edb63615d7f143dd6c59750a5ea7db701fc and is
+  durable and superseded, never rewritten. This record is therefore NOT INTEGRABLE - review is in
+  its pre_merge_gates and that gate now carries a durable failing verdict at round 1 and no verdict
+  at round 2. Pull request 25 must not be merged. The verdict was authored by TASK-044 and applied
+  atomically to this relation and to (TASK-040, review, round 2); a split outcome is not
+  representable and neither relation passed independently.
+round_1_verdict: >-
+  changes-required, recorded by TASK-044 at 6f7f0edb63615d7f143dd6c59750a5ea7db701fc, published as
+  pull request 27, artifact reports/code-review/TASK-042-INTEGRATION-AUTHORITY-REVIEW-ROUND-2.md,
+  203 lines. One verdict applied atomically to two relations. Round-1 finding dispositions -
+  F-041-01 resolved, F-041-02 partially resolved with its residue tracked by F-044-02, F-041-04
+  partially resolved with its residue tracked by F-044-03, and F-041-03 explicitly not
+  re-dispositioned because TASK-043 is not judged by this round. Three new findings - F-044-01,
+  F-044-02, F-044-03 - all Medium, all recorded blocking, all architect-owned, and all routed to
+  TASK-046. Implementation authorization is DENIED for both executors, in the report's own words,
+  and the report instructs the Orchestrator not to create either executor implementation task. This
+  record's own artifact is unchanged and is not re-authored - the remediation is a new amendment on
+  a new branch judged at a new round, and e33a62be stays the immutable round-1 target forever.
+round_1_verdict_note: >-
+  The verdict is recorded here by the Orchestrator and was authored by TASK-044. This role
+  transcribes a gate owner's judgment and never produces, softens, or anticipates one. No finding
+  was resolved, re-dispositioned, merged, or split by ACT-023, and the three new findings were
+  routed to exactly one remediation task because the report names exactly one responsible owner
+  role.
+superseded_by_round: >-
+  TASK-046 authors the remediation and TASK-047 records LIN-INTEGRATION-AUTHORITY-REVIEW round 3
+  over three relations - TASK-046 at round 1, this record at round 2, and TASK-040 at round 3 -
+  applied atomically. Round 3's review-diff base stays c95ce600b40ab2dbac73da44a21bbb7a207c444d,
+  the same pre-lineage base rounds 1 and 2 used, so the round that judges this record's relation
+  sees the complete integration-authority amendment rather than only the correction to it.
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: e33a62beb8198162db7c37f4e9740269e1454d2d
@@ -110,11 +154,17 @@ integration_ancestry_outcome: >-
   line does not contain 8a4fe763d2f7819bf979f9a70c26993baa1d86c6, the current head of
   integration/autonomous-runtime, whose changed paths are all under tasks/**.
 integration_state: >-
-  NOT INTEGRABLE. review is declared in pre_merge_gates and the relation is open with no verdict
-  at any round. ACT-022 neither merged, modified, closed, reopened, commented on, nor approved
-  pull request 25 or pull request 22, and no Orchestrator activation may perform either merge.
-  Pull request 25 must not be merged before TASK-044 records a passing verdict, and neither must
-  pull request 22, whose own round-1 verdict is changes-required.
+  NOT INTEGRABLE. review is declared in pre_merge_gates and the relation is open, now carrying a
+  durable changes-required verdict at round 1 and no verdict at round 2. ACT-023 neither merged,
+  modified, closed, reopened, commented on, nor approved pull request 25 or pull request 22, and no
+  Orchestrator activation may perform either merge. Pull request 25 must not be merged before a
+  LIN-INTEGRATION-AUTHORITY-REVIEW round records a passing verdict, which round 2 did not supply,
+  and neither must pull request 22, whose own relations carry changes-required at rounds 1 and 2.
+  The superseded ACT-022 value read - NOT INTEGRABLE. review is declared in pre_merge_gates and the
+  relation is open with no verdict at any round. ACT-022 neither merged, modified, closed,
+  reopened, commented on, nor approved pull request 25 or pull request 22, and no Orchestrator
+  activation may perform either merge. Pull request 25 must not be merged before TASK-044 records a
+  passing verdict, and neither must pull request 22, whose own round-1 verdict is changes-required.
 returned_dependencies: >-
   Three, recorded by ACT-022 as returned and NONE acted on. First, the exact AGENTS.md amendment
   text, which the owner states verbatim in POST-GATE-MERGE-EXECUTORS.md and does not author -
@@ -164,7 +214,7 @@ The report is explicit about what the verdict forbids: the Orchestrator "**must 
 
 ## What round 1 recorded as met, and what that does and does not mean
 
-The report judged **twenty-two of twenty-six scope items `met`**, including both-executor coverage, typed admission and refusal totality, the structural impossibility of a direct `main` push, durable-intent-before-side-effect ordering, exactly-once recovery, bounded retries, ADR-0041 order preservation, the authorized-appender rule, credential confinement, the untouched governance paths, owner write-scope placement, the module and level proof, the `HUMAN-002` separation, and the preservation of every relation `LIN-ARCH-REVIEW` closed at round 8.
+The report's scope table holds twenty-six rows, of which **20 are `met` and 6 are `not met`** — corrected in place at `ACT-023` under **`MC-018`**, which records that this paragraph, and the `ACT-021` statement it was written from, said "twenty-two of twenty-six". **The recount was performed two ways over the report at `ec533fb` and reached independently by round 2**, which states: "The predecessor report's actual 26-row table contains 20 met and 6 not met." **Nothing else in this paragraph changes, and nothing about the routing, the findings, or the verdict ever depended on the figure.** The `met` items include both-executor coverage, typed admission and refusal totality, the structural impossibility of a direct `main` push, durable-intent-before-side-effect ordering, exactly-once recovery, bounded retries, ADR-0041 order preservation, the authorized-appender rule, credential confinement, the untouched governance paths, owner write-scope placement, the module and level proof, the `HUMAN-002` separation, and the preservation of every relation `LIN-ARCH-REVIEW` closed at round 8.
 
 **A majority of satisfied checks is not a passing verdict, and this record does not present it as one.** `ACT-008` recorded the same shape at `LIN-ARCH-REVIEW` round 4, where all six `HUMAN-002` Part B properties were individually satisfied inside a `changes-required` verdict. What the met items buy is a narrower remediation: **do not re-author what round 1 judged sound, and do not regress it.** Round 2 re-verifies every one of them regardless, because a reviewer's duty to find fresh defects is not discharged by an author meeting the previous round's list.
 
@@ -230,4 +280,10 @@ Maintained by the Orchestrator under TASK-013 from the architect's commit, pull 
 - **Edge satisfied at `ACT-021`:** `gate_recorded(TASK-041)` at `ec533fb5bb0055675fb81f72057d5636f7867db3`, ingress entry `seq` 29, class `gate_verdict_recorded`. `gate_recorded` is satisfied by **any** verdict, which is why a `changes-required` verdict dispatches this task; the lineage-form `gate_passed` edge, which requires a passing verdict, is not held by this task and would never be satisfiable at this round.
 - **Transition at `ACT-022`:** `ready` → `review` on ingress entry `seq` 31, class `artifact_published`. **`review_ready(TASK-042)` is satisfied on all three `bootstrap`-class conditions independently**, so the rule 1 allowance was available and unused. TASK-044 moved `blocked` → `ready` on that edge. **No gate was closed, no verdict was authored, no finding was resolved or re-dispositioned, and no returned dependency was adopted.**
 - **Why `remediation_completed` was not the class, stated rather than assumed.** This commit is a remediation owner publishing the fix for routed findings, which matches a class **above** `artifact_published` in precedence — and so were TASK-016's, TASK-032's, TASK-034's, TASK-036's, and TASK-038's publications, each recorded `artifact_published` without a stated reason. `MC-016` states the rule: the classes are separated by the work the fact triggers, and the round that judges this remediation — TASK-044 — already exists, created by `ACT-021`, so only `artifact_published`'s work remained.
-- **Next owner: reviewer / gpt via TASK-044**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 2, **`ready` and dispatchable at `ACT-022`**. Its target is `e33a62beb8198162db7c37f4e9740269e1454d2d` over base `c95ce600b40ab2dbac73da44a21bbb7a207c444d`, and it records **one** verdict applied atomically to **two** relations. Independence rests on execution-context separation alone, because both owners are `gpt`.
+- **Round 1 recorded `changes-required` at `ACT-023`**, at `6f7f0edb63615d7f143dd6c59750a5ea7db701fc` on `agent/gpt/reviewer/task-044`, published as **pull request 27** with two passing GitHub check runs of its own. The relation `(TASK-042, review, round 1)` **stays open** and is superseded by round 3. **The verdict was applied atomically to this relation and to `(TASK-040, review, round 2)`**; a split outcome is not representable and neither relation passed independently.
+- **What round 2 decided about the three findings this task carried, recorded as the reviewer's dispositions and not as this role's.** **F-041-01 `resolved`** — the corrected admission predicate requires the authoritative verdict itself to pass and admits only exact matching `accepted-blocking-security-risk/v1` evidence in the security domain, and the reviewer constructed the counterexample itself and obtained a refusal with no plan, no durable intent, and no merge call. **F-041-02 `partially resolved`** — the normative contract's returned attestor dependency and fail-closed behaviour are correct against GitHub's own documented contracts, but `diagrams/architecture/runtime-components.md:155-158` simultaneously grants and denies the executor identities a policy-observation port; the residue is **F-044-02**. **F-041-04 `partially resolved`** — the exact-published-head obligation is now a general contract requirement, but this task's own publication omits working directories, start/end times, and explicit exit codes that `POST-GATE-MERGE-EXECUTORS.md:502` requires; the residue is **F-044-03**.
+- **Three new findings, all `Medium`, all recorded blocking, all `architect`-owned, and all routed to a single new task, TASK-046.** F-044-01 on the two incompatible result constructors for one policy-control input; F-044-02 on the component diagram's reintroduction of executor-side policy reads; F-044-03 on this publication's own evidence not satisfying the schema the amendment imposes. **One remediation task, because the report names exactly one responsible owner role** — and it says so: "All three findings are architect-owned. None is routed to the Orchestrator as its responsible owner."
+- **Two things the report affirmatively did not find, recorded because they bound what the findings mean.** No path by which generic formal acceptance of a non-security verdict can construct a merge plan, and no contract path by which the release executor can reach `main` other than the exact-head pull-request merge API under authoritative branch protection. The three findings "create ambiguity, contradictory construction guidance, and incomplete evidence; they do not create a second mutation mechanism."
+- **Implementation authorization is denied for both executors for the second consecutive round**, and `ACT-023` created no implementation task and no validation task for either. **This record's artifact is unchanged**: `e33a62be` stays the immutable round-1 target, the remediation is a new amendment on a new branch, and no verdict was rewritten. **Pull request 25 must not be merged.**
+- **The returned `tasks/**`-owned `gate_passed` narrowing is now judged necessary rather than merely claimed, and it was still not applied.** Round 2 records that activation "fails with `AuthorityNotActivated` until the returned tasks-owned correction is adopted and pinned", so the return is judged correct — and the amendment carrying it **did not pass**. Applying it now would edit the graph's edge vocabulary from a non-passing round and would place this role's own unreviewed edit inside the delta TASK-047 is about to judge. It stays a returned dependency owned by a later TASK-013 activation, conditional on a passing round. **The `AGENTS.md` text and the `RepositoryPolicyAttestor` remain the user's and `ACT-023` adopted and provisioned neither.**
+- **Next owner: architect / gpt for TASK-046**, `ready` and dispatchable on the satisfied `gate_recorded(TASK-044)` edge at `6f7f0edb63615d7f143dd6c59750a5ea7db701fc`, branching from this record's own published head `e33a62be` and holding the free `architecture-docs` lock as its eleventh registered holder; and **reviewer / gpt for TASK-047**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 3 over three relations, `blocked` until TASK-046 publishes. Independence still rests on execution-context separation alone, because both owners are `gpt`. The superseded statement, from `ACT-022`, read: **Next owner: reviewer / gpt via TASK-044**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 2, **`ready` and dispatchable at `ACT-022`**. Its target is `e33a62beb8198162db7c37f4e9740269e1454d2d` over base `c95ce600b40ab2dbac73da44a21bbb7a207c444d`, and it records **one** verdict applied atomically to **two** relations. Independence rests on execution-context separation alone, because both owners are `gpt`.
