@@ -11,7 +11,7 @@
 - Immutable review target: `5e5fc8fe656b0e08a5337642447d7a81f83c4822`
 - Review-diff base: `c95ce600b40ab2dbac73da44a21bbb7a207c444d`
 - Target pull request: [PR 22](https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/22)
-- Review publication: `agent/gpt/reviewer/task-041`; pull request pending publication
+- Review publication: [PR 23](https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/23) from `agent/gpt/reviewer/task-041` into `integration/autonomous-runtime`
 - Review date: 2026-08-07
 
 ## Outcome
