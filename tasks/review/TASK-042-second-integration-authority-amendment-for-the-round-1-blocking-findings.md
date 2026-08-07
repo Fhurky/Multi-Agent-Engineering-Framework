@@ -38,19 +38,51 @@ gate_tasks:
   - task: TASK-047
     gate: review
     round: 2
-    verdict: pending
+    verdict: approved
+    verdict_recorded_at: 78359ae2e3dc6e97fb3d60f0b847b84abed08fa6
+    relation_status: closed
     gate_class: point
     retrospective: false
     gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
     lineage_round: 3
 gate_status: >-
-  OPEN. The review gate's status is the verdict recorded at its highest round, which is round 2 and
-  is pending. Round 1 recorded changes-required at 6f7f0edb63615d7f143dd6c59750a5ea7db701fc and is
-  durable and superseded, never rewritten. This record is therefore NOT INTEGRABLE - review is in
-  its pre_merge_gates and that gate now carries a durable failing verdict at round 1 and no verdict
-  at round 2. Pull request 25 must not be merged. The verdict was authored by TASK-044 and applied
-  atomically to this relation and to (TASK-040, review, round 2); a split outcome is not
-  representable and neither relation passed independently.
+  CLOSED. The review gate's status is the verdict recorded at its highest round, which is round 2
+  and records approved at 78359ae2e3dc6e97fb3d60f0b847b84abed08fa6 on agent/gpt/reviewer/task-047,
+  artifact reports/code-review/TASK-046-INTEGRATION-AUTHORITY-REVIEW-ROUND-3.md, published as pull
+  request 29. Under gate-round rule 3 a gate is closed when its highest round records approved.
+  ROUND 1's changes-required at 6f7f0edb63615d7f143dd6c59750a5ea7db701fc IS DURABLE AND UNCHANGED -
+  it is superseded, never rewritten, and both rows stay recorded, which is gate-round rule 4. The
+  round-2 verdict was authored by TASK-047 and applied ATOMICALLY to this relation and to
+  (TASK-046, review, round 1) and (TASK-040, review, round 3); all three closed together and a
+  split outcome is not representable. Transcribed here by the Orchestrator at ACT-026; this role
+  produced no verdict and closed nothing on its own authority.
+round_2_verdict: >-
+  approved, recorded by TASK-047 at 78359ae2e3dc6e97fb3d60f0b847b84abed08fa6, published as pull
+  request 29, artifact reports/code-review/TASK-046-INTEGRATION-AUTHORITY-REVIEW-ROUND-3.md, 272
+  lines. The report records NO finding of any severity. This record's own round-1 findings are
+  dispositioned by that round as follows, read from the report rather than from any owner's claim -
+  F-044-01 resolved, F-044-02 resolved, and F-044-03 resolved, each with exact file-and-line
+  evidence, and with them the F-041-02 and F-041-04 residues they carried. F-041-01 remains
+  resolved. F-041-03 is explicitly NOT re-dispositioned, because it belongs to the separately
+  closed LIN-CI-EVIDENCE-REVIEW lineage. The round reviewed the CUMULATIVE delta against
+  c95ce600b40ab2dbac73da44a21bbb7a207c444d, which is precisely why this record's relation is inside
+  its cohort: a round that judges TASK-042's relation must see TASK-042's delta.
+round_2_verdict_note: >-
+  The verdict is recorded here by the Orchestrator at ACT-026 and was authored by TASK-047. This
+  role transcribes a gate owner's judgment and never produces, softens, extends, or anticipates
+  one. No finding was created, resolved, re-dispositioned, merged, or split by ACT-026.
+integrable: true
+integrable_reason: >-
+  review is this task's only declared pre_merge_gate and its only required_gate, and that relation
+  is CLOSED at approved at its highest round. Under the integrated edge definition this record is
+  review_ready with every pre-merge gate closed. It does NOT follow that pull request 25 should be
+  merged separately: under the approved INTEGRATION-STRATEGY.md the content-bearing unit is the ONE
+  latest cumulative target whose authoritative lineage verdict passes, which is TASK-046 at
+  f148567d716c00d7a24783318c8d6d7031492e7b, and this record's published head
+  e33a62beb8198162db7c37f4e9740269e1454d2d is that target's literal parent. This record therefore
+  reaches integrated through the same merge, by ancestry and by the lineage-subsumption evidence
+  rule, and receives no commit of its own. ACT-026 merged nothing, prescribed no merge, and left
+  pull requests 22, 25, and 28 unmerged and unmodified.
 round_1_verdict: >-
   changes-required, recorded by TASK-044 at 6f7f0edb63615d7f143dd6c59750a5ea7db701fc, published as
   pull request 27, artifact reports/code-review/TASK-042-INTEGRATION-AUTHORITY-REVIEW-ROUND-2.md,
@@ -154,8 +186,18 @@ integration_ancestry_outcome: >-
   line does not contain 8a4fe763d2f7819bf979f9a70c26993baa1d86c6, the current head of
   integration/autonomous-runtime, whose changed paths are all under tasks/**.
 integration_state: >-
-  NOT INTEGRABLE. review is declared in pre_merge_gates and the relation is open, now carrying a
-  durable changes-required verdict at round 1 and no verdict at round 2. ACT-023 neither merged,
+  INTEGRABLE AND UNINTEGRATED, by ancestry rather than by a merge of its own. The review relation
+  CLOSED at approved at round 2 at ACT-026, so the pre-merge condition is satisfied. Under the
+  approved INTEGRATION-STRATEGY.md this record is not its own content-bearing unit: TASK-046 at
+  f148567d is the latest cumulative target and this record's published head e33a62be is its
+  literal parent, so merging pull request 28 lands this content too and this record reaches
+  integrated by lineage subsumption without a commit of its own. This record's integrated field is
+  still false and its status stays review, because done additionally requires integration. ACT-026
+  neither merged, modified, closed, reopened, commented on, nor approved pull request 25, 22, or
+  28, and no Orchestrator activation may perform any of those merges. The superseded ACT-023 value
+  read - NOT INTEGRABLE. review is declared in pre_merge_gates and the relation is open, now
+  carrying a durable changes-required verdict at round 1 and no verdict at round 2. ACT-023 neither
+  merged,
   modified, closed, reopened, commented on, nor approved pull request 25 or pull request 22, and no
   Orchestrator activation may perform either merge. Pull request 25 must not be merged before a
   LIN-INTEGRATION-AUTHORITY-REVIEW round records a passing verdict, which round 2 did not supply,
@@ -270,6 +312,8 @@ Do not move this record between lifecycle directories and do not edit its `statu
 ## Handoff
 
 Maintained by the Orchestrator under TASK-013 from the architect's commit, pull request, and report. **Transcribed at `ACT-022` from the source commit and pull request 25; the owner's claims are attributed to the owner and are not judgments of this role.**
+
+- **Gate closed at `ACT-026`, at round 2, and round 1's failing verdict is untouched.** TASK-047 recorded **`approved`** at `78359ae2e3dc6e97fb3d60f0b847b84abed08fa6`, ingress entry `seq` 36, class `gate_verdict_recorded`, applied **atomically** to `(TASK-046, r1)`, `(TASK-042, r2)`, and `(TASK-040, r3)` — all three closed together. **This record's round-1 `changes-required` at `6f7f0edb63615d7f143dd6c59750a5ea7db701fc` stays exactly as recorded**, superseded rather than rewritten, which is gate-round rule 4. **The three findings this record's remediation carried — F-044-01, F-044-02, F-044-03 — are recorded `resolved` by that round**, together with the F-041-02 and F-041-04 residues, and F-041-01 remains `resolved`. **This record's own `published_commit` `e33a62be` is unchanged and was not re-reviewed**: round 3 reviewed the cumulative delta whose head is TASK-046's, and this relation is inside its cohort because that delta contains this one. **Status stays `review`**, because `done` additionally requires integration. **`ACT-026` produced no verdict, resolved no finding, and merged nothing.**
 
 - **Commit or pull request:** one authored commit, `e33a62beb8198162db7c37f4e9740269e1454d2d` `docs(TASK-042): close integration authority review gaps`, on `agent/gpt/architect/task-042` over branch point `5e5fc8fe656b0e08a5337642447d7a81f83c4822`. Pushed to `origin` and opened as **pull request 25**, `OPEN` against `integration/autonomous-runtime`, head `e33a62be`, not a draft, `MERGEABLE` / `CLEAN`. It is ingress entry **`seq` 31**, class `artifact_published`.
 - **What the owner claims to have done about each routed finding, in the owner's own framing.** For **F-041-01**, `ExecutorGateAdmissibility` admits authoritative passing evidence only, its sole non-passing alternative being the security-domain `formally_accepted` state backed by exact immutable `accepted-blocking-security-risk/v1` evidence for every matching unresolved High or Critical finding, with generic acceptance, non-security acceptance, Low/Medium acceptance, and partial, unmatched, or stale evidence each producing a typed refusal that constructs no plan and no merge call — and the matching `tasks/**`-owned `gate_passed` narrowing **returned** rather than authored. For **F-041-02**, policy observation is moved to a separate human-controlled `RepositoryPolicyAttestor` over a closed pinned observer-principal set, with a signed subject binding repository, ref, pull request, head, base, both executor identities, the complete classic and repository/organization/enterprise policy and bypass sets, pagination, observer identities and scopes, freshness, an Ed25519 signature, a monotonic non-reused generation, online revocation, and drift; the GitHub bypass-actor permission gap is **returned** as an unresolved control-plane dependency and unavailability fails closed as `PolicyObservationUnavailable`. For **F-041-04**, exact-published-head verification becomes a general owner obligation binding every target-dependent check to the final authored commit, with later content invalidating earlier evidence and check presence, non-passing, or absence recorded explicitly. **None of these is a disposition. TASK-044 records the dispositions.**
