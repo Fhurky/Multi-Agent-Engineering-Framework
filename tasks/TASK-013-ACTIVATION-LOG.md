@@ -2618,6 +2618,7 @@ This activation consumed a publication, not a verdict. No finding was opened, cl
 
 ### Effects commit for ACT-020
 
+- **Effects binding:** the effects commit is **`88df463`**, full `88df463968be64a0860f7cb40f78e72be423629b`. This follow-up commit records that immutable value and carries no effect, no ledger row, and no cursor change; it supersedes the pre-commit hash placeholder below.
 - One commit on `agent/claude/orchestrator/task-013`, base `aa35700d76922f7228d3366717d03ceeb5876c37`, carrying the ledger row for `seq` 28, the cursor advance to 28, the TASK-040 and TASK-041 transitions, `MC-014`, the TASK-031 coverage extension, and revision 21 of the dependency graph — all together, as rule 8 requires.
 - **This activation creates that commit and deliberately does not create the follow-up hash-binding commit**, so no hash is asserted here; a reader who finds none is reading that state rather than a lost value. The surrounding operator binds it.
 - **Publication: `local-only`.** No push, pull request, or merge was performed or attempted.
