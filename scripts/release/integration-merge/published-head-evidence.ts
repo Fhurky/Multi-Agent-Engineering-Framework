@@ -505,16 +505,10 @@ export function validatePublishedHeadEvidence(
     }
   }
 
-  const uncoveredControlCheck = declaredChecksCovered(
-    control.declaredCheckIds,
-    control.commands,
-  );
-  if (uncoveredControlCheck !== null) {
-    return refuse(
-      'PublishedHeadEvidenceIncomplete',
-      `control_declared_check_omitted:${uncoveredControlCheck}`,
-    );
-  }
+  // The control phase carries its own publication-query commands rather than a rerun
+  // of the author's local set: remote head, pull-request head, no-later-content, and
+  // exact-head check facts belong only to this phase because they cannot exist before
+  // publication. It shares the author's declared check set, which is compared above.
 
   const checkFailure = validateExactHeadChecks(
     control.exactHeadChecks,

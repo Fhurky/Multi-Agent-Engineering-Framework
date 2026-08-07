@@ -422,6 +422,64 @@ test('a control phase completed before the author phase is a mismatch', () => {
   assert.equal(validation.reason, 'control_precedes_author');
 });
 
+test('the author phase must cover every declared check identifier', () => {
+  const bundle = validPublishedHeadBundle();
+  const authorWithoutDigest = {
+    ...bundle.author,
+    declaredCheckIds: [...bundle.author.declaredCheckIds, 'a-check-never-run'],
+    canonicalAuthorEvidenceDigest: '',
+  };
+  const author = {
+    ...authorWithoutDigest,
+    canonicalAuthorEvidenceDigest: authorEvidenceDigest(authorWithoutDigest),
+  };
+  const validation = validatePublishedHeadEvidence({
+    ...bundle,
+    author,
+    control: { ...bundle.control, authorEvidenceDigest: author.canonicalAuthorEvidenceDigest },
+  } as never);
+
+  assert.equal(validation.status, 'refused');
+  if (validation.status !== 'refused') {
+    return;
+  }
+  assert.equal(validation.code, 'PublishedHeadEvidenceIncomplete');
+  assert.equal(
+    validation.reason,
+    'author_declared_check_omitted:a-check-never-run',
+  );
+});
+
+test('the control phase records publication queries, not a rerun of the local set', () => {
+  // The two phases share one declared check set, but the control session records the
+  // remote, pull-request, no-later-content, and exact-head check queries that cannot
+  // exist before publication. It is not required to repeat the author's local checks.
+  const bundle = validPublishedHeadBundle();
+  const authorCheckIds = bundle.author.commands.map(
+    (command) => command.materialArguments['checkId'],
+  );
+  const controlCheckIds = bundle.control.commands.map(
+    (command) => command.materialArguments['checkId'],
+  );
+  assert.deepEqual(bundle.control.declaredCheckIds, bundle.author.declaredCheckIds);
+  assert.ok(authorCheckIds.length > 0);
+  assert.ok(controlCheckIds.length > 0);
+  assert.equal(validatePublishedHeadEvidence(bundle).status, 'complete');
+});
+
+test('a control phase whose declared check set differs is a mismatch', () => {
+  const bundle = validPublishedHeadBundle();
+  const validation = validatePublishedHeadEvidence({
+    ...bundle,
+    control: { ...bundle.control, declaredCheckIds: ['a-different-set'] },
+  } as never);
+  assert.equal(validation.status, 'refused');
+  if (validation.status !== 'refused') {
+    return;
+  }
+  assert.equal(validation.reason, 'declared_check_set_mismatch');
+});
+
 test('an absent bundle refuses before any plan, intent, or API call', () => {
   assert.equal(refuseWith(null), 'PublishedHeadEvidenceIncomplete');
 });
