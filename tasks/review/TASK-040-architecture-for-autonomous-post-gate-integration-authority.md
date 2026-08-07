@@ -1,7 +1,7 @@
 ---
 task_id: TASK-040
 title: Architecture amendment for autonomous post-gate integration authority
-status: ready
+status: review
 owner_role: architect
 llm: gpt
 branch: agent/gpt/architect/task-040
@@ -33,6 +33,26 @@ gate_tasks:
     lineage_round: 1
 parent_task: TASK-001
 publication_class: bootstrap
+published_commit: 5e5fc8fe656b0e08a5337642447d7a81f83c4822
+published_branch: agent/gpt/architect/task-040
+publication: published
+published_remote_ref: refs/heads/agent/gpt/architect/task-040 on origin, resolving to 5e5fc8fe656b0e08a5337642447d7a81f83c4822
+pull_request: 22, OPEN against integration/autonomous-runtime, head 5e5fc8fe656b0e08a5337642447d7a81f83c4822, not a draft, reported MERGEABLE with mergeStateStatus CLEAN, created 2026-08-06T20:33:37Z, updated 2026-08-06T20:35:06Z. Read from the GitHub API at ACT-020, not from the dispatch hint.
+publication_note: >-
+  This is a bootstrap-class publication that satisfies review_ready on all three
+  conditions independently — immutable commit, remote publication, and an open pull
+  request — so the rule 1 bootstrap allowance was available and was not needed. It is
+  the fourth architecture publication in this graph to reach that standard, after
+  TASK-016, TASK-024, and TASK-028, and the first architecture pull request whose base
+  is integration/autonomous-runtime rather than main.
+publication_check_runs: >-
+  None. GitHub reported total_count 0 check runs for 5e5fc8fe656b0e08a5337642447d7a81f83c4822,
+  an empty statusCheckRollup on pull request 22, and a combined status with zero
+  contexts. Recorded as an absence. No check is claimed to have passed, and the
+  combined status literal "pending" is GitHub's default for zero contexts rather than
+  a running check. This is the same treatment ACT-018 gave the absent run on pull
+  request 20, and judging the gap is TASK-041's, not the Orchestrator's.
+review_target_commit: 5e5fc8fe656b0e08a5337642447d7a81f83c4822
 normative_architecture_source: 8ea5c32789ee01fd4a2cec4aff13905b120edae3, the immutable TASK-038 target, approved by LIN-ARCH-REVIEW at lineage_round 8 at 734bdbc and integrated onto integration/autonomous-runtime at de3a8d6. This task amends that approved baseline; it does not replace it and does not reopen any relation LIN-ARCH-REVIEW closed at round 8.
 human_decisions:
   - id: HUMAN-004
@@ -47,12 +67,13 @@ human_decisions:
 unblocked_reason: The only declared dependency, human_decision(HUMAN-004), is satisfied at 7dc07488a5b1cac8b1327ebd63bf747adbe03c68 on the non-agent branch human/decision/human-004-autonomous-merge, consumed by ACT-019 as ingress entry seq 27. All four clauses of this record's superseded exit condition were checked individually against the commit's own text - whether the change is authorized, which components may hold the authority, what the residual human exception set is, and which governance artefacts change - and all four are satisfied. The architecture-docs lock is free.
 superseded_blocked_reason: The user requirement this task represents needs a governance decision that no agent may make or presuppose. HUMAN-004 is open. AGENTS.md requires every agent to push its task branch and use a pull request, reserves governance and enforcement paths for humans, and requires human approval for privileged, external, and release-changing actions; the approved architecture assigns the integration merge to the operator and gives no module a path that can push or merge any ref but its own task branch. Authoring the amendment before the decision would be inventing the authority it depends on.
 superseded_exit_condition: A human records HUMAN-004 in a tracked commit on a non-agent branch, stating whether autonomous post-gate integration is authorized, which component may hold that authority, what the residual human exception set is, and which governance artefacts change. That commit is an ingress fact of class human_decision_recorded; the TASK-013 activation that consumes it moves this record to ready and pins the decision commit here. A decision that refuses the change closes this task instead. Discharged at ACT-019 by the approving branch; the closing branch was live until the decision document was read and is recorded here so a reader can see both outcomes were possible.
-review_target_base: not applicable until this task publishes
-review_target_applicability: not applicable yet. This task is gated but no artifact of it exists, so no round is pinned and there is no delta to diff. It becomes applicable when this task reaches review_ready; the Orchestrator records review_target_commit and review_target_base then, at the activation that consumes the publication.
-branch_point_of: integration/autonomous-runtime
-scope_validation_base: git merge-base HEAD integration/autonomous-runtime
-scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet
-scope_validation_note: Branch from integration/autonomous-runtime at or after the commit carrying the approved architecture, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the handoff; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, or a review-diff base. Findings F-403 and A-209 each recorded why.
+review_target_base: c95ce600b40ab2dbac73da44a21bbb7a207c444d
+review_target_applicability: applicable and resolved at ACT-020. TASK-041 round 1 diffs the immutable target 5e5fc8fe656b0e08a5337642447d7a81f83c4822 against this base, which is this branch's own immutable branch point on integration/autonomous-runtime, read with git merge-base agent/gpt/architect/task-040 integration/autonomous-runtime and independently confirmed as the parent of the first authored commit d2c599696d25bc8938ef43514e8dc37aad70b047. It is deliberately not de3a8d6, not origin/main, and not any earlier architecture publication.
+review_target_pin_note: The target is the branch head rather than d2c599696d25bc8938ef43514e8dc37aad70b047. The head is the second authored commit and it changes two in-scope documents, so the parent is not the complete amendment. This is the same head-binding rule ACT-009, ACT-013, and ACT-015 applied. Pull request 22 was opened at 2026-08-06T20:33:37Z, before the head commit at 2026-08-06T20:34:34Z, and its headRefOid now reads 5e5fc8fe656b0e08a5337642447d7a81f83c4822, so the pull request and the pinned target agree.
+branch_point_of: agent/gpt/architect/task-040
+scope_validation_base: c95ce600b40ab2dbac73da44a21bbb7a207c444d
+scope_validation_applicability: applicable and resolved at ACT-020, superseding the reproducible expression this record carried before the branch existed
+scope_validation_note: The owner resolved the branch point as instructed and recorded it as c95ce600b40ab2dbac73da44a21bbb7a207c444d in the pull request description; the Orchestrator recomputed the same value two ways at ACT-020. Never pass origin/main, c325275, de3a8d6, or a review-diff base. Findings F-403 and A-209 each recorded why.
 ---
 
 # TASK-040: Architecture amendment for autonomous post-gate integration authority
@@ -211,10 +232,16 @@ This record's `status` field and its lifecycle directory are changed only by the
 
 ## Handoff
 
-Maintained by the Orchestrator under TASK-013 from the owner's commit and pull request.
+Maintained by the Orchestrator under TASK-013 from the owner's commit and pull request. Transcribed at `ACT-020` from the two commit messages on `agent/gpt/architect/task-040` and the pull request 22 description, both read at that commit. Nothing below is the Orchestrator's own assessment of the amendment; judging it is TASK-041's.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
+- **Commit or pull request:** published commit **`5e5fc8fe656b0e08a5337642447d7a81f83c4822`** `docs(TASK-040): tighten merge authority boundaries`, the branch head, preceded on the same branch by **`d2c599696d25bc8938ef43514e8dc37aad70b047`** `docs(TASK-040): define autonomous post-gate merge executors`, which is authoring ancestry rather than the published commit. Branch point **`c95ce600b40ab2dbac73da44a21bbb7a207c444d`** on `integration/autonomous-runtime`. Pushed to `origin` and opened as **pull request 22**, `OPEN` against `integration/autonomous-runtime`, head `5e5fc8f`, not a draft, `MERGEABLE` / `CLEAN`. **This is a two-commit publication — the shortest in this architecture lineage since TASK-016 — and the first architecture publication whose pull request targets the integration branch rather than `main`.**
+- **Authored delta, recomputed by the Orchestrator:** **18 paths, 741 insertions, 84 deletions** over `c95ce600`. `d2c5996` carries 17 of those paths with 736 insertions and 83 deletions; the head adds `docs/architecture/runtime/LEASES-AND-SCHEDULING.md` and amends `docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md`, for 7 insertions and 3 deletions. **All 18 paths are inside this task's declared write scope**, checked by filtering the delta against `docs/architecture/ARCHITECTURE.md`, `docs/architecture/runtime/`, `docs/adr/`, and `diagrams/architecture/`; the residue is empty. `AGENTS.md`, `config/agents/settings.yaml`, `tasks/**`, `.github/**`, `.githooks/**`, `scripts/**`, `src/**`, and `tests/**` are all untouched — verified as an empty path list rather than inferred from the owner's statement.
+- **Verification, as the owner recorded it in the pull request description:** "write scope: valid, 17 changed files, base `c95ce600b40ab2dbac73da44a21bbb7a207c444d`"; "architect assignment: valid"; "framework validation: passed for 13 roles"; "orchestration checks: passed"; "repository security checks: passed"; "whitespace checks: passed"; "570 relative Markdown file links checked, zero broken"; "ADR sequence contiguous from 0001 through 0042"; "`AGENTS.md`, settings, tasks, workflows, and enforcement paths unchanged".
+- **One divergence between the owner's figure and the durable state, recorded beside it rather than over it.** The owner's write-scope line reports **17** changed files; the durable delta over the same declared base is **18**. Both are accurate about different commits: 17 is the delta at `d2c5996`, and the head commit added one further in-scope path afterwards. The pull request's own metadata reports `changed_files` 18, agreeing with the Orchestrator's recomputation. **The consequence is bounded and is stated rather than smoothed: the owner's recorded write-scope run does not cover the two paths in the head commit.** The Orchestrator re-derived scope validity across the full 18-path delta and found no path outside scope, so nothing is known to be wrong; whether an owner's verification evidence must cover the commit it publishes is a judgment for TASK-041 and, if it generalizes, for the next decomposition round. The owner's statement is not edited.
+- **Owner-declared artifacts, as recorded in the pull request description:** "ADR-0042", "`docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md`", and "architecture entry point, boundaries, interfaces, state machine, integration strategy, retry/workspace contracts, ADR metadata, and architecture diagrams". The Orchestrator confirmed only that `docs/adr/0042-conditionally-authorized-post-gate-merge-executors.md` and `docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md` exist at the target as new files. **Whether their contents satisfy any acceptance criterion of this record is not assessed here.**
+- **Owner-declared scope, quoted:** "Defines two separate, conditionally activated merge executors" — "runtime-owned task PR -> `integration/autonomous-runtime` squash integration" and "DevOps-owned `integration/autonomous-runtime` -> `main` protected release merge" — and "It does not implement or activate either executor and does not change governance."
+- **Known risks, as the owner recorded them:** "TASK-041 owns the independent review; this PR must not merge before a passing verdict." "No implementation task may be created before TASK-041 passes." "HUMAN-002 durable ingress work remains an independent prerequisite; executors stay dormant until it exists." "Human-controlled `AGENTS.md`, GitHub rules, App installation/credentials, and control attestations remain unperformed."
+- **Continuous integration: no run exists.** GitHub reports **zero** check runs for `5e5fc8f`, an empty `statusCheckRollup` on pull request 22, and a combined status with zero contexts. **This is recorded as an absence and never as a success.** TASK-041 must judge the gap explicitly rather than treat an unexecuted workflow as a passing check, which is the same obligation `ACT-018` placed on TASK-019 for pull request 20.
+- **What this activation did not do.** It recorded no verdict, closed no gate, resolved no finding, and formed no opinion on whether the amendment covers both executors, bounds them correctly, or satisfies any acceptance criterion above. It did not merge, modify, review, comment on, or approve pull request 22 or pull request 20, and it created no implementation or validation task. **A publication is a readiness fact, not a judgment** — the distinction `ACT-007` recorded, restated here at the point where it would be easiest to skip, because this amendment authorizes the most consequential capability the graph has considered.
 - Governance decision consumed: **`HUMAN-004`, approved** at `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`, consumed by TASK-013 activation `ACT-019` as ingress entry `seq` 27. Its boundaries are transcribed above and its full text is at `plans/decisions/HUMAN-004-autonomous-merge-authority.md` at that commit. **The decision authorizes a capability; it does not create one, and this amendment does not create one either.**
-- Next owner: **architect / gpt for this task**, `ready` and dispatchable now. Then **reviewer / gpt for TASK-041**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 1, which is `blocked` until this task publishes. **Only a passing TASK-041 verdict permits the Orchestrator to create the implementation and validation tasks**, which are separately owned by `runtime` and `devops` and do not exist. The `AGENTS.md` amendment, the GitHub branch-protection and required-check configuration, and the least-privilege credential remain the **user's**, authorized and unperformed.
+- **Next owner: reviewer / gpt for TASK-041**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 1, `ready` and dispatchable now on the satisfied `review_ready(TASK-040)` edge at `5e5fc8f`. It records one verdict applied to the single relation it carries. **Only a passing TASK-041 verdict permits the Orchestrator to create the implementation and validation tasks**, which are separately owned by `runtime` and `devops` and do not exist. **Pull request 22 must not be merged before TASK-041 records a passing verdict**, which is this task's declared `pre_merge_gates: [review]` and which `HUMAN-004`'s own text restates rather than relaxes. The `AGENTS.md` amendment, the GitHub branch-protection and required-check configuration, and the least-privilege credential remain the **user's**, authorized and unperformed. The superseded statement, from `ACT-019`, read: **architect / gpt for this task**, `ready` and dispatchable now.
