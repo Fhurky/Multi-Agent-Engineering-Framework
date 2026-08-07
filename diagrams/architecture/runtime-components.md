@@ -1,9 +1,9 @@
 # Runtime Component Diagram
 
-Source diagram for the autonomous runtime and release merge control-plane decomposition. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-036, and TASK-040.
+Source diagram for the autonomous runtime and release merge control-plane decomposition. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-036, TASK-040, and TASK-042.
 
 - Specification: [COMPONENT-BOUNDARIES.md](../../docs/architecture/runtime/COMPONENT-BOUNDARIES.md)
-- Decisions: [ADR-0002](../../docs/adr/0002-runtime-component-boundaries-and-module-ownership.md), superseded in part by [ADR-0011](../../docs/adr/0011-agent-workspace-lifecycle-module.md), [ADR-0021](../../docs/adr/0021-durable-ingress-module-and-the-eight-module-map.md), and proposed [ADR-0042](../../docs/adr/0042-conditionally-authorized-post-gate-merge-executors.md); [ADR-0014](../../docs/adr/0014-live-run-control-and-process-tree-ownership.md); [ADR-0019](../../docs/adr/0019-durable-intent-receipts-for-side-effects.md), amended by [ADR-0028](../../docs/adr/0028-nominal-store-issued-durable-append-receipts.md); [ADR-0029](../../docs/adr/0029-ingress-delivery-ownership.md); [ADR-0031](../../docs/adr/0031-pre-dispatch-ingress-observer-and-collector.md)
+- Decisions: [ADR-0002](../../docs/adr/0002-runtime-component-boundaries-and-module-ownership.md), superseded in part by [ADR-0011](../../docs/adr/0011-agent-workspace-lifecycle-module.md), [ADR-0021](../../docs/adr/0021-durable-ingress-module-and-the-eight-module-map.md), and proposed [ADR-0042](../../docs/adr/0042-conditionally-authorized-post-gate-merge-executors.md); [ADR-0014](../../docs/adr/0014-live-run-control-and-process-tree-ownership.md); [ADR-0019](../../docs/adr/0019-durable-intent-receipts-for-side-effects.md), amended by [ADR-0028](../../docs/adr/0028-nominal-store-issued-durable-append-receipts.md); [ADR-0029](../../docs/adr/0029-ingress-delivery-ownership.md); [ADR-0031](../../docs/adr/0031-pre-dispatch-ingress-observer-and-collector.md); [ADR-0043](../../docs/adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md)
 
 Amended by TASK-016: the seventh module `workspace/` is added with TASK-017 as its owner; the control inbox is added as the live-run control transport owned by TASK-007; the owned process tree is added under TASK-004.
 
@@ -13,7 +13,9 @@ Amended by TASK-028: TASK-026 owns external-fact validation, pre-dispatch collec
 
 Amended by TASK-036: the collector's append/deduplicate outcome is total and returns identity plus a committed mark without reading an activation range. The nominal receipt rule gains a cross-root conformance check: one state-root declaration, no agent-root copy, and an `unknown` plus verifier crossing.
 
-Amended by TASK-040: the ninth module is the runtime task integration executor and the tenth is the separate DevOps release merge executor. Both use a narrow protected-PR API after durable intent and publish verified results for TASK-026's adapter. Neither appends, pushes a protected ref, mutates a gate or policy, or imports the other. TASK-041 review and all activation conditions remain pending.
+Amended by TASK-040: the ninth module is the runtime task integration executor and the tenth is the separate DevOps release merge executor. Both use a narrow protected-PR API after durable intent and publish verified results for TASK-026's adapter. Neither appends, pushes a protected ref, mutates a gate or policy, or imports the other. TASK-041 recorded `changes-required`.
+
+Amended by TASK-042: generic formal acceptance cannot reach a plan, and a separate human-controlled policy attestor supplies complete fresh signed branch/ruleset/bypass evidence. The attestor is an external trust boundary, not an eleventh module or import node; neither executor receives its privileged observation credential. Activation and implementation work remain blocked behind TASK-044 and the returned control-plane dependencies.
 
 Each box names its owning task. No module has two owners. Arrows are permitted import or call directions; any edge not shown is a boundary violation.
 
@@ -64,6 +66,8 @@ flowchart TB
   repo[("Repository<br/>worktrees, agent branches,<br/>task locks, remote, pull requests")]
   github[("GitHub protected branches<br/>required checks, no bypass,<br/>ordinary PR merge endpoint")]
   mergeEvidence[("External merge evidence<br/>append-only intent + outcome<br/>by executor/idempotency key")]
+  policyAttestor[/"Human-controlled policy attestor<br/>complete classic + inherited rulesets<br/>complete bypass actors, signed + fresh"/]
+  policyCredential[("Isolated policy observation credential<br/>never exposed to either executor")]
   scripts[/"scripts/orchestration/*.ps1<br/>scripts/setup/install-git-hooks.ps1<br/>human-controlled, invoked never edited"/]
 
   operator --> cli
@@ -88,6 +92,10 @@ flowchart TB
 
   integration -- "fixed PR, head SHA, squash;<br/>never push" --> github
   releaseMerge -- "fixed integration PR, head SHA, merge;<br/>never push" --> github
+  policyCredential -. "privileged observation only" .-> policyAttestor
+  policyAttestor -. "plan-bound signed attestation;<br/>no merge capability" .-> integration
+  policyAttestor -. "plan-bound signed attestation;<br/>no merge capability" .-> releaseMerge
+  policyAttestor -. "observe current controls" .-> github
   integration --> mergeEvidence
   releaseMerge --> mergeEvidence
   github --> repo
@@ -130,8 +138,8 @@ flowchart TB
 | `recovery/` | TASK-008 | `src/orchestrator/recovery/**` |
 | `workspace/` | TASK-017 | `src/orchestrator/workspace/**` |
 | `ingress/`, the inbox store | TASK-026 | `src/orchestrator/ingress/**` |
-| `integration/` | Future `runtime` implementation task after TASK-041 passes | `src/orchestrator/integration/**`, tests under `tests/unit/orchestrator/integration/**` |
-| `scripts/release/integration-merge/` | Future `devops` implementation task after TASK-041 passes | `scripts/release/integration-merge/**` |
+| `integration/` | Future `runtime` implementation task after a passing TASK-044 or later verdict | `src/orchestrator/integration/**`, tests under `tests/unit/orchestrator/integration/**` |
+| `scripts/release/integration-merge/` | Future `devops` implementation task after a passing TASK-044 or later verdict | `scripts/release/integration-merge/**` |
 
 Ten rows and ten distinct source paths. The eight existing modules retain task owners; the two proposed modules have distinct future owner roles and are not one component. `scripts/orchestration/**` and `scripts/setup/install-git-hooks.ps1` are human-controlled and appear here as an invoked boundary. No module's write scope includes them.
 
@@ -147,7 +155,7 @@ Stated here because the previous version of this diagram contradicted the worksp
 | `integration/` | Narrow GitHub API | Read immutable PR/check/policy state and invoke only the exact-head squash merge into the configured integration branch |
 | `scripts/release/integration-merge/` | Separate narrow GitHub API identity | Read immutable release/PR/check/policy state and invoke only the exact-head protected merge from integration into `main` |
 
-No other module reaches the repository. Neither executor spawns `git push`, and neither receives a generic ref or administration port.
+No other module reaches the repository. Neither executor spawns `git push`, and neither receives a generic ref, administration, policy-observation, or policy-mutation port. The external attestor observes policy and returns only a signed payload; it is not a repository module and has no executor merge port.
 
 ## Invariants visible in this diagram
 
@@ -161,5 +169,6 @@ No other module reaches the repository. Neither executor spawns `git push`, and 
 8. The nominal receipt brand exists only in `state/contracts`. The supervisor supplies TASK-004 with an `AgentReceiptVerifier` that exposes only a verified process-registration subject; the agent root neither imports the state root nor redeclares its brand.
 9. The complete graph has 12 nodes and 19 import edges. Its level witness is: level 0 `state/contracts`, `agents/contracts`, and self-contained `release-integration-merge`; level 1 `state`, `agents`, `workspace`, `ingress`, `integration`; level 2 `scheduling`; level 3 `supervisor`; level 4 `lifecycle`, `recovery`. Every import edge descends, so the graph is acyclic. Exactly two level-0 nodes are contract roots and no path joins them.
 10. A verified merge result reaches state only through TASK-026 append, TASK-005 signal/observe/deliver, and the ordinary supervisor transition. No executor can append its own trigger.
+11. The external policy attestor adds no module/import node. It binds both executor App identities and every complete bypass set in one fresh signed payload; missing or redacted actors fail closed.
 
 The receipt invariant is checked by enumerating semantic declarations: exactly one `DURABLE_RECEIPT_BRAND` and one `ProcessGroupRegistrationReceipt`, both in the state root; zero of either declaration in the agent root; `receipt: unknown` on both agent-side side-effect boundaries; and one `AgentReceiptVerifier` narrowing surface. The collector invariant is checked by the append-committed/signal-absent retry fixture; only TASK-005's later `deliver` call may read the activation range.

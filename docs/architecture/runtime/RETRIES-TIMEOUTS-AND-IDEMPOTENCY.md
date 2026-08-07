@@ -1,8 +1,8 @@
 # Retries, Timeouts, and Idempotency
 
-## Amendment register — TASK-040
+## Amendment register — TASK-040 and TASK-042
 
-Post-gate merge effects use a separate executor-local evidence ledger and the fixed `merge-retry/v1` policy in [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md). They do not reuse a worker attempt, provider failure class, or the run's effect ledger, but preserve the same intent-before-effect and reconcile-before-retry principle. [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md) is the authority.
+Post-gate merge effects use a separate executor-local evidence ledger and the fixed `merge-retry/v1` policy in [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md). They do not reuse a worker attempt, provider failure class, or the run's effect ledger, but preserve the same intent-before-effect and reconcile-before-retry principle. TASK-042 adds the pre-intent policy-attestation digest, policy generation, and constructible pre-attestation context nonce/digest to the idempotency key; attestation expiry, revocation, incompleteness, or drift is non-retryable and requires fresh admission rather than mutation retry. [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md) as superseded in part by [ADR-0043](../../adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md) is the authority.
 
 Normative retry and idempotency contract for the autonomous runtime. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, and TASK-032. Related decisions: [ADR-0006](../../adr/0006-retry-classification-backoff-and-idempotency-keys.md), [ADR-0013](../../adr/0013-single-decision-recovery-reconciliation.md), [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md), [ADR-0020](../../adr/0020-durable-adoptable-results-for-recovery.md), [ADR-0025](../../adr/0025-result-effect-identity-in-the-event-union.md), and [ADR-0033](../../adr/0033-unique-committed-result-effect-recovery.md). Implemented by TASK-008 against the taxonomy owned by TASK-004.
 

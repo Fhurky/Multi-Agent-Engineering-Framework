@@ -1,11 +1,13 @@
 # ADR-0042: Conditionally Authorized Post-Gate Merge Executors
 
-- Status: Proposed under TASK-040; TASK-041 review pending
+- Status: TASK-041 recorded changes-required; superseded in part by proposed [ADR-0043](0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md); TASK-044 review pending
 - Date: 2026-08-06
 - Decision owner: Solution Architect
 - Governance authority: HUMAN-004 at `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`
 - Supersedes in part: ADR-0010's human-only final release merge; ADR-0016's operator-executed integration order and prohibition on every non-human main merge
 - Extends: ADR-0019 and ADR-0027 plan/execute durability, ADR-0023/ADR-0031 ingress authorization, ADR-0041 cumulative integration unit
+
+TASK-041 at `ec533fb5bb0055675fb81f72057d5636f7867db3` retained the two-module boundary, typed refusal totality, API-only mutation, durable intent/recovery/retry order, ingress separation, HUMAN-004 exception union, and topology, while recording F-041-01, F-041-02, and F-041-04 against gate admissibility, policy observation, and published-head evidence. ADR-0043 supersedes only those clauses. This record's preserved decisions remain the predecessor content of the cumulative TASK-042 amendment.
 
 ## Context
 

@@ -1,6 +1,6 @@
 # Runtime Sequence Diagrams
 
-Source diagrams for the ten sequences that carry the runtime and release-control guarantees. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, TASK-038, and TASK-040.
+Source diagrams for the ten sequences that carry the runtime and release-control guarantees. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, TASK-038, TASK-040, and TASK-042.
 
 Specifications: [LEASES-AND-SCHEDULING.md](../../docs/architecture/runtime/LEASES-AND-SCHEDULING.md), [CRASH-RECOVERY.md](../../docs/architecture/runtime/CRASH-RECOVERY.md), [LIFECYCLE-AND-BOOTSTRAP.md](../../docs/architecture/runtime/LIFECYCLE-AND-BOOTSTRAP.md), [WORKSPACE-LIFECYCLE.md](../../docs/architecture/runtime/WORKSPACE-LIFECYCLE.md), [PROVIDER-ADAPTERS.md](../../docs/architecture/runtime/PROVIDER-ADAPTERS.md), [DURABLE-STATE-AND-CHECKPOINTS.md](../../docs/architecture/runtime/DURABLE-STATE-AND-CHECKPOINTS.md), [STATE-MACHINE.md](../../docs/architecture/runtime/STATE-MACHINE.md), [POST-GATE-MERGE-EXECUTORS.md](../../docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md).
 
@@ -46,10 +46,15 @@ Amended by TASK-038 (architecture amendment only; independent TASK-039 owns the 
 
 - Sequence 9 shows the single cumulative architecture content merge and the atomic direct/subsumed lifecycle-evidence batch. Superseded predecessor branches never reach Git after the cumulative target.
 
-Amended by TASK-040 (architecture amendment only; independent TASK-041 owns the verdict):
+Amended by TASK-040 (architecture amendment only; independent TASK-041 owned the round-1 verdict):
 
 - Sequence 9 replaces the Orchestrator's Git operation with durable plan/execute by the runtime executor, TASK-026 result append, and ordinary TASK-005 scheduler wake-up. ADR-0041's one content unit and exact direct/subsumed state batch are unchanged.
 - Sequence 10 shows the separate DevOps release executor checking all seven aggregate domains, persisting intent, merging only the protected integration PR into `main`, reconciling an ambiguous result, and publishing through the same authorized ingress path.
+
+TASK-041 recorded `changes-required`. Amended by TASK-042 (cumulative architecture correction only; independent TASK-044 owns the verdict):
+
+- Sequences 9 and 10 require `ExecutorGateAdmissibility`; a generic formal acceptance follows no plan or merge arrow. Only exact immutable matching High/Critical accepted-security-risk evidence can represent HUMAN-004's first exception.
+- Both sequences obtain a complete fresh plan-bound signed policy attestation from the separate human-controlled policy plane before intent and immediately before mutation. Missing/redacted bypass actors, expiry, revocation, or drift follows no merge arrow. The executor never receives the observer credential.
 
 ## 1. Bootstrap — one input to a running run
 
@@ -494,6 +499,7 @@ New under TASK-038 for A-601. This is the only content-bearing sequence for `LIN
 sequenceDiagram
   participant Review as Current lineage gate task
   participant Exec as Runtime integration executor
+  participant Policy as Human-controlled policy attestor
   participant Evidence as External merge evidence store
   participant Repo as Git integration branch
   participant Adapter as TASK-026 merge-result adapter
@@ -503,10 +509,15 @@ sequenceDiagram
   participant Consumers as Architecture consumers
 
   Review->>Store: GateVerdictRecorded{all current relations,<br/>one authoritative passing verdict}
-  Store-->>Exec: immutable target/gate snapshot is eligible for admission
-  Exec->>Exec: derive cohort, round, unique gate owner,<br/>latest cumulative target T, head/base OIDs,<br/>security, order, policy, expected tree
+  Store-->>Exec: immutable target/gate snapshot offered for admission
+  Exec->>Exec: require authoritative passing gate,<br/>or exact matching High/Critical security acceptance;<br/>derive cohort, target T, head/base, order, expected tree
+  Exec->>Policy: attest pre_intent(exact repo/ref/PR/head/base/apps,<br/>pre-attestation context nonce and digest)
+  Policy-->>Exec: complete signed policy + bypass actors,<br/>generation, expiry, revocation status
+  Exec->>Exec: require signature, complete subject/payload,<br/>current generation, no executor bypass
   Exec->>Evidence: recordIntent(canonical plan)
   Evidence-->>Exec: store-verifiable durable receipt
+  Exec->>Policy: reauthorize same plan immediately before mutation
+  Policy-->>Exec: independently signed pre_mutation;<br/>same context, policy digest, and non-revoked generation
   Exec->>Repo: mergePullRequest(PR, exact head OID, squash)
   Repo-->>Exec: mergedCommit and result tree
   Exec->>Exec: require result tree == T publication tree
@@ -532,16 +543,21 @@ New under TASK-040. The executor is not the runtime task executor and does not s
 ```mermaid
 sequenceDiagram
   participant Release as DevOps release executor
+  participant Policy as Human-controlled policy attestor
   participant Evidence as Release merge evidence store
   participant GitHub as Protected GitHub PR
   participant Adapter as TASK-026 merge-result adapter
   participant Sched as TASK-005 observer/scheduler
 
   Release->>Release: load immutable release-gates/v1 manifest
-  Release->>Release: require review + security + QA + performance<br/>+ documentation + deployment + rollback aggregate gates
+  Release->>Release: require authoritative passing review + security<br/>+ QA + performance + documentation + deployment + rollback;<br/>only exact matching High/Critical security acceptance differs
   Release->>Release: verify complete ordered integration evidence,<br/>exact integration head/main base OIDs,<br/>checks, security, policy, expected tree
+  Release->>Policy: attest pre_intent(exact repo/main ref/PR/head/base/apps,<br/>pre-attestation context nonce and digest)
+  Policy-->>Release: complete signed current policy,<br/>all bypass actors, generation, expiry
   Release->>Evidence: recordIntent(canonical release plan)
   Evidence-->>Release: store-verifiable durable receipt
+  Release->>Policy: reauthorize same plan immediately before mutation
+  Policy-->>Release: independently signed pre_mutation;<br/>same context, policy digest, and non-revoked generation
   Release->>GitHub: mergePullRequest(integration PR, exact head OID, merge)
   alt authoritative merged response
     GitHub-->>Release: merged commit
@@ -559,4 +575,4 @@ sequenceDiagram
   Sched->>Sched: observe, deliver, then ordinary selection
 ```
 
-A conflict, stale OID, missing/non-success check, policy mismatch, incomplete aggregate domain, or unverifiable result follows no merge arrow. It writes refusal/remediation evidence. Only retryable transport/rate/5xx failures can re-enter after reconciliation, within three total mutation attempts and 120 seconds. No branch produces a routine human merge request.
+A non-passing or generically accepted gate, invalid accepted-risk record, conflict, stale OID, missing/non-success check, incomplete or stale policy attestation, missing/redacted bypass actors, policy drift/revocation, incomplete aggregate domain, or unverifiable result follows no merge arrow. It writes refusal/remediation evidence. Only retryable transport/rate/5xx failures can re-enter after reconciliation, within three total mutation attempts and 120 seconds. No branch produces a routine human merge request.

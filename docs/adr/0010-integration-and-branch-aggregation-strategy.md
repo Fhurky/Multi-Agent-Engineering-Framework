@@ -1,6 +1,6 @@
 # ADR-0010: Integration and branch aggregation strategy for the runtime task graph
 
-- Status: Accepted; superseded in part by [ADR-0016](0016-integration-branch-and-typed-merge-order.md), [ADR-0041](0041-cumulative-architecture-lineage-integration-unit.md), which narrows squash-per-task for a cumulative amendment lineage only, and proposed [ADR-0042](0042-conditionally-authorized-post-gate-merge-executors.md), which replaces human-only execution of the final release merge after its independent approval and activation conditions
+- Status: Accepted; superseded in part by [ADR-0016](0016-integration-branch-and-typed-merge-order.md), [ADR-0041](0041-cumulative-architecture-lineage-integration-unit.md), which narrows squash-per-task for a cumulative amendment lineage only, and proposed [ADR-0042](0042-conditionally-authorized-post-gate-merge-executors.md) as corrected by [ADR-0043](0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md), which replaces human-only execution of the final release merge after independent approval and every activation condition
 - Date: 2026-08-04
 - Deciders: Solution Architect under TASK-002
 - Affects: TASK-003 … TASK-008; routing implications for the Orchestrator

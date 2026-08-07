@@ -1,8 +1,8 @@
 # Run and Task State Machine
 
-## Amendment register - TASK-040
+## Amendment register - TASK-040 and TASK-042
 
-TASK-040 does not add a merge transition to this state machine. Both executors act outside the run journal after their own durable intent; a TASK-026-owned result adapter appends `branch_integrated`, TASK-005 observes/delivers it, and the existing `BranchIntegrated` event remains the only state projection. No executor can append, apply, or self-trigger. See [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md) and [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md).
+TASK-040 does not add a merge transition to this state machine. Both executors act outside the run journal after their own durable intent; a TASK-026-owned result adapter appends `branch_integrated`, TASK-005 observes/delivers it, and the existing `BranchIntegrated` event remains the only state projection. No executor can append, apply, or self-trigger. TASK-042 changes no event member or transition. It requires successful exact `ExecutorGateAdmissibility` before an executor can produce the terminal evidence the adapter accepts, and returns the broader tasks-owned `gate_passed` correction rather than editing `tasks/**`. See [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md), [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md), and [ADR-0043](../../adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md).
 
 Normative deterministic state machine for the autonomous runtime. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-034, TASK-036, and TASK-038. Related decisions: [ADR-0003](../../adr/0003-deterministic-run-and-task-state-machine.md), as extended by [ADR-0013](../../adr/0013-single-decision-recovery-reconciliation.md) and [ADR-0015](../../adr/0015-typed-scheduling-gate-and-activation-contracts.md), and as further amended by [ADR-0017](../../adr/0017-durable-ingress-inbox-and-ingress-epochs.md), [ADR-0018](../../adr/0018-publication-classes-and-gate-lineages.md), [ADR-0020](../../adr/0020-durable-adoptable-results-for-recovery.md), [ADR-0022](../../adr/0022-unqualified-drain-closure.md), TASK-028 ADRs [0023](../../adr/0023-immutable-ingress-entries-and-named-bootstrap-dispatch-contracts.md), [0024](../../adr/0024-task-record-projection-contract.md), [0025](../../adr/0025-result-effect-identity-in-the-event-union.md), [0026](../../adr/0026-blocked-drain-attach-and-unverified-closure-recovery.md), [0029](../../adr/0029-ingress-delivery-ownership.md), [0030](../../adr/0030-one-canonical-recovery-decision-input-domain.md), and [0031](../../adr/0031-pre-dispatch-ingress-observer-and-collector.md), [ADR-0033](../../adr/0033-unique-committed-result-effect-recovery.md), [ADR-0035](../../adr/0035-explicit-reconciliation-evidence-composition-boundary.md), [ADR-0037](../../adr/0037-recovery-completion-evidence-and-decision-block-legality.md), and [ADR-0041](../../adr/0041-cumulative-architecture-lineage-integration-unit.md). Implemented by TASK-006.
 
@@ -281,7 +281,7 @@ A `content-merged` record is legal only when the event target equals `integratio
 
 A `lineage-subsumed` record is legal only inside the same crash-atomic batch as the direct record for the lineage's current cumulative target. The loader derives the complete ordered cohort, greatest contiguous round, unique gate task, and complete atomic relation set from the immutable target. It then requires all of the following:
 
-- the authoritative verdict at that exact round is passing or formally accepted and closes every cohort relation;
+- the authoritative verdict at that exact round closes every cohort relation and successful `ExecutorGateAdmissibility` proves it passing, or proves only the exact matching High/Critical accepted-security-risk exception;
 - `sourceTaskId` is the last cohort member and the unique task named by the gate task's `review_ready` dependency;
 - the batch begins with the source task's valid `content-merged` event and then contains exactly one `lineage-subsumed` event for every earlier cohort member, in cohort order, with no other target;
 - every event names the same `integrationBranch`, `mergedCommit`, `sourcePublishedCommit`, `lineage`, `lineageRound`, and `mergedAt`; and
@@ -400,6 +400,8 @@ Added under TASK-016, amended under TASK-024 and TASK-028, and made lossless und
 
 `gate_recorded` and the lineage form differ in exactly one way, and that difference is load-bearing: `gate_recorded` is satisfied by **any** verdict, including `changes-required`; the lineage form is satisfied only by a passing or formally accepted one. A task whose prerequisite is a working upstream baseline uses the lineage form. A task that is the remediation *for* a failing verdict uses `gate_recorded`, because a passing verdict will never exist at that round. TASK-024 itself holds `gate_recorded(TASK-020)` for exactly that reason.
 
+The table above transcribes the current tasks-owned graph and is not sufficient executor admission. TASK-042 returns its required security-only acceptance narrowing to the Orchestrator. Until the graph correction is committed and pinned, the activation record is invalid. Independently, `ExecutorGateAdmissibility` returns `PreMergeGateNotPassing` for a generic formally accepted verdict and can never construct a plan from it.
+
 Three properties follow directly and are why the runtime can execute the committed graph:
 
 - A gate task is dispatchable while its target is unmerged, because `review_ready` is satisfiable from a published commit alone. That removes the pre-merge review deadlock.
@@ -491,7 +493,7 @@ The inbox is a durable append-only state store, not a Git ref scan, not a commit
 
 ### Merge-result ingress and scheduler wake-up under TASK-040
 
-The executor's durable result is an external fact, not a state-machine event. TASK-026's `merge_result_adapter` accepts only `merged` or `recovered_merged` evidence whose immutable source/base/result OIDs, evidence digest, executor identity, and resulting tree verify. It rejects plans, refusals, retries, ambiguous outcomes, and unverifiable results. It then appends one `branch_integrated` candidate using the existing identity/deduplication rule.
+The executor's durable result is an external fact, not a state-machine event. TASK-026's `merge_result_adapter` accepts only `merged` or `recovered_merged` evidence whose immutable source/base/result OIDs, evidence digest, executor identity, exact gate-admission digest, policy/attestation digests and generation, and resulting tree verify. It rejects plans, refusals, retries, generic formal acceptance, stale/revoked/drifting policy, ambiguous outcomes, and unverifiable results. It then appends one `branch_integrated` candidate using the existing identity/deduplication rule.
 
 TASK-005 signals and observes the returned high-water mark before selection, delivers the immutable range, and the supervisor builds the existing `BranchIntegrated` event or ADR-0041 atomic direct/subsumed batch. Only after that event is durable may `integrated(X)` become true and ordinary selection dispatch newly ready work. The executor, Orchestrator, recurring task, and supervisor are not append principals; the executor has no journal, inbox, scheduler, or transition-function capability.
 

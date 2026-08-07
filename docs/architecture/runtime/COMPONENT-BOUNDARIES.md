@@ -1,6 +1,10 @@
 # Runtime Component Boundaries
 
-Normative component decomposition for the autonomous multi-agent runtime and its release control plane. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-036, and TASK-040. Related decisions: [ADR-0002](../../adr/0002-runtime-component-boundaries-and-module-ownership.md) as superseded in part by [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md) and [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md), plus [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md), TASK-028 ADRs [0024](../../adr/0024-task-record-projection-contract.md), [0028](../../adr/0028-nominal-store-issued-durable-append-receipts.md), [0029](../../adr/0029-ingress-delivery-ownership.md), and [0031](../../adr/0031-pre-dispatch-ingress-observer-and-collector.md), TASK-032 ADRs [0032](../../adr/0032-lossless-task-record-source-and-projection.md), [0033](../../adr/0033-unique-committed-result-effect-recovery.md), and [0034](../../adr/0034-spawn-owned-registration-proof-refusal.md), TASK-036 ADRs [0038](../../adr/0038-total-pre-dispatch-ingress-append-dispositions.md) and [0039](../../adr/0039-single-nominal-receipt-authority-and-cross-root-conformance.md), and TASK-040 [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md).
+Normative component decomposition for the autonomous multi-agent runtime and its release control plane. Produced under TASK-002 and amended under TASK-016, TASK-024, TASK-028, TASK-032, TASK-036, TASK-040, and TASK-042. Related decisions: [ADR-0002](../../adr/0002-runtime-component-boundaries-and-module-ownership.md) as superseded in part by [ADR-0011](../../adr/0011-agent-workspace-lifecycle-module.md) and [ADR-0021](../../adr/0021-durable-ingress-module-and-the-eight-module-map.md), plus [ADR-0014](../../adr/0014-live-run-control-and-process-tree-ownership.md), TASK-028 ADRs [0024](../../adr/0024-task-record-projection-contract.md), [0028](../../adr/0028-nominal-store-issued-durable-append-receipts.md), [0029](../../adr/0029-ingress-delivery-ownership.md), and [0031](../../adr/0031-pre-dispatch-ingress-observer-and-collector.md), TASK-032 ADRs [0032](../../adr/0032-lossless-task-record-source-and-projection.md), [0033](../../adr/0033-unique-committed-result-effect-recovery.md), and [0034](../../adr/0034-spawn-owned-registration-proof-refusal.md), TASK-036 ADRs [0038](../../adr/0038-total-pre-dispatch-ingress-append-dispositions.md) and [0039](../../adr/0039-single-nominal-receipt-authority-and-cross-root-conformance.md), TASK-040 [ADR-0042](../../adr/0042-conditionally-authorized-post-gate-merge-executors.md), and TASK-042 [ADR-0043](../../adr/0043-exact-merge-admission-policy-attestation-and-published-head-evidence.md).
+
+## Correction register — TASK-042
+
+TASK-042 does not add a module or import edge. It places complete policy observation in a separate repository-owner-controlled trust boundary because neither executor may hold the permission GitHub requires to return full bypass actors. Executors consume signed immutable attestations only; the attestor receives no runtime import or merge port. The module map therefore remains ten rows/paths, the import topology remains twelve nodes and nineteen edges over five levels, and exactly two independent contract roots remain.
 
 ## Amendment register — TASK-040
 
@@ -79,7 +83,7 @@ Each row is owned end to end by exactly one task or, for the two not-yet-created
 | **Post-gate task integration executor** | `src/orchestrator/integration/` | **`runtime` role; implementation task not yet created** | Pure task admission, immutable plan, durable intent/result evidence, bounded GitHub squash merge into the configured integration branch, result verification, recovery/retry, and remediation publication |
 | **Integration release merge executor** | `scripts/release/integration-merge/` | **`devops` role; implementation task not yet created** | Pure release admission, aggregate release-gate validation, durable intent/result evidence, bounded protected PR merge from integration into `main`, result verification, recovery/retry, and remediation publication |
 
-Ten rows and ten distinct source paths. The eight existing rows retain their distinct owner tasks; each new row has one distinct owner role and awaits a separately owned implementation task after TASK-041 passes. No module appears twice, the two new modules are not one parameterized component, and no responsibility above is unassigned.
+Ten rows and ten distinct source paths. The eight existing rows retain their distinct owner tasks; each new row has one distinct owner role and awaits a separately owned implementation task after a passing TASK-044 or later verdict. No module appears twice, the two new modules are not one parameterized component, and no responsibility above is unassigned.
 
 ### Responsibility assignment added under TASK-024 and amended under TASK-028
 
@@ -188,7 +192,7 @@ Derived rules:
 
 1. Neither contract root imports anything. They are leaves of the dependency graph.
 2. Concrete implementations are never imported across module boundaries. A consumer depends on the interface declared in a contract root and receives the implementation by constructor injection. This is what allows TASK-005, TASK-006, TASK-007, TASK-008, and TASK-017 to be unit tested with fakes before their dependencies exist.
-3. There are no cycles. The graph is a strict partial order. Future implementation-task waves are not invented by this amendment; only the Orchestrator may create them after TASK-041 passes.
+3. There are no cycles. The graph is a strict partial order. Future implementation-task waves are not invented by this amendment; only the Orchestrator may consider them after a passing TASK-044 or later verdict.
 4. `supervisor` is the only module that applies events to durable run state. `scheduling`, `recovery`, `workspace`, `ingress`, and `integration` hand results to composition boundaries; they never call `StateStore.append` with their own transition logic. `ingress` additionally owns a store of its own, the inbox, which holds no run state and is never folded into a `RunRecord`; the journal observes its high-water mark and nothing more. Merge executors use separate append-only merge-evidence stores and never write the run journal.
 5. `agents` never touches durable state, never sees a fencing token as an authority, and never decides whether to retry. It classifies and returns. It does own the OS process tree of every process it spawns, which is a resource concern rather than a state concern.
 6. `lifecycle` never contains scheduling, state, provider, or retry logic. It composes the object graph, translates operator intent into run events, owns the control transport, and owns process signals and exit codes.
@@ -246,13 +250,19 @@ Its full contract is section 2b of [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.
 
 Added under TASK-040. It is separate from `workspace` because publishing an agent branch and exercising post-gate GitHub merge authority have different credentials, admission predicates, recovery evidence, and prohibited capabilities. It is separate from `supervisor` because the supervisor composes a successful outcome but does not own GitHub authorization. It publishes a durable result for TASK-026's adapter and never appends its own trigger.
 
-Its source is `src/orchestrator/integration/`; its tests are `tests/unit/orchestrator/integration/`. Both fit the existing runtime write scope. Its implementation task does not exist and cannot be created before TASK-041 passes. Its complete contract is [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md).
+Its source is `src/orchestrator/integration/`; its tests are `tests/unit/orchestrator/integration/`. Both fit the existing runtime write scope. Its implementation task does not exist and remains blocked behind TASK-044. Its complete contract is [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md).
 
 ### Integration release merge executor (`devops`)
 
 Added under TASK-040. It is separate from the runtime executor because release admission has seven aggregate gate domains, a different immutable manifest, a different GitHub identity, and authority over a different protected base. It is a release control-plane module, not runtime business logic and not a generic Git helper.
 
-Its source and nested tests are under `scripts/release/integration-merge/`, within the existing DevOps write scope. Its implementation task does not exist and cannot be created before TASK-041 passes. Its complete contract is [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md).
+Its source and nested tests are under `scripts/release/integration-merge/`, within the existing DevOps write scope. Its implementation task does not exist and remains blocked behind TASK-044. Its complete contract is [POST-GATE-MERGE-EXECUTORS.md](POST-GATE-MERGE-EXECUTORS.md).
+
+### Trusted repository-policy attestation boundary (`human` control plane)
+
+Added under TASK-042 as an external dependency, not as a repository module. A repository-owner-controlled attestor observes the exact repository/ref controls and complete bypass set, signs the canonical current-policy payload, and exposes only that signed result. Its privileged observation credential, signing key, and revocation service remain outside the repository and outside both executors. Neither executor imports the attestor implementation or can obtain its credential; the attestor cannot call either executor's merge port.
+
+GitHub's documented ruleset response omits `bypass_actors` without ruleset write access, so an acceptable executor credential cannot implement this boundary. Missing provisioning returns `PolicyObservationUnavailable` and keeps activation closed. Because the boundary is external and human-controlled, it adds zero module rows, zero source paths, zero graph nodes, zero import edges, and zero contract roots.
 
 ## Cross-cutting rules binding all ten modules
 
@@ -271,7 +281,7 @@ Its source and nested tests are under `scripts/release/integration-merge/`, with
 
 | Acceptance criterion | Satisfied by |
 |---|---|
-| Every existing component maps to one implementation task, and each proposed executor maps to one future owner role without shared ownership | Module map and contract roots above; task creation is expressly deferred until TASK-041 passes |
+| Every existing component maps to one implementation task, and each proposed executor maps to one future owner role without shared ownership | Module map and contract roots above; task creation remains deferred behind TASK-044 |
 | Interface contracts consumed across implementation tasks are documented before implementation starts | [INTERFACE-CONTRACTS.md](INTERFACE-CONTRACTS.md) |
 | Live-run control has one owning module and process-tree lifecycle has one owning module; neither is unassigned and neither has two owners (A-003) | [Responsibility assignments added under TASK-016](#responsibility-assignments-added-under-task-016) |
 | The durable ingress inbox has one owning module and one owner task (A-101, F-301) | [Responsibility assignment added under TASK-024 and amended under TASK-028](#responsibility-assignment-added-under-task-024-and-amended-under-task-028) |
@@ -279,3 +289,4 @@ Its source and nested tests are under `scripts/release/integration-merge/`, with
 | Every natural source/test path is inside its current owner role's declared write scope | `src/orchestrator/integration/` plus `tests/unit/orchestrator/integration/` are runtime-scoped; `scripts/release/integration-merge/` and its nested tests are DevOps-scoped |
 | The module map contains exactly **ten** modules and no module appears twice | Module map above; ten rows and ten distinct source paths; eight existing owner tasks plus two distinct future owner roles |
 | The dependency graph is acyclic and the two roots stay independent | [Allowed dependency directions](#allowed-dependency-directions): 12 nodes, 19 edges, complete five-level witness, exactly two contract roots with no path between them |
+| Complete policy observation does not widen either executor or the repository module graph | [Trusted repository-policy attestation boundary](#trusted-repository-policy-attestation-boundary-human-control-plane): external human control plane, zero added rows/nodes/edges/roots, fail-closed unresolved dependency |
