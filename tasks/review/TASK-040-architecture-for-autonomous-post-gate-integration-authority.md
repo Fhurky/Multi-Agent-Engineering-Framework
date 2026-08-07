@@ -26,11 +26,35 @@ gate_tasks:
   - task: TASK-041
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: ec533fb5bb0055675fb81f72057d5636f7867db3
+    remediated_by: TASK-042
+    revalidated_by: TASK-044
     gate_class: point
     retrospective: false
     gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
     lineage_round: 1
+  - task: TASK-044
+    gate: review
+    round: 2
+    verdict: pending
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
+    lineage_round: 2
+gate_status: >-
+  OPEN. The review gate's status is the verdict recorded at its highest round, which is round 2
+  and is pending. Round 1 recorded changes-required and is durable and superseded, never
+  rewritten. This record is therefore NOT INTEGRABLE - review is in its pre_merge_gates and that
+  gate now carries a durable failing verdict at round 1 and no verdict at round 2. Pull request
+  22 must not be merged.
+integrable: false
+integrable_reason: >-
+  review is declared in pre_merge_gates and the relation is open. ACT-021 neither merged,
+  modified, closed, reopened, commented on, nor approved pull request 22, and no Orchestrator
+  activation may perform that merge. HUMAN-004's own text states that existing pull requests
+  continue to obey their current gates and that the decision "does not retroactively authorize
+  a gate bypass".
 parent_task: TASK-001
 publication_class: bootstrap
 published_commit: 5e5fc8fe656b0e08a5337642447d7a81f83c4822
@@ -53,6 +77,21 @@ publication_check_runs: >-
   a running check. This is the same treatment ACT-018 gave the absent run on pull
   request 20, and judging the gap is TASK-041's, not the Orchestrator's.
 review_target_commit: 5e5fc8fe656b0e08a5337642447d7a81f83c4822
+round_1_verdict: >-
+  changes-required, recorded by TASK-041 at ec533fb5bb0055675fb81f72057d5636f7867db3, published
+  as pull request 23, artifact reports/code-review/TASK-040-INTEGRATION-AUTHORITY-REVIEW.md.
+  Four findings - F-041-01 High, F-041-02 High, F-041-03 High, F-041-04 Medium. Three are
+  architect-owned and routed to TASK-042; F-041-03 is devops-owned and routed to TASK-043.
+  Implementation authorization is DENIED for both executors at this round, in the report's own
+  words. Twenty-two of twenty-six scope items were judged met, and that did not make the verdict
+  passing. This record's own artifact is unchanged and is not re-authored: the remediation is a
+  new amendment on a new branch, judged at a new round, and 5e5fc8f stays the immutable round-1
+  target forever.
+round_1_verdict_note: >-
+  The verdict is recorded here by the Orchestrator and was authored by TASK-041. This role
+  transcribes a gate owner's judgment and never produces, softens, or anticipates one. No
+  finding was resolved, re-dispositioned, merged, or split by ACT-021.
+superseded_by_round: TASK-042 authors the remediation and TASK-044 records LIN-INTEGRATION-AUTHORITY-REVIEW round 2 over two relations - TASK-042 at round 1 and this record at round 2 - applied atomically. Round 2's review-diff base is c95ce600b40ab2dbac73da44a21bbb7a207c444d, the same base this round used, so the round that judges this record's relation sees this record's delta.
 normative_architecture_source: 8ea5c32789ee01fd4a2cec4aff13905b120edae3, the immutable TASK-038 target, approved by LIN-ARCH-REVIEW at lineage_round 8 at 734bdbc and integrated onto integration/autonomous-runtime at de3a8d6. This task amends that approved baseline; it does not replace it and does not reopen any relation LIN-ARCH-REVIEW closed at round 8.
 human_decisions:
   - id: HUMAN-004
@@ -244,4 +283,6 @@ Maintained by the Orchestrator under TASK-013 from the owner's commit and pull r
 - **Continuous integration: no run exists.** GitHub reports **zero** check runs for `5e5fc8f`, an empty `statusCheckRollup` on pull request 22, and a combined status with zero contexts. **This is recorded as an absence and never as a success.** TASK-041 must judge the gap explicitly rather than treat an unexecuted workflow as a passing check, which is the same obligation `ACT-018` placed on TASK-019 for pull request 20.
 - **What this activation did not do.** It recorded no verdict, closed no gate, resolved no finding, and formed no opinion on whether the amendment covers both executors, bounds them correctly, or satisfies any acceptance criterion above. It did not merge, modify, review, comment on, or approve pull request 22 or pull request 20, and it created no implementation or validation task. **A publication is a readiness fact, not a judgment** — the distinction `ACT-007` recorded, restated here at the point where it would be easiest to skip, because this amendment authorizes the most consequential capability the graph has considered.
 - Governance decision consumed: **`HUMAN-004`, approved** at `7dc07488a5b1cac8b1327ebd63bf747adbe03c68`, consumed by TASK-013 activation `ACT-019` as ingress entry `seq` 27. Its boundaries are transcribed above and its full text is at `plans/decisions/HUMAN-004-autonomous-merge-authority.md` at that commit. **The decision authorizes a capability; it does not create one, and this amendment does not create one either.**
-- **Next owner: reviewer / gpt for TASK-041**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 1, `ready` and dispatchable now on the satisfied `review_ready(TASK-040)` edge at `5e5fc8f`. It records one verdict applied to the single relation it carries. **Only a passing TASK-041 verdict permits the Orchestrator to create the implementation and validation tasks**, which are separately owned by `runtime` and `devops` and do not exist. **Pull request 22 must not be merged before TASK-041 records a passing verdict**, which is this task's declared `pre_merge_gates: [review]` and which `HUMAN-004`'s own text restates rather than relaxes. The `AGENTS.md` amendment, the GitHub branch-protection and required-check configuration, and the least-privilege credential remain the **user's**, authorized and unperformed. The superseded statement, from `ACT-019`, read: **architect / gpt for this task**, `ready` and dispatchable now.
+- **Round 1 recorded `changes-required` at `ACT-021`**, at `ec533fb5bb0055675fb81f72057d5636f7867db3`, published as pull request 23 with two passing GitHub check runs of its own. The relation `(TASK-040, review, round 1)` **stays open** and is superseded by round 2. **Three of the four findings are architect-owned and routed to TASK-042**; **F-041-03 is devops-owned and routed to TASK-043**. **Implementation authorization is denied for both executors at this round**, and `ACT-021` created no implementation or validation task for either. This record's artifact is unchanged: `5e5fc8f` stays the immutable round-1 target, the remediation is a new amendment on a new branch, and no verdict was rewritten.
+- **The absent continuous-integration run became a recorded finding rather than a note.** `ACT-020` recorded the zero check runs as an absence and left the judgment to TASK-041; TASK-041 judged it, made it **F-041-03**, and stated "**Absent CI is not passing CI**". `ACT-021` re-read the same surfaces and the target's check-run total is still zero. The gap is now owned, routed, and revalidated, which is what recording an absence rather than inferring a success was for.
+- **Next owner: architect / gpt for TASK-042**, `ready` and dispatchable now on the satisfied `gate_recorded(TASK-041)` edge at `ec533fb`, branching from this record's own published head `5e5fc8f` and holding the free `architecture-docs` lock as its tenth registered holder; and **devops / claude for TASK-043**, `ready` and dispatchable in parallel with a disjoint scope. **Reviewer / gpt for TASK-044** records round 2 over two relations and is `blocked` until TASK-042 publishes; **reviewer / gpt for TASK-045** records `LIN-CI-EVIDENCE-REVIEW` round 1 and is `blocked` until TASK-043 publishes. **Pull request 22 must not be merged before a `LIN-INTEGRATION-AUTHORITY-REVIEW` round records a passing verdict**, which is this task's declared `pre_merge_gates: [review]` and which `HUMAN-004`'s own text restates rather than relaxes. The `AGENTS.md` amendment, the GitHub branch-protection and required-check configuration, and the least-privilege credential remain the **user's**, authorized and unperformed. The superseded statement, from `ACT-020`, read: **reviewer / gpt for TASK-041**, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 1, `ready` and dispatchable now on the satisfied `review_ready(TASK-040)` edge at `5e5fc8f`. It records one verdict applied to the single relation it carries. **Only a passing TASK-041 verdict permits the Orchestrator to create the implementation and validation tasks**, which are separately owned by `runtime` and `devops` and do not exist. The further superseded statement, from `ACT-019`, read: **architect / gpt for this task**, `ready` and dispatchable now.

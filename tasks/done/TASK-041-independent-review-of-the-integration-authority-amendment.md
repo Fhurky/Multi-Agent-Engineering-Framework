@@ -1,7 +1,7 @@
 ---
 task_id: TASK-041
 title: Independent review of the autonomous integration authority amendment
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-041
@@ -20,13 +20,88 @@ gate_for:
   - task: TASK-040
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: ec533fb5bb0055675fb81f72057d5636f7867db3
+    remediated_by: TASK-042
+    revalidated_by: TASK-044
     gate_class: point
     retrospective: false
     gate_lineage: LIN-INTEGRATION-AUTHORITY-REVIEW
     lineage_round: 1
 parent_task: TASK-001
 publication_class: bootstrap
+verdict: changes-required
+verdict_recorded_at: ec533fb5bb0055675fb81f72057d5636f7867db3
+verdict_cardinality: >-
+  One verdict applied to the single relation this task carries, (TASK-040, review, round 1).
+  The relation stays OPEN and is superseded by LIN-INTEGRATION-AUTHORITY-REVIEW round 2 at
+  TASK-044. This is the smallest cardinality any verdict in this graph has had; TASK-020
+  applied one verdict to two relations, TASK-025 to three, TASK-029 to four, and TASK-039 to
+  eight. The atomicity rule is satisfied trivially at one relation and is stated rather than
+  omitted, because the rule is what makes a split outcome unrepresentable at every cardinality.
+findings_recorded:
+  - id: F-041-01
+    severity: High
+    owner_role: architect
+    routed_to: TASK-042
+    summary: Generic formal acceptance can admit a non-passing independent gate.
+  - id: F-041-02
+    severity: High
+    owner_role: architect
+    routed_to: TASK-042
+    summary: Live no-bypass verification is not constructible with the declared credential boundary.
+  - id: F-041-03
+    severity: High
+    owner_role: devops
+    routed_to: TASK-043
+    summary: The immutable target has zero GitHub status checks.
+  - id: F-041-04
+    severity: Medium
+    owner_role: architect
+    routed_to: TASK-042
+    summary: Owner verification is not bound to the published head.
+implementation_authorization: >-
+  DENIED for both executors at this round, in the report's own words. The Orchestrator must not
+  create the separately owned runtime implementation task or the separately owned DevOps
+  implementation task from this amendment, and no implementation or validation task authorized
+  by HUMAN-004 may be created until a later architecture amendment receives a passing
+  independent review round. ACT-021 created none.
+security_finding_status: >-
+  No High or Critical SECURITY finding was recorded, so no formal human acceptance is required
+  by this verdict. F-041-01, F-041-02, and F-041-03 are High review findings and are blocking
+  for integration; they are not security-gate findings and the security gate that would produce
+  such a finding is not this lineage.
+published_commit: ec533fb5bb0055675fb81f72057d5636f7867db3
+published_branch: agent/gpt/reviewer/task-041
+publication: published
+published_remote_ref: refs/heads/agent/gpt/reviewer/task-041 on origin, resolving to ec533fb5bb0055675fb81f72057d5636f7867db3, confirmed with git ls-remote at ACT-021
+pull_request: 23, OPEN against integration/autonomous-runtime, head ec533fb5bb0055675fb81f72057d5636f7867db3, not a draft, reported MERGEABLE with mergeStateStatus CLEAN, created 2026-08-07T05:54:14Z, updated 2026-08-07T05:55:57Z, changedFiles 1. Read from the GitHub API at ACT-021, not from the dispatch hint.
+publication_check_runs: >-
+  Two, and both concluded success - CI / validate and Security / security. Read at ACT-021 from
+  repos/:owner/:repo/commits/ec533fb/check-runs, total_count 2, and from gh pr checks 23, both
+  pass. This is the FIRST published head in this graph to carry executed, passing, target-bound
+  GitHub check runs, and it is recorded as a durable fact about this artifact only. It is not
+  evidence about 5e5fc8f, whose check-run total is still zero, and it does not resolve or weaken
+  F-041-03; judging what it means for the workflows generally is TASK-043's work and TASK-045's
+  judgment. The combined commit status for this head reports zero contexts, which is GitHub's
+  separate legacy status surface and not the check-runs surface; both were read.
+authored_delta: 1 path, 136 insertions, 0 deletions, against this branch's own immutable branch point 461511437a26a57fe9a976c5ce3222ca123084d1. The single path is reports/code-review/TASK-040-INTEGRATION-AUTHORITY-REVIEW.md, which is this task's entire declared write scope. Residue empty, verified by enumeration at ACT-021.
+authored_commits: >-
+  Two. c42c218e178fba6e1bccb3ae4878fb5686627f1f created the 136-line report, and the head
+  ec533fb5bb0055675fb81f72057d5636f7867db3 changed exactly one line of it, replacing "pull
+  request pending publication" with the PR 23 link. The verdict, every finding, every scope
+  judgment, and every verification row are byte-identical between the two commits, verified by
+  diff at ACT-021. The ingress fact is bound to the HEAD under the head-binding rule ACT-009,
+  ACT-013, ACT-015, and ACT-020 each applied - binding the parent would pin a report that
+  misstates its own publication.
+owner_evidence_agreement: >-
+  This is the first reviewer record in this graph whose owner-stated publication matches the
+  durable state in the published direction. Seven earlier reviewer records stated local-only or
+  pending while a push had happened outside their execution, and TASK-032 through TASK-039
+  stated local-only and were local-only. This record's own report states PR 23 and PR 23 exists
+  with that exact head. The routed question - whether the publication field should say that it
+  records the execution's own knowledge - is unchanged and stays open for the next decomposition
+  round; one agreeing instance is an observation, not a resolution.
 unblocked_reason: >-
   The only declared dependency, review_ready(TASK-040), is satisfied at
   5e5fc8fe656b0e08a5337642447d7a81f83c4822 on agent/gpt/architect/task-040, consumed by
@@ -47,9 +122,24 @@ review_target_base: c95ce600b40ab2dbac73da44a21bbb7a207c444d
 review_target_applicability: applicable and resolved at ACT-020. Both values are immutable and were read from the repository, not asserted. The target is the branch head of agent/gpt/architect/task-040 and equals pull request 22's headRefOid; the base is that branch's own immutable branch point on integration/autonomous-runtime, confirmed two ways with git merge-base and as the parent of the first authored commit d2c599696d25bc8938ef43514e8dc37aad70b047. Neither value may be retargeted if TASK-040 later publishes again; a superseding artifact gets a new round of LIN-INTEGRATION-AUTHORITY-REVIEW, never a retarget of this one.
 review_target_command: git diff c95ce600b40ab2dbac73da44a21bbb7a207c444d 5e5fc8fe656b0e08a5337642447d7a81f83c4822 — 18 paths, 741 insertions, 84 deletions, all inside TASK-040's declared write scope as recomputed at ACT-020
 branch_point_of: agent/gpt/reviewer/task-041
-scope_validation_base: git merge-base HEAD integration/autonomous-runtime
-scope_validation_applicability: applicable, declared as a reproducible expression because this task's branch does not exist yet. It is this task's own branch point and is unrelated to review_target_base above, which belongs to the delta under review; findings F-403 and A-209 required the two to stay separate fields.
-scope_validation_note: Branch from integration/autonomous-runtime, then resolve the immutable branch point inside the worktree with git merge-base HEAD integration/autonomous-runtime and pass that value to -BaseRef. Record the resolved value in the report; the Orchestrator pins it at the next activation. Never pass origin/main, c325275, de3a8d6, or a review-diff base.
+branch_point_of_form_note: >-
+  Left exactly as written, and the ambiguity it exposes is recorded rather than resolved here.
+  Rule 1 of "Task baselines" derives the base as git merge-base <task branch> <branch_point_of>
+  and says branch_point_of "names the branch the task branch was created from", which is the
+  parent form TASK-031 uses. This record, TASK-040, and TASK-013 instead name the record's OWN
+  branch, and TASK-013's own note reads "This field names the branch point of the activation
+  currently running" - a second, self-referential reading of the same field. Both forms are live
+  in this graph today. Nothing was misdirected here: this record's scope_validation_note gave
+  the resolving command explicitly and the owner followed it, and the resolved value is correct
+  under either reading. The Orchestrator declines to rewrite the field on a closing record on
+  the strength of a reading it would be choosing itself, and routes the question - which form is
+  normative, and whether the rule and the records disagree - to LIN-DECOMP-REVIEW round 9. The
+  records TASK-042 through TASK-045, created at ACT-021, use the parent form, because that is
+  what rule 1 states; that divergence is deliberate and is recorded here so it is not read as an
+  inconsistency introduced by accident.
+scope_validation_base: 461511437a26a57fe9a976c5ce3222ca123084d1
+scope_validation_applicability: applicable and resolved at ACT-021, superseding the reproducible expression this record carried before the branch existed. The owner resolved it as instructed and recorded 461511437a26a57fe9a976c5ce3222ca123084d1 in its report; the Orchestrator recomputed the same value independently with git merge-base agent/gpt/reviewer/task-041 integration/autonomous-runtime. Prescription and execution agree, which is the outcome A-209 exists to check for and which did not hold for TASK-025.
+scope_validation_note: The resolved value is the head of integration/autonomous-runtime at branch-creation time, a one-parent operator synchronization whose only changed paths are under tasks/**. It is deliberately not the review-diff base c95ce600, not origin/main, not c325275, and not de3a8d6. The superseded reproducible expression was git merge-base HEAD integration/autonomous-runtime, and it resolved exactly as written.
 ---
 
 # TASK-041: Independent review of the autonomous integration authority amendment
@@ -130,13 +220,44 @@ This task performs the review gate TASK-040 declares, recorded as a `gate_for` r
 
 Do not move this record between lifecycle directories and do not edit its `status` field. `tasks/**` is outside the reviewer role's configured write scope.
 
+## Recorded outcome — transcribed by the Orchestrator at `ACT-021`
+
+**The verdict is `changes-required`**, recorded at `ec533fb5bb0055675fb81f72057d5636f7867db3` and applied to the single relation `(TASK-040, review, round 1)`, which **stays open**. It is superseded by `LIN-INTEGRATION-AUTHORITY-REVIEW` round 2 at TASK-044.
+
+**Implementation authorization is denied for both executors at this round**, in the report's own terms: the Orchestrator "must not create either the separately owned runtime implementation task or the separately owned DevOps implementation task from this amendment", and "no implementation or validation task authorized by HUMAN-004 may be created until a later architecture amendment receives a passing independent review round". `ACT-021` created neither, and created no validation task for either.
+
+**The report's own summary of the unsafe path, quoted rather than paraphrased**, because the Orchestrator must not restate a reviewer's finding in its own words:
+
+> An unsafe path therefore exists. A lineage can have an authoritative `changes-required` verdict that is formally accepted for a reason other than the one security-risk exception HUMAN-004 permits. The inherited `gate_passed` predicate then evaluates that lineage as satisfied, TASK-040's admission rule does not validate the acceptance kind, and successful admission can proceed through durable intent to the narrow GitHub merge call. This is an API-merge path, not a direct-push path, but it merges without the authoritative passing independent verdict HUMAN-004 requires.
+
+And what it explicitly did **not** find:
+
+> No contract path can construct a direct push to `main`, `ALLOW_MAIN_PUSH`, `--no-verify`, or a force push. The release mutation surface is structurally limited to the pull-request merge API.
+
+**Twenty-two of twenty-six scope items were judged `met`**, including both-executor coverage, typed admission and refusal totality, durable-intent-before-side-effect ordering, exactly-once recovery, bounded retries, ADR-0041 order preservation, the authorized-appender rule, credential confinement, untouched governance paths, the module and level proof, the `HUMAN-002` separation, and the preservation of every relation `LIN-ARCH-REVIEW` closed at round 8. Four were judged `not met`: the `HUMAN-004` boundary, authoritative independent gates, the exactly-three human exception kinds, and the GitHub App permission boundary — plus the two evidence items covering the absent checks and the owner's head binding.
+
+**A majority of satisfied checks is not a passing verdict.** This is the same shape `ACT-008` recorded at `LIN-ARCH-REVIEW` round 4, where all six `HUMAN-002` Part B properties were individually satisfied inside a `changes-required` verdict, and it is recorded here for the same reason: a reader who counts the `met` items reaches the opposite of the verdict.
+
+**Finding routing performed by `ACT-021`, one remediation task per responsible owner:**
+
+| Finding | Severity | Owner | Routed to | Revalidated by |
+|---|---|---|---|---|
+| F-041-01 | High | architect | **TASK-042** | TASK-044, `LIN-INTEGRATION-AUTHORITY-REVIEW` round 2 |
+| F-041-02 | High | architect | **TASK-042** | TASK-044, same round |
+| F-041-03 | High | **devops** | **TASK-043** | TASK-045, `LIN-CI-EVIDENCE-REVIEW` round 1 |
+| F-041-04 | Medium | architect | **TASK-042** | TASK-044, same round |
+
+No finding was created, merged, split, resolved, re-dispositioned, or given a second remediation task by the Orchestrator. Every severity, owner role, and required remediation above was read from the report.
+
 ## Handoff
 
 Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- **Edge satisfied at `ACT-020`:** `review_ready(TASK-040)` at `5e5fc8fe656b0e08a5337642447d7a81f83c4822`, ingress entry `seq` 28, class `artifact_published`. TASK-040 is `review`, unjudged, and **not integrable**; **pull request 22 must not be merged before this task records a passing verdict.** The `architecture-docs` lock was released by TASK-040's execution and a direct read of the shared lock directory at `ACT-020` shows it free.
+- **Commit or pull request:** `ec533fb5bb0055675fb81f72057d5636f7867db3` `docs(TASK-041): record review pull request` on `agent/gpt/reviewer/task-041`, published at `origin` and opened as **pull request 23**, `OPEN` against `integration/autonomous-runtime`, `MERGEABLE` / `CLEAN`. Two authored commits; the head differs from `c42c218` by one line, the publication link.
+- **Verification, as the owner recorded it:** target, base, head, two-parent chain, target branch, origin ref, `ls-remote`, and pull request 22 identity all resolving to the immutable values — **PASS**. `git diff --shortstat` and `--numstat` over all 18 paths — **PASS**, `+741/-84`. `validate-assignment.ps1 -Role architect -Llm gpt` on the target — **PASS**. `validate-write-scope.ps1` against `c95ce600` over 18 files — **PASS**. `validate-framework.ps1` 13 roles, `test-orchestration.ps1`, `check-repository.ps1`, and `git diff --check` — **PASS**. `verify-integration-order.ps1` — **PASS**, one content step, zero conflicts, exact result tree, and the exact historical 19-path conflict set. 602 relative links with zero broken; 42 contiguous ADRs. **GitHub check evidence at the target head — `FAIL / ABSENT`**, zero check runs and zero statuses. **Owner-evidence consistency — `FAIL`**, 17-path evidence not covering the 18-path head. The owner recorded the last two as failures rather than presenting the passing rows as the result, which is what F-041-03 and F-041-04 are.
+- **Verification the Orchestrator performed independently at `ACT-021`, not inherited:** the commit identity, its single parent `c42c218e178fba6e1bccb3ae4878fb5686627f1f`, the branch and remote ref both resolving to it, pull request 23's `headRefOid`, the 1-path / 136-insertion authored delta against `4615114`, the empty out-of-scope residue, `content_hash` `96c5b7657024d393498f0f53c6bb9e04a972bf2d2b252b37ce4a3874c2b73de1`, `fact_id` `cb5120c4af5a124043062b3827583f165b4ddb1a252d54fc4f26556d4c00e56c`, and — as controls for the hashing procedure — the byte-for-byte reproduction of `seq` 28's and `seq` 24's `fact_id`. **The report was read from the Git object at the target commit and not from any dispatch hint.**
+- **Known risks, as the owner recorded them:** F-041-01, F-041-02, and F-041-03 are unresolved blockers. F-041-04 is non-blocking by severity but must be corrected as target-bound owner evidence in the remediation round. No architecture, task, settings, governance, workflow, GitHub policy, credential, or implementation change was authored; no implementation task was created; no other gate was approved.
+- **Edge satisfied at `ACT-020`:** `review_ready(TASK-040)` at `5e5fc8fe656b0e08a5337642447d7a81f83c4822`, ingress entry `seq` 28, class `artifact_published`. **TASK-040 remains `review`, is now judged non-passing, and is still not integrable**; **pull request 22 must not be merged.** The `architecture-docs` lock was released by TASK-040's execution and a direct read of the shared lock directory at `ACT-021` shows it holds exactly one entry, `task-013.json`.
 - **Independence, restated because it is weaker here than the repository prefers.** TASK-040's owner and this task's owner are both `gpt`, so the cross-family preference does not apply and **execution-context separation is the only guarantee that remains.** No script enforces it. This task must not run in TASK-040's execution context, and its worktree is cut from the integration branch — no branch carrying the unreviewed amendment is merged anywhere to assemble the review.
-- Next owner: orchestrator via TASK-013, to record the verdict and either route remediation or — only on a passing verdict — create the implementation tasks the amendment defines. There are **two** of them, owned separately by `runtime` and `devops`, plus the independent reviewer, security, QA, and failure-injection validation tasks `HUMAN-004` names. None exists today and none may be created before this verdict passes.
+- **Next owner: discharged at `ACT-021`.** The Orchestrator recorded the `changes-required` verdict, routed the three architect findings to **TASK-042** and the one DevOps finding to **TASK-043**, and created **TASK-044** for `LIN-INTEGRATION-AUTHORITY-REVIEW` round 2 and **TASK-045** for `LIN-CI-EVIDENCE-REVIEW` round 1. **It created no implementation task for either merge executor and no validation task for either**, because the verdict is non-passing and both this record's gate and `HUMAN-004`'s own sequencing clause forbid it. There are **two** implementation tasks when they come, owned separately by `runtime` and `devops`, plus the independent reviewer, security, QA, and failure-injection validations `HUMAN-004` names. None exists today.
+- **The task lock.** The report records `Task lock released: yes — the official TASK-041 release command is the final operation after this report, branch, and pull-request handoff are durable.` The later durable fact is that the shared lock directory at `ACT-021` holds exactly one entry, `task-013.json`, and no `task-041.json`. Both are recorded and neither the reviewer's statement nor the durable fact overwrites the other; no lock was claimed or released by this activation.

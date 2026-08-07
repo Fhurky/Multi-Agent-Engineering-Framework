@@ -13,6 +13,20 @@ write_scope:
   - scripts/quality/**
   - scripts/ci/**
   - .github/workflows/**
+resource_lock: ci-toolchain
+resource_lock_note: >-
+  Declared at ACT-021 and at nothing else. TASK-043, created at ACT-021 to remediate F-041-03,
+  declares scripts/ci/** in its own write scope, which this record already declares.
+  config/agents/settings.yaml sets allow_overlapping_write_scopes: false, so the graph's own
+  mechanism for a genuine overlap applies - a shared named resource lock serializes the two
+  scopes rather than either being made artificially disjoint, exactly as architecture-docs
+  serializes the ten architecture tasks and task-records serializes TASK-001 and TASK-013. The
+  registered holders are this record and TASK-043. NOTHING ELSE ABOUT THIS RECORD CHANGED AT
+  ACT-021 - not its status, lifecycle directory, dependencies, required_gates, pre_merge_gates,
+  gate relations, verdicts, review target, review-diff base, scope-validation base, publication
+  facts, acceptance criteria, or handoff - and TASK-019's record was not touched at all. This
+  execution is complete, so the lock constrains nothing already done; it serializes any TASK-018
+  remediation that follows TASK-019's verdict against a concurrent TASK-043.
 dependencies:
   - lineage: LIN-ARCH-REVIEW
     edge: gate_passed
