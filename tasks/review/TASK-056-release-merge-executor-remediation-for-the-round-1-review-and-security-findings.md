@@ -116,8 +116,9 @@ gate_status_round_2: >-
   gate. integrable is FALSE and PULL REQUEST 33 MUST NOT BE MERGED. The qa gate stays DEFERRED by
   invariant 8 and no QA successor was created.
 gate_status: >-
-  ACT-033 closes this record's Review round-2 relation at approved with no findings. Security round 2
-  records changes-required and remains open; TASK-063 adds the pending round-3 Security relation.
+  ACT-035 binds TASK-063 to exact TASK-062 target 19e75e99 and makes its owner ready; this record's
+  round-3 Security relation remains pending and open. ACT-033 closed this record's Review round-2
+  relation at approved with no findings while Security round 2 recorded changes-required.
   F-061-01 through F-061-03 remain Critical, open, DevOps-owned, and unaccepted. This record remains
   non-integrable and PR 33 remains forbidden.
 superseded_gate_status_act_030: >-
@@ -522,3 +523,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - Next owners: **TASK-060** (`reviewer` / `gpt`) and **TASK-061** (`security` / `gpt`) in distinct execution contexts. This record's QA gate remains deferred by invariant 8, no QA successor was created, and TASK-055 remains bound to the older TASK-049 target.
 - **ACT-033 gate routing.** TASK-060 closed this record's Review round-2 relation at `approved` with no findings. TASK-061 left its Security round-2 relation open at `changes-required` and returned three fresh Critical DevOps findings. They route together to TASK-062 and then TASK-063, where this record joins Security round 4 at relation round 3. This record remains `review` and `integrable: false`; Review is not reopened and QA remains deferred.
 - Next owners: **TASK-062** (`devops` / `claude`) and then **TASK-063** (`security` / `gpt`) in a separate context. PR 37 and PR 33 remain open, unmerged, and forbidden while Security remains open.
+- **ACT-035 publication routing.** TASK-062 published exact target `19e75e996e8e116f74b4f8feb363ef13438a42b9`; TASK-063 is now `ready` and carries this record's pending Security round-3 relation. No verdict or finding disposition changed. This record remains `review` and `integrable: false`; PRs 44, 37, and 33 remain open, unmerged, and forbidden.
+- Next owner: **TASK-063**, `security` / `gpt`, in a separate execution context. Review is not reopened and QA remains deferred.
