@@ -27,19 +27,30 @@ gate_tasks:
   - task: TASK-063
     gate: security
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 7e610fabd663779724a94deec0046981e997f298
+    remediated_by: TASK-064
+    revalidated_by: TASK-065
     relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 4
+  - task: TASK-065
+    gate: security
+    round: 2
+    verdict: pending
+    relation_status: open
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
+    lineage_round: 5
 gate_status: >-
-  OPEN on the TASK-063 Security relation. ACT-035 independently satisfied only
-  review_ready(TASK-062), so TASK-063 is ready to record lineage round 4 atomically across
-  TASK-062 r1, TASK-059 r2, TASK-056 r3, and TASK-049 r4. Publication, owner tests, passing CI,
-  and this routing activation are not a Security verdict. The Reviewer lineage already closed at
-  approved with no findings at round 3, so no review relation or Reviewer successor is created.
-  QA round 2 remains forbidden until TASK-055 records round 1.
+  TASK-063 recorded changes-required at ACT-036, so this record's round-1 relation remains OPEN.
+  TASK-065 adds an open pending round-2 relation, blocked on TASK-064 publication, and will carry
+  the five-member Security cohort. F-063-01 and F-063-02 are Critical, open, blocking, DevOps-owned,
+  and unaccepted. Review remains approved/closed with no successor. QA round 2 remains forbidden
+  until TASK-055 records round 1.
 integrable: false
 parent_task: TASK-001
 publication_class: runtime
@@ -139,9 +150,9 @@ publication_evidence:
   module_suite: 548 declared, 537 passed, 0 failed, 0 skipped, 11 explicitly unexecuted live fixtures
   lock_release: normal; TASK-062 and release-merge-executor locks absent, owner worktree clean and exact
 integrability_note: >-
-  TASK-063 has not recorded a verdict. F-061-01, F-061-02, and F-061-03 remain Critical, open,
-  blocking, and unaccepted. PRs 44, 37, and 33 remain open and MUST NOT be merged. Publication and
-  passing checks resolve no finding, close no gate, activate no executor, and accept no risk.
+  TASK-063 recorded changes-required. F-063-01 and F-063-02 remain Critical, open, blocking, and
+  unaccepted. PRs 44, 37, and 33 remain open and MUST NOT be merged. The verdict closes no gate,
+  activates no executor, and accepts no risk.
 ---
 
 # TASK-062: Release merge executor remediation for the round-3 Security findings
@@ -190,3 +201,8 @@ Remediate F-061-01, F-061-02, and F-061-03 in the dormant release merge executor
 - Next owner: **TASK-063**, `security` / `gpt`, now `ready` in a separate execution context at fixed
   branch point `d7994690b40a4a29218c46b9e0c7bd234a56ceff`, assessing exact target `19e75e99...`
   over cumulative base `d63864bcb25fc8897b21c09f8f687e390f85808d` across its four-relation cohort.
+- **ACT-036 Security routing.** TASK-063 recorded one atomic `changes-required` verdict at
+  `7e610fabd663779724a94deec0046981e997f298`. This record's round-1 relation remains open; TASK-065
+  adds its pending round-2 relation. F-063-01 and F-063-02 route together to TASK-064.
+- Next owners: **TASK-064**, `devops` / `gpt`, then **TASK-065**, `security` / `gpt`, in a separate
+  context after TASK-064 publishes. PRs 44, 37, and 33 remain forbidden.
