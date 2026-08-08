@@ -3179,6 +3179,8 @@ Written in `seq` order, which is source-event order, rather than in the order a 
 
 ### Effects commit for ACT-030
 
+**`ba8874966af7530098a1d4e027d10726fa234282`**, bound in the follow-up commit that records it, under the convention used for `ACT-014` through `ACT-029`. **8 files changed, 552 insertions, 94 deletions**, every path under `tasks/**`; the default and `-M40%` rename views agree exactly across all eight paths. Pushed to `origin`; **only this branch was pushed**.
+
 One commit on `agent/claude/orchestrator/task-013` over base `abbe71a4cef444776c2fef43ae8fb0e6359e884a`, carrying the ledger row for `seq` 41, the cursor advance to 41, the TASK-056 transition from `ready` to `review` with its bound target, its two separately resolved bases, its provenance, its independently recomputed evidence bundle, its exact-head check-run evidence and its transcribed handoff, the TASK-057 and TASK-058 transitions from `blocked` to `ready` with their targets bound and their separate contexts, scopes, cohorts, and authority boundaries preserved, the TASK-049 round-2 context update that changes no verdict, the TASK-055 additive non-retargeting note, the NUL-byte observation written onto both round-2 records, and revision 31 of the dependency graph — all together, as rule 8 requires. **This activation creates that commit and the follow-up hash-binding commit that records its exact 40-hex value**, under the convention used for `ACT-014` through `ACT-029`.
 
 ## Activation ACT-029
