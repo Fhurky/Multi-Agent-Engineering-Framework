@@ -53,8 +53,9 @@ gate_tasks:
   - task: TASK-060
     gate: review
     round: 2
-    verdict: pending
-    relation_status: open
+    verdict: approved
+    verdict_recorded_at: fa766a2401bcafa663f1eee32f4363325d145c5c
+    relation_status: closed
     gate_class: point
     retrospective: false
     gate_lineage: LIN-RELEASE-EXECUTOR-REVIEW
@@ -74,12 +75,30 @@ gate_tasks:
   - task: TASK-061
     gate: security
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 17cdf4f040f7b0e89ad51f9db40d67f7ae11a615
+    remediated_by: TASK-062
+    revalidated_by: TASK-063
     relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 3
+  - task: TASK-063
+    gate: security
+    round: 3
+    verdict: pending
+    relation_status: open
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
+    lineage_round: 4
+gate_status_round_3: >-
+  ACT-033 closes this record's TASK-060 review round-2 relation at approved with no findings. Its
+  TASK-061 Security round-2 relation records changes-required and remains open; TASK-063 adds the
+  next Security relation at this record's round 3. Three fresh Critical findings remain blocking,
+  are routed to TASK-062 and TASK-063, and are unaccepted. This record stays in review and is not
+  integrable; PR 33 remains open and MUST NOT be merged.
 gate_status_round_2: >-
   OPEN ON ALL FOUR HISTORICAL RELATIONS AT ACT-032 AND NOT ONE OF THEM IS CLOSED. BOTH ROUND-2 GATES RECORDED
   changes-required - TASK-057 at df3dafa5203ad02ebba89419c77b6a44efafd91a over (review, round 1) and
@@ -97,6 +116,11 @@ gate_status_round_2: >-
   gate. integrable is FALSE and PULL REQUEST 33 MUST NOT BE MERGED. The qa gate stays DEFERRED by
   invariant 8 and no QA successor was created.
 gate_status: >-
+  ACT-033 closes this record's Review round-2 relation at approved with no findings. Security round 2
+  records changes-required and remains open; TASK-063 adds the pending round-3 Security relation.
+  F-061-01 through F-061-03 remain Critical, open, DevOps-owned, and unaccepted. This record remains
+  non-integrable and PR 33 remains forbidden.
+superseded_gate_status_act_030: >-
   OPEN on both relations and pending on both at ACT-030, and BOTH OWNERS ARE NOW DISPATCHABLE because
   this task published at 85f5d265c888f899332a99b15a7d9c8aa959be00. NOTHING ELSE CHANGED: no verdict
   was recorded, no gate closed or opened, and none of the sixteen findings this task remediates is
@@ -339,6 +363,12 @@ nul_byte_observation: >-
   security-critical admission path impairs reviewability are REVIEW AND SECURITY JUDGMENTS.
 integrable: false
 integration_state: >-
+  NOT INTEGRATED AND NOT INTEGRABLE AT ACT-033. Review is closed at approved, but Security records
+  changes-required and its round-4 successor remains pending. Pull request 33 is OPEN at exact head
+  85f5d265c888f899332a99b15a7d9c8aa959be00, unmerged, and MUST NOT BE MERGED. Security's three fresh
+  Critical findings are unresolved and unaccepted. GitHub's MERGEABLE / CLEAN result does not alter
+  this graph's gate state.
+superseded_integration_state_act_030: >-
   NOT INTEGRATED AND NOT INTEGRABLE. Pull request 33 is OPEN at exact head
   85f5d265c888f899332a99b15a7d9c8aa959be00 against integration/autonomous-runtime, MERGEABLE / CLEAN
   as GitHub computes it, and MUST NOT BE MERGED. Both pre_merge_gates entries, review and security,
@@ -362,6 +392,13 @@ blocked_reason: >-
   gate_passed edge: TASK-049's approved-architecture prerequisite was discharged at ACT-026 and is a
   property of the module this task amends, not a fresh dependency of the amendment.
 exit_condition: >-
+  Review is discharged by TASK-060's approved verdict. TASK-063 must record a passing Security
+  round-4 verdict across the complete four-member cohort before the cumulative implementation can be
+  integrated. This record can reach done only through the operator's later integration of that
+  approved cumulative unit; publication alone and the closed Review relation are insufficient. PR 33
+  remains forbidden while Security is open. QA remains a deferred activation obligation because
+  TASK-055 round 1 has no verdict.
+superseded_exit_condition_act_030: >-
   BOTH pre_merge_gates entries close at a passing verdict - TASK-057 for review and TASK-058 for
   security, each recording one verdict applied atomically to its two relations - AND the branch is
   merged into integration/autonomous-runtime. Only then may this record reach done. THE PUBLICATION
@@ -483,3 +520,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - Next owner: **TASK-059**, `devops` / `claude`, `ready` and dispatchable, branching from **this record's own published head `85f5d265`** so the second remediation reaches this artifact by **true ancestry**, carrying the exact required remedies for all eight fresh findings with the seven partial round-1 findings linked to the residues that carry them. **TASK-060** and **TASK-061** are created `blocked` on `review_ready(TASK-059)`, each carrying **three** relations — TASK-059 r1, this record r2, and TASK-049 r3 — against the unchanged base `d63864bc`. **This record's `qa` gate stays deferred by invariant 8 and no QA successor was created.**
 - **ACT-032 publication routing.** TASK-059 published at `126f2fa9939b8ac6db4764241952dafbda50e9f4`; TASK-060 and TASK-061 are now separately `ready`, each over the immutable review base `d63864bcb25fc8897b21c09f8f687e390f85808d`, and each still carries this record's round-2 relation inside its own atomic three-relation cohort. This record remains in `review`, `integrable: false`; all round-1 and round-2 verdicts and dispositions remain durable and unchanged. Pull requests 37 and 33 remain unmerged.
 - Next owners: **TASK-060** (`reviewer` / `gpt`) and **TASK-061** (`security` / `gpt`) in distinct execution contexts. This record's QA gate remains deferred by invariant 8, no QA successor was created, and TASK-055 remains bound to the older TASK-049 target.
+- **ACT-033 gate routing.** TASK-060 closed this record's Review round-2 relation at `approved` with no findings. TASK-061 left its Security round-2 relation open at `changes-required` and returned three fresh Critical DevOps findings. They route together to TASK-062 and then TASK-063, where this record joins Security round 4 at relation round 3. This record remains `review` and `integrable: false`; Review is not reopened and QA remains deferred.
+- Next owners: **TASK-062** (`devops` / `claude`) and then **TASK-063** (`security` / `gpt`) in a separate context. PR 37 and PR 33 remain open, unmerged, and forbidden while Security remains open.
