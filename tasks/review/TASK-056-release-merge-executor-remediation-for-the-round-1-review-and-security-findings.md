@@ -41,21 +41,59 @@ gate_tasks:
   - task: TASK-057
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: df3dafa5203ad02ebba89419c77b6a44efafd91a
+    remediated_by: TASK-059
+    revalidated_by: TASK-060
     relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-RELEASE-EXECUTOR-REVIEW
     lineage_round: 2
+  - task: TASK-060
+    gate: review
+    round: 2
+    verdict: pending
+    relation_status: open
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-RELEASE-EXECUTOR-REVIEW
+    lineage_round: 3
   - task: TASK-058
     gate: security
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 0a44bb0f6a1405bf49fa536d1149f122f52e4bbb
+    remediated_by: TASK-059
+    revalidated_by: TASK-061
     relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 2
+  - task: TASK-061
+    gate: security
+    round: 2
+    verdict: pending
+    relation_status: open
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
+    lineage_round: 3
+gate_status_round_2: >-
+  OPEN ON ALL FOUR RELATIONS AT ACT-031 AND NOT ONE OF THEM IS CLOSED. BOTH ROUND-2 GATES RECORDED
+  changes-required - TASK-057 at df3dafa5203ad02ebba89419c77b6a44efafd91a over (review, round 1) and
+  TASK-058 at 0a44bb0f6a1405bf49fa536d1149f122f52e4bbb over (security, round 1), each applying ONE
+  verdict ATOMICALLY to this record's relation and to TASK-049's round-2 relation, so both relations
+  of each pair stay open together. Under gate-round rule 3 a gate closes only at approved,
+  approved-with-findings with every blocking finding resolved, or a formal human acceptance, and NONE
+  of the three occurred. Both verdicts are DURABLE and are superseded by round 3 rather than
+  rewritten. Two new pending round-3 relations were added, TASK-060 for review and TASK-061 for
+  security, and both are OPEN and blocked on review_ready(TASK-059). NINE of the sixteen findings this
+  record remediated are now resolved and SEVEN are partially resolved with residues carried by eight
+  fresh findings; that is the most any remediation in this graph has closed and it did not close a
+  gate. integrable is FALSE and PULL REQUEST 33 MUST NOT BE MERGED. The qa gate stays DEFERRED by
+  invariant 8 and no QA successor was created.
 gate_status: >-
   OPEN on both relations and pending on both at ACT-030, and BOTH OWNERS ARE NOW DISPATCHABLE because
   this task published at 85f5d265c888f899332a99b15a7d9c8aa959be00. NOTHING ELSE CHANGED: no verdict
@@ -436,3 +474,8 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - **Moved `ready` → `review` at `ACT-030`**, on ingress entry `seq` 41, class `artifact_published`, `fact_id` `171a8416…`, `content_hash` `d0ab810d…`. The class was decided by `MC-016` rather than improvised: `remediation_completed` matches the definition read literally and outranks `artifact_published`, but this record already carried its `gate_tasks` relations and a declared `publication_class` when it published, so the round that will judge the fix already existed, the routing work was already done, and the only work the fact triggers is `artifact_published`'s. **This is the first time `MC-016` has been applied to a remediation of a routed finding in the narrowest sense**; the five earlier applications were architecture amendments and the rule decides it the same way.
 - **What this record does not claim, restated after publication because that is exactly when it becomes easy to mistake.** **It resolves nothing.** All sixteen findings are `open` and stay open until TASK-057 and TASK-058 each record a disposition in their own lineage, and **neither may disposition the other lineage's findings**. A remedy that satisfies one lens does not close the other's finding. **Seven findings block delivery until resolved or formally accepted by an authorized human, and no acceptance of any kind exists anywhere in this repository**; this owner may not create, request, simulate, or rely on one, and neither may the Orchestrator. **TASK-049 stays non-integrable, pull request 30 stays unmergeable, and pull request 33 is unmergeable too.** No activation prerequisite was satisfied: `negativeCapabilityTestAttestation`, `requiredGitHubPolicyProfile`, and `policyAttestorTrustRoot` do not exist, `implementationReview` and `implementationSecurityReview` are precisely what rounds 2 may or may not produce, the `AGENTS.md` amendment is unauthored, the control plane is unprovisioned, `admit` returns `AuthorityNotActivated`, and **no merge side effect may occur**.
 - **Next owners: TASK-057 (`reviewer` / `gpt`) and TASK-058 (`security` / `gpt`), both `ready` at `ACT-030`**, in two separate execution contexts, each bound to this record's published head `85f5d265` over the review-target base `d63864bc`, each recording one verdict applied atomically to two relations. **This task's own execution is complete and its `release-merge-executor` lock is free.**
+- **Judged at `ACT-031` by both round-2 gates, and both recorded `changes-required`.** **TASK-058** at `0a44bb0f6a1405bf49fa536d1149f122f52e4bbb` (`seq` 42, pull request 34) and **TASK-057** at `df3dafa5203ad02ebba89419c77b6a44efafd91a` (`seq` 43, pull request 35), each applying **one verdict atomically to two relations** — this record's round 1 and TASK-049's round 2. **All four relations stay OPEN.** This record stays in `review` and stays **`integrable: false`**; **pull request 33 must not be merged.**
+- **The remediation resolved nine of the sixteen findings and it is not enough to close a gate.** Six `F-053-*` and three `F-054-*` are `resolved`, each by a gate owner reproducing round 1's own counterexample against this record's published code rather than by reading its diff. **Seven are `partially resolved`** with residues assigned to named fresh findings, and **eight fresh findings were recorded — F-057-01 and F-057-02 High, F-057-03 Medium, F-058-01, F-058-02, and F-058-03 CRITICAL, and F-058-04 and F-058-05 Medium.** Both rounds forbid integration and **neither `implementationReview` nor `implementationSecurityReview` may be produced.**
+- **The recurring shape is worth recording because it is what a third round has to answer.** The three fresh Critical findings each name a boundary this remediation built **correctly** and then **accepted from the caller** — real Ed25519 verification against a caller-supplied key, exact digest recomputation over caller-supplied bytes, exact field binding on artifacts the caller names but nobody dereferences. TASK-058 demonstrated it with a probe in which a caller-generated key, caller-computed self-digests, and **nine nonexistent OID-shaped commits** produced `activated` and then `admitted`. **That is an observation transcribed from a gate owner's report, not a judgment this role formed.**
+- **The suite grew from 416 to 522 and the verdict was `changes-required` both times.** `ACT-030` recorded that a passing owner suite is not a passing gate; `ACT-031` is where that became a measured fact rather than a caution. The eleven live control-plane and attestor fixtures are still registered, still unexecuted, and still not passing, and TASK-058 confirmed with read-only queries that the control plane they need is still absent — HTTP 404 `Branch not protected` for both `main` and `integration/autonomous-runtime`, and a ruleset count of zero.
+- Next owner: **TASK-059**, `devops` / `claude`, `ready` and dispatchable, branching from **this record's own published head `85f5d265`** so the second remediation reaches this artifact by **true ancestry**, carrying the exact required remedies for all eight fresh findings with the seven partial round-1 findings linked to the residues that carry them. **TASK-060** and **TASK-061** are created `blocked` on `review_ready(TASK-059)`, each carrying **three** relations — TASK-059 r1, this record r2, and TASK-049 r3 — against the unchanged base `d63864bc`. **This record's `qa` gate stays deferred by invariant 8 and no QA successor was created.**
