@@ -1,7 +1,7 @@
 ---
 task_id: TASK-057
 title: Independent review of the remediated release merge executor, round 2
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-057
@@ -12,16 +12,21 @@ resource_lock: null
 dependencies:
   - task: TASK-056
     edge: review_ready
-    satisfied: false
-    satisfied_at: null
-    satisfied_by: null
+    satisfied: true
+    satisfied_at: 85f5d265c888f899332a99b15a7d9c8aa959be00
+    satisfied_by: ACT-030 consuming ingress entry seq 41, class artifact_published
     satisfied_under: >-
-      TASK-056 declares publication_class runtime, so ALL THREE of that class's conditions must hold
-      INDEPENDENTLY - an immutable published commit, the branch agent/claude/devops/task-056 present
-      on origin, and an open or updated pull request for it. The bootstrap allowance of
-      publication-classes rule 1 is NOT available to a runtime-class task and rule 2 makes an
-      unavailable remote a blocked outcome rather than a local-only success. THIS IS THIS TASK'S ONLY
-      SCHEDULING DEPENDENCY. SATISFYING IT WILL AUTHORIZE A REVIEW AND NOTHING ELSE.
+      TASK-056 declares publication_class runtime, and ALL THREE of that class's conditions hold
+      INDEPENDENTLY, each checked separately at ACT-030 rather than inferred from the others - the
+      immutable published commit 85f5d265c888f899332a99b15a7d9c8aa959be00; the branch
+      agent/claude/devops/task-056 present at refs/heads/agent/claude/devops/task-056 on origin under
+      git ls-remote and under the local remote-tracking ref; and pull request 33, OPEN and not a
+      draft against integration/autonomous-runtime with headRefOid equal to that commit. The
+      bootstrap allowance of publication-classes rule 1 was NOT available to a runtime-class task and
+      was not needed. THIS IS THIS TASK'S ONLY SCHEDULING DEPENDENCY, and TASK-058's identical edge
+      was checked separately against the same three conditions rather than inherited from this one.
+      SATISFYING IT AUTHORIZED A REVIEW AND NOTHING ELSE - no approval, no merge, no integration, no
+      activation-record member, and no finding disposition.
 required_gates: []
 pre_merge_gates: []
 gate_for:
@@ -70,9 +75,13 @@ prior_round: >-
   F-053-01 through F-053-07 High and F-053-08 Medium - all devops-owned. READ THAT REPORT AT THAT
   COMMIT THROUGH GIT OBJECT ACCESS. Its verdict is DURABLE: this round supersedes it and never
   rewrites it, and both stay recorded.
-review_target_commit: >-
-  not yet resolved. It is TASK-056's published head, bound by the Orchestrator at the activation that
-  consumes TASK-056's publication, under the head-binding rule. Do not begin against a branch name.
+review_target_commit: 85f5d265c888f899332a99b15a7d9c8aa959be00
+review_target_commit_note: >-
+  BOUND AT ACT-030 to TASK-056's published head under the head-binding rule. The binding had exactly
+  ONE candidate - git rev-list --count 9fb2eb0c..85f5d265 returns 1, so there is no authoring-ancestry
+  commit to distinguish the head from. The target is IMMUTABLE and is never retargeted; TASK-058 is
+  bound to the same commit and neither binding derives from the other. Do not begin against a branch
+  name and do not review agent/claude/devops/task-056 as a moving ref.
 review_target_base: d63864bcb25fc8897b21c09f8f687e390f85808d
 review_target_applicability: >-
   applicable and RESOLVED at ACT-029, and DELIBERATELY NOT TASK-056'S OWN BRANCH POINT. This round
@@ -96,17 +105,59 @@ scope_validation_note: >-
   TASK-053's record carried the same instruction for exactly this reason. Record the resolved value
   in the report. DO NOT BRANCH FROM agent/claude/devops/task-056 and DO NOT MERGE THE UNREVIEWED
   IMPLEMENTATION INTO THIS BRANCH; read the target through Git object access or a detached worktree.
+observed_delta: >-
+  RECORDED AT ACT-030 AS AN OBSERVATION FOR THIS ROUND TO JUDGE, NOT AS A RESULT THIS ROUND MAY
+  INHERIT, and every figure was derived from the repository rather than from the owner's summary. The
+  delta under review, TASK-056's published head against this record's review-target base, is 39 paths,
+  16764 insertions, 0 deletions - the WHOLE module, since git ls-tree -r --name-only 85f5d265 --
+  scripts/release/integration-merge returns exactly 39 paths. TASK-056's own authored delta over its
+  branch point 9fb2eb0c is 26 paths with residue empty and zero paths deleted. Under MC-011 this
+  record states no count of the graph and RE-DERIVE EVERY FIGURE FROM THE TARGET TREE YOURSELF.
+observed_test_result: >-
+  RECORDED AS AN OBSERVATION FOR THIS ROUND TO JUDGE, NOT AS A RESULT THIS ROUND MAY INHERIT.
+  scripts/release/integration-merge/run-tests.ps1 at the exact target returns exit 0 with tests 522,
+  suites 0, pass 511, fail 0, cancelled 0, skipped 0, TODO 11. The owner declared those figures and
+  ACT-030 reproduced them by re-running the suite read-only from an isolated git archive export at the
+  target. Against round 1's 416 / 405 / 0 / 11 the delta is +106 tests and +106 passing with the todo
+  count UNCHANGED. THE ELEVEN todo CASES ARE NOT PASSING: tests/live-control-plane.blocked.test.ts is
+  blob 9f10172c6b8a7e458a44a6f807105e58ce057af5 at BOTH 9fb2eb0c and 85f5d265, so the registry is
+  byte-identical and nothing was stubbed, faked, or provisioned. TWO CONCURRING REPRODUCTIONS OF A
+  TEST RESULT ARE NOT A VERDICT, and whether the module may be approved with those eleven outstanding
+  is THIS ROUND'S DECISION - round 1 decided it may, on its own reasoning, and that is round 1's
+  decision rather than a precedent this round must follow.
+nul_byte_observation: >-
+  RECORDED AT ACT-030 AS AN OBSERVATION FOR THIS ROUND TO DECIDE. IT IS NOT A FINDING - the
+  Orchestrator has no authority to make one - AND IT IS NOT A DIRECTION ABOUT WHAT THIS ROUND SHOULD
+  CONCLUDE. Two source files at the target contain literal NUL bytes:
+  scripts/release/integration-merge/gate-admissibility.ts, EIGHT of them at offsets 2610 through 3803,
+  and published-head-evidence.ts, ONE at offset 13093. In every case the byte is a deliberate
+  separator inside a template-literal composite sort key, which is the standard idiom for an
+  unambiguous joined key and is plausibly a direct consequence of the permutation-independence
+  F-053-02's required change asks for. THREE CHECKABLE CONSEQUENCES. First, gate-admissibility.ts's
+  first NUL falls inside Git's 8000-byte binary-detection window, so Git classifies that file as
+  BINARY, git diff --numstat reports - / - for it, --text does not change that, and TASK-056's
+  authored-delta line summary of 5638 / 641 therefore counts 25 of its 26 paths; the omitted file's
+  text-forced delta is +146 / -4. Second, THIS PROPERTY IS NEW AT THIS TARGET - at 9fb2eb0c no file in
+  this module contained a NUL byte and none was binary-classified, so round 1 never saw it. Third, a
+  binary-classified file is not rendered as a line diff by Git or by the pull-request UI. WHETHER any
+  of this is acceptable - embedded NUL bytes in TypeScript source, a printable sentinel instead, and
+  the reviewability of a binary-classified file in a security-critical admission path - IS THIS
+  ROUND'S JUDGMENT.
 blocked_reason: >-
+  NOT BLOCKED. Moved from blocked to ready at ACT-030 on the satisfied review_ready(TASK-056) edge,
+  which was the only scheduling dependency this record declares. The superseded value read -
   review_ready(TASK-056) is unsatisfied. TASK-056 is ready and dispatchable but has published
   nothing, so there is no immutable target to review and no delta to diff. This is a genuine
   scheduling dependency and the only one this record declares.
 exit_condition: >-
-  TASK-056 publishes an immutable commit on agent/claude/devops/task-056, pushes the branch to
-  origin, and opens a pull request against integration/autonomous-runtime - all three independently,
-  because publication_class runtime admits no bootstrap allowance. The Orchestrator then binds this
-  record's review_target_commit at the activation that consumes that publication, and this task
-  becomes ready. REACHING READY WILL AUTHORIZE AN INDEPENDENT REVIEW AND NOTHING ELSE - no approval,
-  no merge, no integration, and no activation-record member.
+  This task records ONE verdict on LIN-RELEASE-EXECUTOR-REVIEW round 2, applied ATOMICALLY to
+  (TASK-056, review, round 1) and (TASK-049, review, round 2), publishes the report at its declared
+  path, and publishes the commit as the environment permits. THE PUBLICATION PRECONDITION IS
+  DISCHARGED and is retained here for provenance: TASK-056 published an immutable commit on
+  agent/claude/devops/task-056, pushed the branch to origin, and opened pull request 33 against
+  integration/autonomous-runtime - all three independently, verified at ACT-030, and the Orchestrator
+  then bound this record's review_target_commit. REACHING READY AUTHORIZED AN INDEPENDENT REVIEW AND
+  NOTHING ELSE - no approval, no merge, no integration, and no activation-record member.
 verdict_authority_note: >-
   THIS TASK ALONE may produce the implementationReview member of the approved
   MergeExecutorActivationRecord for the release executor, superseding TASK-053's refusal to produce
@@ -206,4 +257,6 @@ Maintained by the Orchestrator under TASK-013 from the reviewer's report and pul
 - Verification:
 - Known risks:
 - **Created `blocked` at `ACT-029`**, on the unsatisfied `review_ready(TASK-056)` edge, as the successor round to TASK-053's `changes-required` verdict at `7e78f1405e40e29034673944949c3851e466cf3c`. **A superseding round is a new task, never a re-entrant one**, and TASK-053's verdict stays durable and unrewritten.
-- Next owner: **nobody yet.** TASK-056 must publish first. When it does, this record's `review_target_commit` is bound by the Orchestrator and this task becomes `ready`.
+- **Moved `blocked` → `ready` at `ACT-030`**, on ingress entry `seq` 41, class `artifact_published`, at `85f5d265c888f899332a99b15a7d9c8aa959be00`. `review_target_commit` bound to that head; `review_target_base` **unchanged at `d63864bc` and deliberately not retargeted**. The two-relation cohort, the atomic-verdict rule, the `reviewer` / `gpt` execution context, the single-file write scope, and every obligation above are **unchanged** — reaching `ready` changed this record's dispatchability and nothing about what it must judge.
+- **What reaching `ready` does not mean.** **None of the sixteen round-1 findings is resolved**, and eight of them are this round's to disposition. TASK-056's own test results, its exact-head check runs, its `published-head-evidence/v2` bundle, its owner-recorded verification, and **every figure the Orchestrator reproduced at `ACT-030`** are owner-side or consumer-side evidence. **Judge them; do not inherit them.** TASK-058's security verdict is a separate gate in a separate lineage, is not an input to this one, and is not predictable from it.
+- Next owner: **this task**, `reviewer` / `gpt`, `ready` and dispatchable, sole write scope `reports/code-review/TASK-056-RELEASE-MERGE-EXECUTOR-REVIEW-ROUND-2.md`, no resource lock, branching from `integration/autonomous-runtime` with the branch point resolved inside its own worktree. **Its execution context must be disjoint from TASK-058's, which is `ready` at the same time.**

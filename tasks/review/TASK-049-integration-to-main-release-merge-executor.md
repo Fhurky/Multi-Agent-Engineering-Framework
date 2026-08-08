@@ -94,7 +94,19 @@ gate_tasks:
     gate_lineage: LIN-RELEASE-EXECUTOR-QA
     lineage_round: 1
 gate_status: >-
-  OPEN on all five relations at ACT-029, and NOT ONE OF THEM IS CLOSED. Two rounds recorded verdicts
+  OPEN on all five relations at ACT-030 and NOT ONE OF THEM IS CLOSED, unchanged in substance from
+  ACT-029. WHAT CHANGED IS ONLY THAT BOTH ROUND-2 OWNERS BECAME DISPATCHABLE: TASK-056 published its
+  remediation at 85f5d265c888f899332a99b15a7d9c8aa959be00, so TASK-057 and TASK-058 moved from
+  blocked to ready and each is now bound to that exact target over this record's own pre-lineage base
+  d63864bcb25fc8897b21c09f8f687e390f85808d, which is why each round sees the complete executor rather
+  than only the correction to it. NO VERDICT WAS RECORDED AT ACT-030, NO GATE CLOSED OR OPENED, AND
+  NONE OF THE SIXTEEN FINDINGS IS RESOLVED - a remediation is the owner's claim that a fix exists and
+  only rounds 2 may disposition it. The two round-1 verdicts stay durable and unrewritten. The qa
+  relation at TASK-055 round 1 is UNCHANGED, still pending, and still bound to the OLDER target
+  9fb2eb0c; it is NOT retargeted by TASK-056's publication and no QA successor was created, because
+  invariant 8 forbids a LIN-RELEASE-EXECUTOR-QA round 2 before round 1 records a verdict. integrable
+  is FALSE. The superseded ACT-029 value read - OPEN on all five relations at ACT-029, and NOT ONE OF
+  THEM IS CLOSED. Two rounds recorded verdicts
   and both are changes-required - TASK-053 at 7e78f1405e40e29034673944949c3851e466cf3c over
   (review, round 1) and TASK-054 at 8b2da2f88d38872ded14bc18b739c6586ec47336 over (security, round
   1). Under gate-round rule 1 the status of a gate relation is the verdict at its HIGHEST round, and
@@ -110,8 +122,21 @@ gate_status: >-
   unchanged at ACT-028. No round of any of the three lineages has recorded a verdict; what changed is
   that all three owners are now dispatchable, because this task published.
 integrable: false
+remediation_state: >-
+  RECORDED AT ACT-030. TASK-056 published the remediation of all sixteen findings at
+  85f5d265c888f899332a99b15a7d9c8aa959be00 on agent/claude/devops/task-056, whose literal parent and
+  branch point is THIS RECORD'S OWN PUBLISHED HEAD 9fb2eb0ca7c02101fd067452824e2612fda5cc0c - so the
+  remediation reaches this artifact by TRUE ANCESTRY and the two form one cumulative unit under
+  ADR-0041, which is why pull request 33 would land this record's content if it were merged and why
+  the prohibition on merging pull request 30 extends to it. THIS RECORD'S OWN ARTIFACT 9fb2eb0c IS
+  NOT RE-AUTHORED, NOT SUPERSEDED, AND NOT RETARGETED; it stays the immutable round-1 target of all
+  three lineages forever, and TASK-055's pending qa round is still bound to it. NOTHING HERE IS A
+  DISPOSITION: all sixteen findings stay open, the seven blocking security findings stay blocking and
+  unaccepted, and only TASK-057 and TASK-058 may decide otherwise.
 integration_state: >-
-  NOT INTEGRATED, NOT INTEGRABLE, AND FURTHER FROM INTEGRABLE THAN AT ACT-028 RATHER THAN NEARER.
+  NOT INTEGRATED, NOT INTEGRABLE, AND UNCHANGED AT ACT-030 - the remediation publication moved
+  nothing here, and PULL REQUEST 33 IS NOW SUBJECT TO THE SAME PROHIBITION BY ANCESTRY. The
+  superseded ACT-029 value read - NOT INTEGRATED, NOT INTEGRABLE, AND FURTHER FROM INTEGRABLE THAN AT ACT-028 RATHER THAN NEARER.
   Pull request 30 is OPEN at exact head 9fb2eb0ca7c02101fd067452824e2612fda5cc0c against
   integration/autonomous-runtime, MERGEABLE / CLEAN as GitHub computes it, and MUST NOT BE MERGED:
   both pre_merge_gates entries, review and security, now carry a recorded changes-required verdict
