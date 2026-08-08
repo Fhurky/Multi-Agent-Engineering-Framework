@@ -20,6 +20,8 @@ import {
   HEAD_TREE_OID,
   INTERMEDIATE_TREE_OID,
   digest,
+  initialTreeFor,
+  inventoryFor,
   oid,
   validIntegrationEvidence,
   validManifest,
@@ -33,6 +35,13 @@ function admitWithEvidence(units: readonly IntegrationUnitEvidence[]): string {
       integrationEvidence: units,
       manifest: validManifest({
         integrationEvidenceSetDigest: integrationEvidenceSetDigest(units),
+        // An empty evidence set keeps the pinned inventory of the real release so the
+        // lineage predicate, not the manifest shape, owns the empty-set case.
+        integrationUnitInventory:
+          units.length === 0
+            ? inventoryFor(validIntegrationEvidence())
+            : inventoryFor(units),
+        integrationInitialTreeOid: initialTreeFor(units),
       }),
     }),
   );
@@ -193,6 +202,8 @@ test('ADR-0041 subsumed units contribute no Git content to the fold', () => {
     validIntegrationEvidence(),
     HEAD_TREE_OID,
     integrationEvidenceSetDigest(validIntegrationEvidence()),
+    inventoryFor(validIntegrationEvidence()),
+    initialTreeFor(validIntegrationEvidence()),
   );
   const withoutSubsumed = validIntegrationEvidence().filter(
     (unit) => unit.proof !== 'lineage-subsumed',
@@ -201,6 +212,8 @@ test('ADR-0041 subsumed units contribute no Git content to the fold', () => {
     withoutSubsumed,
     HEAD_TREE_OID,
     integrationEvidenceSetDigest(withoutSubsumed),
+    inventoryFor(withoutSubsumed),
+    initialTreeFor(withoutSubsumed),
   );
 
   assert.equal(withSubsumed.status, 'complete');

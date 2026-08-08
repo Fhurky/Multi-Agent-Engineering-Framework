@@ -12,7 +12,13 @@ import assert from 'node:assert/strict';
 import { execute } from '../execute.ts';
 import { RELEASE_BASE_BRANCH, RELEASE_MERGE_METHOD } from '../contracts.ts';
 import { buildHarness, MERGED_COMMIT_OID } from './helpers/execution.ts';
-import { excludedControlAction, artifactRef, oid, validPullRequest } from './helpers/fixtures.ts';
+import {
+  excludedControlAction,
+  artifactRef,
+  oid,
+  validPullRequest,
+  validScenario,
+} from './helpers/fixtures.ts';
 
 test('the happy path performs exactly one merge and verifies the resulting tree', async () => {
   const harness = buildHarness();
@@ -135,20 +141,22 @@ test('a pre-mutation authorization is persisted before the mutation', async () =
 });
 
 test('reusing the pre-intent attestation for the mutation refuses', async () => {
-  const harness = buildHarness();
-  const preIntent = harness.admissionInput.policyControlFacts.observation;
+  const scenario = validScenario();
+  const preIntent = scenario.policyControlFacts.observation;
   assert.equal(preIntent.state, 'current_valid');
   if (preIntent.state !== 'current_valid') {
     return;
   }
 
-  const result = await execute(harness.dependencies, {
-    ...harness.executionInput,
-    preMutationPolicyFacts: {
+  const harness = buildHarness({
+    scenario,
+    preMutationFactsFor: () => ({
       action: excludedControlAction(),
       observation: { state: 'current_valid', attestation: preIntent.attestation },
-    },
+    }),
   });
+
+  const result = await execute(harness.dependencies, harness.executionInput);
 
   assert.equal(result.status, 'refused');
   if (result.status !== 'refused') {
@@ -161,18 +169,17 @@ test('reusing the pre-intent attestation for the mutation refuses', async () => 
 });
 
 test('a detected control-plane action before the mutation returns the third exception', async () => {
-  const harness = buildHarness();
-  const result = await execute(harness.dependencies, {
-    ...harness.executionInput,
-    preMutationPolicyFacts: {
+  const harness = buildHarness({
+    preMutationFactsFor: () => ({
       action: {
         status: 'detected',
         actions: ['bypass_or_exemption_set_changed'],
         evidence: [artifactRef('pre-mutation-observation')],
       },
       observation: { state: 'present_invalid', reason: 'completeness' },
-    },
+    }),
   });
+  const result = await execute(harness.dependencies, harness.executionInput);
 
   assert.equal(result.status, 'human_exception_required');
   if (result.status !== 'human_exception_required') {
@@ -182,7 +189,7 @@ test('a detected control-plane action before the mutation returns the third exce
   assert.equal(harness.mergePort.callCount, 0);
 });
 
-test('a stale pre-mutation attestation refuses before the mutation', async () => {
+test('a stale plan-bound attestation refuses before the mutation', async () => {
   const harness = buildHarness();
   // Advance beyond the attestation validity window.
   harness.clock.advance(60_000);
@@ -253,11 +260,32 @@ test('a merge port that reports the operation unsupported refuses', async () => 
   assert.equal(result.refusal.code, 'UnsupportedOperation');
 });
 
-test('revalidation re-runs the complete pure admission with fresh observations', async () => {
+test('revalidation re-reads the complete authoritative admission facts', async () => {
   const harness = buildHarness();
   await execute(harness.dependencies, harness.executionInput);
 
-  assert.ok(harness.observation.reads.includes('readPullRequest'));
+  // Once before intent and once immediately before the mutation attempt.
+  assert.ok(
+    harness.observation.reads.filter(
+      (read) => read === 'readReleaseAdmissionFacts',
+    ).length >= 2,
+  );
   assert.ok(harness.observation.reads.includes('readBaseRef'));
-  assert.ok(harness.observation.reads.includes('readRequiredChecks'));
+  assert.ok(harness.observation.reads.includes('readBaseContainment'));
+});
+
+test('the pre-mutation authorization is requested once per mutation attempt', async () => {
+  const harness = buildHarness();
+  await execute(harness.dependencies, harness.executionInput);
+
+  assert.equal(harness.attestor.requestCount, 1);
+  assert.equal(harness.attestor.requests[0]?.attempt, 1);
+  assert.equal(harness.attestor.requests[0]?.headOid, harness.plan.headOid);
+});
+
+test('the attempt is durably recorded before the mutation', async () => {
+  const harness = buildHarness();
+  await execute(harness.dependencies, harness.executionInput);
+
+  assert.equal(harness.store.attempts.get(harness.plan.idempotencyKey), 1);
 });

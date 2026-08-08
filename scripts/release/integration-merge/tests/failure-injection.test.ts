@@ -82,10 +82,16 @@ test('a 5xx failure retries within the bounded policy and then succeeds', async 
 
   assert.equal(result.status, 'merged');
   assert.equal(harness.mergePort.callCount, 2);
-  // Reconciled before the retry.
+  // Reconciled before the retry, and revalidated again before the second attempt.
   assert.ok(
-    harness.observation.reads.filter((read) => read === 'readPullRequest').length >= 2,
+    harness.observation.reads.filter((read) => read === 'readPullRequest').length >= 1,
   );
+  assert.ok(
+    harness.observation.reads.filter(
+      (read) => read === 'readReleaseAdmissionFacts',
+    ).length >= 3,
+  );
+  assert.equal(harness.attestor.requestCount, 2);
 });
 
 test('a rate limit honours a server Retry-After no shorter than the deterministic delay', () => {
@@ -156,7 +162,9 @@ test('the wall-clock budget is enforced', () => {
 test('a dropped response is reconciled and adopted when GitHub already merged', async () => {
   const harness = buildHarness({
     mergeResults: [{ outcome: 'ambiguous', reason: 'response_dropped' }],
-    pullRequests: [validPullRequest(), mergedPullRequest()],
+    // Open at revalidation, merged by the time the ambiguous response is reconciled.
+    admissionPullRequest: validPullRequest(),
+    pullRequests: [mergedPullRequest()],
   });
 
   const result = await execute(harness.dependencies, harness.executionInput);
@@ -215,10 +223,8 @@ test('a dropped response that cannot be resolved becomes OutcomeUnknown', async 
 test('a pull request closed unmerged after an ambiguous response is not retried', async () => {
   const harness = buildHarness({
     mergeResults: [{ outcome: 'ambiguous', reason: 'response_dropped' }],
-    pullRequests: [
-      validPullRequest(),
-      { ...validPullRequest(), state: 'closed', merged: false },
-    ],
+    admissionPullRequest: validPullRequest(),
+    pullRequests: [{ ...validPullRequest(), state: 'closed', merged: false }],
   });
 
   const result = await execute(harness.dependencies, harness.executionInput);
@@ -309,10 +315,8 @@ test('a head that moved before a retry is refused rather than merged', async () 
     mergeResults: [
       { outcome: 'transient_failure', reason: 'server_error', retryAfterSeconds: null },
     ],
-    pullRequests: [
-      validPullRequest(),
-      { ...validPullRequest(), headOid: oid('head-moved-mid-flight') },
-    ],
+    admissionPullRequest: validPullRequest(),
+    pullRequests: [{ ...validPullRequest(), headOid: oid('head-moved-mid-flight') }],
   });
 
   const result = await execute(harness.dependencies, harness.executionInput);

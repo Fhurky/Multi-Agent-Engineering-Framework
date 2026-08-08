@@ -51,6 +51,11 @@ export const RELEASE_BASE_BRANCH = 'main';
 export const RELEASE_BASE_REF = 'refs/heads/main';
 export const RELEASE_MERGE_METHOD = 'merge';
 
+/** The exact remote name and remote-tracking ref published-head evidence must name. */
+export const RELEASE_REMOTE_NAME = 'origin';
+export const RELEASE_REMOTE_REF =
+  'refs/remotes/origin/integration/autonomous-runtime';
+
 /** HUMAN-004, approved at this immutable commit. */
 export const GOVERNANCE_DECISION_COMMIT =
   '7dc07488a5b1cac8b1327ebd63bf747adbe03c68';
@@ -66,19 +71,53 @@ export interface ImmutableArtifactRef {
   readonly digest: Sha256Hex;
 }
 
+/**
+ * Who produced an immutable artifact. `merge_executor` is representable precisely so
+ * executor-produced evidence can be named and refused; it is never admissible.
+ */
+export type ArtifactProducerType = 'human' | 'agent_role' | 'merge_executor';
+
+export interface ImmutableArtifactProducer {
+  readonly principalId: string;
+  readonly principalType: ArtifactProducerType;
+  readonly authorizationCommit: GitOid;
+}
+
+/**
+ * An immutable artifact reference that can express producer provenance. Absent
+ * provenance is a defect, not a permissive default: every activation member and every
+ * authoritative admission artifact must carry one.
+ */
+export interface ImmutableProvenancedArtifactRef extends ImmutableArtifactRef {
+  readonly producedByExecutor: boolean;
+  readonly producer: ImmutableArtifactProducer;
+}
+
 export interface ImmutablePassingGateRef {
+  /** The exact activation slot this reference may occupy. */
+  readonly member: ActivationMember;
   readonly lineage: GateLineageId;
   readonly lineageRound: number;
   readonly gate: GateName;
+  /** The immutable artifact this verdict judged. */
+  readonly targetCommit: GitOid;
   readonly verdictCommit: GitOid;
   readonly verdictState: 'passing';
   /** True when the referenced evidence was produced by a merge executor itself. */
   readonly producedByExecutor: boolean;
+  readonly producer: ImmutableArtifactProducer;
 }
 
 export interface ImmutablePolicyAttestorTrustRootRef {
   readonly authorityId: string;
   readonly keyId: string;
+  readonly keyAlgorithm: 'Ed25519';
+  /**
+   * The SPKI DER encoding of the attestor's Ed25519 verification key, base64. It is
+   * activation-pinned material, not a caller hint: its SHA-256 must equal
+   * `publicKeyDigest`, which the activation record also pins.
+   */
+  readonly publicKeySpkiBase64: string;
   readonly publicKeyDigest: Sha256Hex;
   readonly acceptedSchema: 'github-current-policy-attestation/v1';
   readonly revocationChannelId: string;
@@ -91,10 +130,37 @@ export interface ImmutableAuthorizedHumanPrincipal {
   readonly authorizationCommit: GitOid;
 }
 
+/**
+ * An authorized-human decision. It names the exact policy commit, release head,
+ * repository, action, and scope it authorizes, so an unrelated decision cannot be
+ * presented as authorization for this release.
+ */
 export interface ImmutableHumanDecisionRef {
   readonly decisionId: string;
   readonly decisionCommit: GitOid;
   readonly artifactPath: string;
+  readonly repositoryId: string;
+  readonly policyCommit: GitOid;
+  readonly releaseHeadOid: GitOid;
+  readonly action: 'authorize_policy_required_irreversible_production_action';
+  readonly authorizedBy: ImmutableAuthorizedHumanPrincipal;
+  readonly scopeDigest: Sha256Hex;
+}
+
+/** The opaque identity of the concrete merge broker and port supplied at execution. */
+export interface ImmutableMergePortIdentity {
+  readonly brokerId: string;
+  readonly portIdentityDigest: Sha256Hex;
+}
+
+/**
+ * The negative-capability attestation additionally binds the concrete broker and port
+ * identity the attested evidence was produced against, so an arbitrary injected adapter
+ * cannot inherit that attestation.
+ */
+export interface ImmutableNegativeCapabilityAttestationRef
+  extends ImmutableProvenancedArtifactRef {
+  readonly attestedMergePortIdentity: ImmutableMergePortIdentity;
 }
 
 /* ------------------------------------------------------------------------- *
@@ -104,14 +170,44 @@ export interface ImmutableHumanDecisionRef {
 export interface MergeExecutorActivationRecord {
   readonly executor: ExecutorKind;
   readonly governanceDecisionCommit: typeof GOVERNANCE_DECISION_COMMIT;
+  /**
+   * The record's own immutable artifact identity. Its digest is the canonical digest of
+   * the record with exactly this property omitted, so the record authenticates itself
+   * rather than being asserted by its bearer.
+   */
+  readonly recordSource: ImmutableArtifactRef;
+  /** The authorized human who issued the record. An executor may never issue one. */
+  readonly issuer: ImmutableAuthorizedHumanPrincipal;
+  readonly producedByExecutor: boolean;
   readonly architectureReview: ImmutablePassingGateRef;
   readonly implementationReview: ImmutablePassingGateRef;
   readonly implementationSecurityReview: ImmutablePassingGateRef;
-  readonly negativeCapabilityTestAttestation: ImmutableArtifactRef;
-  readonly gateVocabularyCorrection: ImmutableArtifactRef;
-  readonly requiredGitHubPolicyProfile: ImmutableArtifactRef;
+  readonly negativeCapabilityTestAttestation: ImmutableNegativeCapabilityAttestationRef;
+  readonly gateVocabularyCorrection: ImmutableProvenancedArtifactRef;
+  readonly requiredGitHubPolicyProfile: ImmutableProvenancedArtifactRef;
   readonly requiredGitHubPolicyProfileDigest: Sha256Hex;
   readonly policyAttestorTrustRoot: ImmutablePolicyAttestorTrustRootRef;
+}
+
+/**
+ * The immutable required-policy profile document. Its canonical digest is
+ * `MergeExecutorActivationRecord.requiredGitHubPolicyProfileDigest`, so the required
+ * check set, the expected App identities and permission maps, the pinned observer set,
+ * and the release gate floors are all activation-pinned rather than caller-selected.
+ */
+export interface RequiredGitHubPolicyProfile {
+  readonly schema: 'required-github-policy-profile/v1';
+  readonly repositoryId: string;
+  readonly protectedRef: typeof RELEASE_BASE_REF;
+  readonly requiredCheckContexts: readonly {
+    readonly name: string;
+    readonly expectedAppId: number;
+  }[];
+  readonly releaseGateRequirements: readonly ReleaseGateRequirement[];
+  /** Both least-privilege executor App identities, with their complete permission maps. */
+  readonly executorApps: readonly ExecutorAppIdentity[];
+  readonly observerPrincipalSetDigest: Sha256Hex;
+  readonly mergeMethodsRequired: readonly string[];
 }
 
 /** The seven immutable activation members, in their declared order. */
@@ -179,6 +275,16 @@ export type GateVerdictState =
   | 'pending'
   | 'open'
   | 'formally_accepted';
+
+/** The closed verdict-state vocabulary, used to validate every observed relation. */
+export const GATE_VERDICT_STATES = [
+  'passing',
+  'changes_required',
+  'failed',
+  'pending',
+  'open',
+  'formally_accepted',
+] as const;
 
 /**
  * One authoritative relation of one aggregate gate lineage round, as observed in the
@@ -263,6 +369,18 @@ export type IrreversibleProductionCoupling =
       readonly authorization: ImmutableHumanDecisionRef | null;
     };
 
+/**
+ * One entry of the complete ordered integration unit inventory. The manifest is read
+ * from the release head tree, so the inventory is content-bound to `sourceOid` and is
+ * not a caller-selected list of whichever units the caller chose to supply evidence for.
+ */
+export interface ReleaseIntegrationInventoryEntry {
+  readonly unitId: string;
+  readonly orderKey: string;
+  readonly unitKind: 'ordinary-task' | 'cumulative-lineage';
+  readonly proof: 'content-merged' | 'lineage-subsumed';
+}
+
 export interface ReleaseGateManifest {
   readonly schema: 'release-gates/v1';
   readonly repositoryId: string;
@@ -273,6 +391,10 @@ export interface ReleaseGateManifest {
   readonly mergeMethod: typeof RELEASE_MERGE_METHOD;
   readonly requirements: readonly ReleaseGateRequirement[];
   readonly integrationEvidenceSetDigest: Sha256Hex;
+  /** The complete ordered unit inventory the evidence set must cover exactly. */
+  readonly integrationUnitInventory: readonly ReleaseIntegrationInventoryEntry[];
+  /** The tree the integration branch carried before the first content unit. */
+  readonly integrationInitialTreeOid: GitOid;
   readonly publishedHeadEvidenceDigest: Sha256Hex;
   readonly irreversibleProductionCoupling: IrreversibleProductionCoupling;
 }
@@ -438,10 +560,37 @@ export interface PolicyBypassActor {
   readonly sourceLevel: 'repository' | 'organization' | 'enterprise' | 'classic';
 }
 
+/** One pinned policy-observer principal, signed inside the attestation payload. */
+export interface PolicyObserverPrincipal {
+  readonly principalId: string;
+  readonly principalType: string;
+  readonly installationScope: string;
+  readonly permissions: Readonly<Record<string, string>>;
+  readonly credentialScopeDigest: Sha256Hex;
+}
+
+/**
+ * The attestor's own online issuer and key status, signed inside the canonical payload
+ * so a revocation result is neither caller-classified nor replayable independently of
+ * the attestation it authorizes.
+ */
+export interface AttestorIssuerStatus {
+  readonly channelId: string;
+  readonly authorityId: string;
+  readonly keyId: string;
+  readonly publicKeyDigest: Sha256Hex;
+  readonly state: 'active' | 'revoked' | 'unknown';
+  readonly policyGeneration: number;
+  readonly observedAtUtc: IsoTimestamp;
+}
+
 export interface CompleteGitHubPolicyPayload {
   /** Every effective layer reported a complete, explicitly observed bypass actor set. */
   readonly bypassActorsComplete: boolean;
   readonly bypassActors: readonly PolicyBypassActor[];
+  /** The complete pinned observer principal set; its digest is compared, not claimed. */
+  readonly observerPrincipals: readonly PolicyObserverPrincipal[];
+  readonly issuerStatus: AttestorIssuerStatus;
   /** Every page of every enumerated policy response was consumed. */
   readonly paginationComplete: boolean;
   /** Classic protection and every applicable ruleset were enumerated with parents. */
@@ -863,19 +1012,50 @@ export interface ReleaseAdmissionInput {
   readonly evaluatedAtUtc: IsoTimestamp;
   readonly activation: MergeExecutorActivationRecord | null;
   readonly manifest: ReleaseGateManifest | null;
-  readonly manifestSource: ImmutableArtifactRef | null;
+  readonly manifestSource: ImmutableProvenancedArtifactRef | null;
   readonly repository: ReleaseRepositoryIdentity;
   readonly pullRequest: ImmutablePullRequestObservation;
   readonly base: ImmutableRefObservation;
   readonly gateSnapshot: ImmutableAggregateGateSnapshot;
+  readonly gateSnapshotSource: ImmutableProvenancedArtifactRef | null;
   readonly securitySnapshot: ImmutableReleaseSecuritySnapshot;
+  readonly securitySnapshotSource: ImmutableProvenancedArtifactRef | null;
   readonly integrationEvidence: readonly IntegrationUnitEvidence[];
+  readonly integrationEvidenceSource: ImmutableProvenancedArtifactRef | null;
+  /** The activation-pinned required-policy profile document, not a caller selection. */
+  readonly requiredPolicyProfile: RequiredGitHubPolicyProfile | null;
+  readonly requiredPolicyProfileSource: ImmutableProvenancedArtifactRef | null;
   readonly requiredChecks: ReleaseRequiredCheckObservation;
   readonly changedPaths: readonly string[];
   readonly publishedHeadEvidence: PublishedHeadEvidenceBundle | null;
   readonly policyControlFacts: PolicyControlFacts;
   readonly orderKey: string;
   readonly admissionContextNonce: Sha256Hex;
+}
+
+/**
+ * The complete authoritative set of mutable and control-plane admission inputs, read
+ * fresh from the observation boundary immediately before any intent or mutation. Every
+ * member is re-read; none is carried over from an earlier caller-supplied object.
+ */
+export interface ReleaseAdmissionFacts {
+  readonly activation: MergeExecutorActivationRecord | null;
+  readonly manifest: ReleaseGateManifest | null;
+  readonly manifestSource: ImmutableProvenancedArtifactRef | null;
+  readonly repository: ReleaseRepositoryIdentity;
+  readonly pullRequest: ImmutablePullRequestObservation;
+  readonly base: ImmutableRefObservation;
+  readonly gateSnapshot: ImmutableAggregateGateSnapshot;
+  readonly gateSnapshotSource: ImmutableProvenancedArtifactRef | null;
+  readonly securitySnapshot: ImmutableReleaseSecuritySnapshot;
+  readonly securitySnapshotSource: ImmutableProvenancedArtifactRef | null;
+  readonly integrationEvidence: readonly IntegrationUnitEvidence[];
+  readonly integrationEvidenceSource: ImmutableProvenancedArtifactRef | null;
+  readonly requiredPolicyProfile: RequiredGitHubPolicyProfile | null;
+  readonly requiredPolicyProfileSource: ImmutableProvenancedArtifactRef | null;
+  readonly requiredChecks: ReleaseRequiredCheckObservation;
+  readonly changedPaths: readonly string[];
+  readonly publishedHeadEvidence: PublishedHeadEvidenceBundle | null;
 }
 
 /* ------------------------------------------------------------------------- *
@@ -912,16 +1092,38 @@ export type MergeOutcomeStatus =
   | 'outcome_unknown'
   | 'result_unverifiable';
 
+export interface DurableAttemptReceipt {
+  readonly store: 'merge-evidence/v1';
+  readonly key: string;
+  readonly attempt: number;
+  readonly issuedAtUtc: IsoTimestamp;
+  readonly token: string;
+}
+
 export interface MergeOutcomeRecord {
   readonly schema: 'merge-outcome/v1';
   readonly executor: ExecutorKind;
   readonly idempotencyKey: Sha256Hex;
+  /** Canonical digest of the plan this outcome belongs to. */
+  readonly planDigest: Sha256Hex;
   readonly status: MergeOutcomeStatus;
   readonly mergedCommitOid: GitOid | null;
   readonly resultTreeOid: GitOid | null;
   readonly refusalCode: MergeRefusalCode | null;
+  /** Set only for a `human_exception_required` outcome; null means unclassifiable. */
+  readonly humanExceptionKind: HumanExceptionKind | null;
   readonly remediation: RemediationRequest | null;
   readonly recordedAtUtc: IsoTimestamp;
+}
+
+/**
+ * Store-issued authenticity material over the returned history. A history the store did
+ * not itself append cannot carry a valid token, so a directly inserted terminal record
+ * is not replayable as a successful release result.
+ */
+export interface DurableHistoryAuthenticity {
+  readonly historyDigest: Sha256Hex;
+  readonly token: string;
 }
 
 export interface MergeEvidenceHistory {
@@ -929,17 +1131,27 @@ export interface MergeEvidenceHistory {
   readonly intent: { readonly planDigest: Sha256Hex } | null;
   readonly terminalOutcome: MergeOutcomeRecord | null;
   readonly attempts: number;
+  readonly authenticity: DurableHistoryAuthenticity;
 }
 
 export interface MergeEvidenceStore {
   recordIntent(plan: ReleaseMergePlan): Promise<DurableMergeIntentResult>;
   verifyIntent(receipt: unknown, plan: ReleaseMergePlan): Promise<boolean>;
+  recordAttempt(
+    idempotencyKey: Sha256Hex,
+    attempt: number,
+  ): Promise<DurableAttemptReceipt>;
   recordPolicyAuthorization(
     idempotencyKey: Sha256Hex,
     attestation: TrustedCurrentPolicyAttestation,
   ): Promise<DurablePolicyAuthorizationReceipt>;
+  verifyPolicyAuthorization(
+    receipt: unknown,
+    attestation: TrustedCurrentPolicyAttestation,
+  ): Promise<boolean>;
   recordOutcome(record: MergeOutcomeRecord): Promise<MergeEvidenceRef>;
   read(idempotencyKey: Sha256Hex): Promise<MergeEvidenceHistory>;
+  verifyHistory(history: unknown): Promise<boolean>;
 }
 
 /**
@@ -994,6 +1206,24 @@ export interface ReleaseObservationPort {
     targetCommit: GitOid,
   ): Promise<ReleaseRequiredCheckObservation>;
   readMergedCommitTree(mergedCommitOid: GitOid): Promise<GitOid | null>;
+  readReleaseAdmissionFacts(
+    pullRequestNumber: number,
+  ): Promise<ReleaseAdmissionFacts>;
+  readBaseContainment(
+    mergedCommitOid: GitOid,
+  ): Promise<ReleaseBaseContainment>;
+}
+
+/**
+ * Reachability and containment of a merged commit with respect to the protected base,
+ * plus its parent order. An ordinary release merge commit has the protected base as its
+ * first parent and the release head as its second.
+ */
+export interface ReleaseBaseContainment {
+  readonly ref: typeof RELEASE_BASE_REF;
+  readonly baseOid: GitOid;
+  readonly containsMergedCommit: boolean;
+  readonly mergedCommitParents: readonly GitOid[];
 }
 
 export interface ReleaseExecutorLease {
@@ -1022,6 +1252,31 @@ export interface Clock {
  * Execution
  * ------------------------------------------------------------------------- */
 
+/**
+ * The exact subject the executor asks the human-controlled attestor to sign immediately
+ * before one mutation attempt. The channel carries no policy-observation and no
+ * policy-mutation operation: the executor supplies a closed subject and receives signed
+ * facts, exactly as the approved two-authorization order requires.
+ */
+export interface PreMutationAuthorizationRequest {
+  readonly executor: ExecutorKind;
+  readonly repositoryId: string;
+  readonly pullRequestNumber: number;
+  readonly headOid: GitOid;
+  readonly baseOid: GitOid;
+  readonly admissionContextNonce: Sha256Hex;
+  readonly admissionContextDigest: Sha256Hex;
+  readonly requiredPolicyProfileDigest: Sha256Hex;
+  readonly policyGeneration: number;
+  readonly attempt: number;
+}
+
+export interface ReleaseAttestationRequestChannel {
+  requestPreMutationAuthorization(
+    request: PreMutationAuthorizationRequest,
+  ): Promise<PolicyControlFacts>;
+}
+
 export interface ReleaseExecutionDependencies {
   readonly clock: Clock;
   /**
@@ -1032,6 +1287,9 @@ export interface ReleaseExecutionDependencies {
   readonly store: MergeEvidenceStore;
   readonly observation: ReleaseObservationPort;
   readonly mergePort: ReleasePullRequestMergePort;
+  /** Identity of the concrete broker and port; bound to the activation attestation. */
+  readonly mergePortIdentity: ImmutableMergePortIdentity;
+  readonly attestor: ReleaseAttestationRequestChannel;
   readonly leases: ReleaseExecutorLeaseManager;
 }
 
@@ -1044,13 +1302,14 @@ export interface ReleaseExecutionInput {
    * On a first run the receipt is the one `recordIntent` issues inside `execute`.
    */
   readonly receipt?: unknown;
-  readonly admissionInput: ReleaseAdmissionInput;
   /**
-   * The independently signed `pre_mutation` authorization facts, supplied by the
-   * separate human-controlled policy plane. This module holds no port that could
-   * fetch them.
+   * The plan-bound `pre_intent` authorization the attestor signed at admission. It is
+   * immutable evidence, not a mutable input: `ReleaseMergePlan` pins its canonical
+   * digest, and the executor re-verifies its Ed25519 signature, exact subject, and
+   * freshness during revalidation. The `pre_mutation` authorization is obtained
+   * separately, once per mutation attempt, through the attestor channel.
    */
-  readonly preMutationPolicyFacts: PolicyControlFacts;
+  readonly preIntentPolicyFacts: PolicyControlFacts;
 }
 
 export type ReleaseExecutionResult =

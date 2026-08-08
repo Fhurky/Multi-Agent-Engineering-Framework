@@ -7,17 +7,26 @@
  * `admitted`; every other path constructs one refusal or one human-exception record
  * and carries no plan.
  *
+ * Totality first. The complete runtime input shape is validated before any dereference
+ * or digest computation, so a hostile `unknown` value returns a typed refusal instead of
+ * throwing. The whole ordered sequence additionally runs inside a total wrapper: an
+ * input that canonical JSON cannot even represent still returns one typed refusal.
+ *
  * The final result constructor is invoked exactly once and returns immediately at the
  * first applicable step:
  *
- *   1. Invalid source or manifest shape returns its exact source refusal.
+ *   0. A structurally unusable runtime input returns its exact source refusal.
+ *   1. Invalid source or manifest shape returns its exact source refusal, and the
+ *      manifest is bound to its immutable artifact reference.
  *   2. A missing non-policy activation prerequisite returns `AuthorityNotActivated`.
  *      Live attestor and observer-credential provisioning is deliberately excluded
- *      from this step and is classified at step 3.
+ *      from this step and is classified at step 3. The activation-pinned required
+ *      policy profile is resolved here, because every later authority predicate is
+ *      derived from it rather than from a caller selection.
  *   3. `classifyPolicyControl` applies its exhaustive order. A non-usable result is
  *      returned immediately; no later predicate can construct another result.
  *   4. A missing or mismatched complete published-head evidence bundle returns its
- *      exact evidence refusal.
+ *      exact evidence refusal, bound to the expected remote ref and resolved bases.
  *   5. Gate, security, irreversible-production, immutable-identity, order, check,
  *      path, and tree predicates run in their documented order.
  *
@@ -31,19 +40,25 @@ import {
   RELEASE_BASE_REF,
   RELEASE_EXECUTOR,
   RELEASE_MERGE_METHOD,
+  RELEASE_REMOTE_REF,
   RELEASE_SOURCE_BRANCH,
 } from './contracts.ts';
 import type {
+  ExecutorAppIdentity,
   GitOid,
   HumanExceptionRecord,
   ImmutableArtifactRef,
+  ImmutableHumanDecisionRef,
+  ImmutableProvenancedArtifactRef,
   MergeEvidenceRef,
   MergeRefusal,
   MergeRefusalCode,
   PolicyControlFacts,
   ReleaseAdmissionInput,
   ReleaseAdmissionResult,
+  ReleaseGateManifest,
   ReleaseMergePlan,
+  RequiredGitHubPolicyProfile,
   Sha256Hex,
   TrustedCurrentPolicyAttestation,
 } from './contracts.ts';
@@ -58,9 +73,19 @@ import {
   evaluateReleaseGates,
   validateReleaseManifest,
 } from './release-manifest.ts';
-import { matchingBlockingFindings } from './gate-admissibility.ts';
-import { validateReleaseLineage } from './release-lineage.ts';
-import { validatePublishedHeadEvidence } from './published-head-evidence.ts';
+import {
+  aggregateGateSnapshotDigest,
+  matchingBlockingFindings,
+  releaseSecuritySnapshotDigest,
+} from './gate-admissibility.ts';
+import {
+  integrationEvidenceSetDigest,
+  validateReleaseLineage,
+} from './release-lineage.ts';
+import {
+  bindPublishedHeadEvidence,
+  validatePublishedHeadEvidence,
+} from './published-head-evidence.ts';
 import { evaluateRequiredChecks } from './required-checks.ts';
 import { findProtectedPathChanges } from './protected-paths.ts';
 import { remediationFor } from './remediation.ts';
@@ -91,6 +116,66 @@ function evidenceRef(
 
 function isRecordObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Immutable artifact provenance
+ * ------------------------------------------------------------------------- */
+
+/**
+ * A provenanced artifact reference is usable only when it names an immutable commit,
+ * a path, a digest, an expected kind, and a producer that is not a merge executor.
+ * Absent provenance is a defect: this is the check that stopped an executor-produced
+ * artifact and an artifact with no producer at all from being accepted.
+ */
+export function provenancedArtifactDefect(
+  value: unknown,
+  expectedKind: string,
+): string | null {
+  if (!isRecordObject(value)) {
+    return 'artifact_absent';
+  }
+  const ref = value as unknown as ImmutableProvenancedArtifactRef;
+  if (ref.kind !== expectedKind) {
+    return 'artifact_kind_mismatch';
+  }
+  if (!isGitOid(ref.commit)) {
+    return 'artifact_commit_not_immutable';
+  }
+  if (!isNonEmptyString(ref.path)) {
+    return 'artifact_path_missing';
+  }
+  if (!isSha256Hex(ref.digest)) {
+    return 'artifact_digest_invalid';
+  }
+  if (ref.producedByExecutor !== false) {
+    return ref.producedByExecutor === true
+      ? 'artifact_produced_by_executor'
+      : 'artifact_provenance_absent';
+  }
+  if (!isRecordObject(ref.producer)) {
+    return 'artifact_provenance_absent';
+  }
+  if (!isNonEmptyString(ref.producer.principalId)) {
+    return 'artifact_provenance_absent';
+  }
+  if (ref.producer.principalType === 'merge_executor') {
+    return 'artifact_produced_by_executor';
+  }
+  if (
+    ref.producer.principalType !== 'human' &&
+    ref.producer.principalType !== 'agent_role'
+  ) {
+    return 'artifact_provenance_absent';
+  }
+  if (!isGitOid(ref.producer.authorizationCommit)) {
+    return 'artifact_provenance_absent';
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------------------- *
@@ -168,6 +253,26 @@ export function computeIdempotencyKey(
   });
 }
 
+/**
+ * The exact scope an irreversible-production authorization may discharge. A decision
+ * that does not name this policy commit, release head, repository, and action has a
+ * different scope digest and cannot authorize this release.
+ */
+export function expectedIrreversibleAuthorizationScopeDigest(
+  repositoryId: string,
+  policyCommit: GitOid,
+  releaseHeadOid: GitOid,
+): Sha256Hex {
+  return sha256Canonical({
+    schema: 'irreversible-production-authorization-scope/v1',
+    executor: RELEASE_EXECUTOR,
+    action: 'authorize_policy_required_irreversible_production_action',
+    repositoryId,
+    policyCommit,
+    releaseHeadOid,
+  });
+}
+
 /* ------------------------------------------------------------------------- *
  * Result constructors
  * ------------------------------------------------------------------------- */
@@ -208,7 +313,26 @@ function exception(record: HumanExceptionRecord): ReleaseAdmissionResult {
  * Pure, total release admission. Never throws and never performs input or output.
  */
 export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
-  /* --- Step 1a: source shape ------------------------------------------- */
+  try {
+    return admitOrdered(input);
+  }
+  catch {
+    // Backstop for a value no canonical encoder can represent, such as a symbol or a
+    // bigint reached through a declared boundary. The result is still exactly one
+    // typed member, built from no caller-derived material.
+    return refusal(
+      'SourceRecordInvalid',
+      'unknown',
+      'unknown',
+      [],
+      null,
+      'input_not_canonically_representable',
+    );
+  }
+}
+
+function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
+  /* --- Step 0: complete runtime input shape ----------------------------- */
 
   if (!isRecordObject(input)) {
     return refusal(
@@ -228,22 +352,19 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
     ? input.admissionContextNonce
     : 'unresolved-admission-context';
 
-  const sourceDefect = validateSourceShape(input);
-  if (sourceDefect !== null) {
+  const shape = validateSourceShape(input);
+  if (shape !== null && shape.scope === 'source') {
     return refusal(
       'SourceRecordInvalid',
       repositoryId,
       keyMaterial,
       [],
       null,
-      sourceDefect,
+      shape.reason,
     );
   }
 
-  const subjects: readonly ImmutableArtifactRef[] =
-    input.manifestSource === null ? [] : [input.manifestSource];
-
-  /* --- Step 1b: manifest shape ----------------------------------------- */
+  /* --- Step 1: manifest shape and artifact binding ---------------------- */
 
   const manifestValidation = validateReleaseManifest(input.manifest);
   if (manifestValidation.status === 'invalid') {
@@ -251,7 +372,7 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
       'ReleaseManifestInvalid',
       repositoryId,
       keyMaterial,
-      subjects,
+      [],
       null,
       manifestValidation.reason,
     );
@@ -261,14 +382,44 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
       'ReleaseGateDomainMissing',
       repositoryId,
       keyMaterial,
-      subjects,
+      [],
       null,
       `domain_missing:${manifestValidation.domain}`,
     );
   }
-  const manifest = manifestValidation.manifest;
+  const manifest: ReleaseGateManifest = manifestValidation.manifest;
 
-  /* --- Step 2: activation ---------------------------------------------- */
+  const manifestSourceDefect = provenancedArtifactDefect(
+    input.manifestSource,
+    'release-gate-manifest',
+  );
+  if (manifestSourceDefect !== null) {
+    return refusal(
+      'ReleaseManifestInvalid',
+      repositoryId,
+      keyMaterial,
+      [],
+      null,
+      `manifest_source:${manifestSourceDefect}`,
+    );
+  }
+  const manifestSource = input.manifestSource as ImmutableProvenancedArtifactRef;
+  if (manifestSource.digest !== sha256Canonical(manifest)) {
+    // The artifact reference is a subject label only until its digest is proven to
+    // contain the supplied manifest bytes.
+    return refusal(
+      'ReleaseManifestInvalid',
+      repositoryId,
+      keyMaterial,
+      [],
+      null,
+      'manifest_source_digest_does_not_contain_manifest',
+    );
+  }
+
+  const subjects: readonly ImmutableArtifactRef[] = [manifestSource];
+
+  /* --- Step 2: activation and the pinned required-policy profile -------- */
 
   const activation = validateActivation(input.activation);
   if (activation.status === 'not_activated') {
@@ -284,6 +435,202 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
     );
   }
   const activationRecord = activation.record;
+
+  const profileSourceDefect = provenancedArtifactDefect(
+    input.requiredPolicyProfileSource,
+    'required-github-policy-profile',
+  );
+  if (profileSourceDefect !== null) {
+    return refusal(
+      'AuthorityNotActivated',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      `requiredPolicyProfileSource:${profileSourceDefect}`,
+    );
+  }
+  const profileSource =
+    input.requiredPolicyProfileSource as ImmutableProvenancedArtifactRef;
+
+  const profileDefect = requiredPolicyProfileDefect(input.requiredPolicyProfile);
+  if (profileDefect !== null) {
+    return refusal(
+      'AuthorityNotActivated',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      `requiredPolicyProfile:${profileDefect}`,
+    );
+  }
+  const profile = input.requiredPolicyProfile as RequiredGitHubPolicyProfile;
+  const profileDigest = sha256Canonical(profile);
+
+  if (
+    profileDigest !== activationRecord.requiredGitHubPolicyProfileDigest ||
+    profileSource.digest !== activationRecord.requiredGitHubPolicyProfileDigest ||
+    profileSource.commit !== activationRecord.requiredGitHubPolicyProfile.commit ||
+    profileSource.path !== activationRecord.requiredGitHubPolicyProfile.path
+  ) {
+    return refusal(
+      'AuthorityNotActivated',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'required_policy_profile_not_the_activation_pinned_artifact',
+    );
+  }
+  if (profile.repositoryId !== manifest.repositoryId) {
+    return refusal(
+      'AuthorityNotActivated',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'required_policy_profile_names_another_repository',
+    );
+  }
+
+  // The pinned profile is the floor for every aggregate requirement. A manifest may
+  // declare a stricter round, but it can neither lower a floor nor retarget a lineage.
+  for (const pinned of profile.releaseGateRequirements) {
+    const declared = manifest.requirements.find(
+      (candidate) => candidate.domain === pinned.domain,
+    );
+    if (declared === undefined) {
+      return refusal(
+        'ReleaseGateDomainMissing',
+        repositoryId,
+        keyMaterial,
+        subjects,
+        null,
+        `domain_missing:${pinned.domain}`,
+      );
+    }
+    if (
+      declared.lineage !== pinned.lineage ||
+      declared.gateClass !== 'aggregate' ||
+      declared.minimumRound < pinned.minimumRound
+    ) {
+      return refusal(
+        'ReleaseManifestInvalid',
+        repositoryId,
+        keyMaterial,
+        subjects,
+        null,
+        `manifest_requirement_weaker_than_the_pinned_profile:${pinned.domain}`,
+      );
+    }
+  }
+
+  /* --- Step 2b: security evidence shape, before any dereference --------- */
+
+  if (shape !== null) {
+    return refusal(
+      'SecurityEvidenceMissing',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      shape.reason,
+    );
+  }
+
+  /* --- Step 2c: snapshot digests bound to canonical bytes --------------- */
+
+  const gateSourceDefect = provenancedArtifactDefect(
+    input.gateSnapshotSource,
+    'aggregate-gate-snapshot',
+  );
+  if (gateSourceDefect !== null) {
+    return refusal(
+      'SourceRecordInvalid',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      `gateSnapshotSource:${gateSourceDefect}`,
+    );
+  }
+  const recomputedGateDigest = aggregateGateSnapshotDigest(
+    input.gateSnapshot.relations,
+  );
+  if (
+    recomputedGateDigest !== input.gateSnapshot.snapshotDigest ||
+    (input.gateSnapshotSource as ImmutableProvenancedArtifactRef).digest !==
+      recomputedGateDigest
+  ) {
+    return refusal(
+      'SourceRecordInvalid',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'gate_snapshot_digest_not_over_its_own_relations',
+    );
+  }
+
+  const securitySourceDefect = provenancedArtifactDefect(
+    input.securitySnapshotSource,
+    'release-security-snapshot',
+  );
+  if (securitySourceDefect !== null) {
+    return refusal(
+      'SecurityEvidenceMissing',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      `securitySnapshotSource:${securitySourceDefect}`,
+    );
+  }
+  const recomputedSecurityDigest = releaseSecuritySnapshotDigest(
+    input.securitySnapshot.findings,
+  );
+  if (
+    recomputedSecurityDigest !== input.securitySnapshot.snapshotDigest ||
+    (input.securitySnapshotSource as ImmutableProvenancedArtifactRef).digest !==
+      recomputedSecurityDigest
+  ) {
+    return refusal(
+      'SecurityEvidenceMissing',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'security_snapshot_digest_not_over_its_own_findings',
+    );
+  }
+
+  const integrationSourceDefect = provenancedArtifactDefect(
+    input.integrationEvidenceSource,
+    'release-integration-evidence',
+  );
+  if (integrationSourceDefect !== null) {
+    return refusal(
+      'IntegrationEvidenceIncomplete',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      `integrationEvidenceSource:${integrationSourceDefect}`,
+    );
+  }
+  if (
+    (input.integrationEvidenceSource as ImmutableProvenancedArtifactRef).digest !==
+    integrationEvidenceSetDigest(input.integrationEvidence)
+  ) {
+    return refusal(
+      'IntegrationEvidenceIncomplete',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'integration_evidence_source_digest_does_not_contain_the_evidence_set',
+    );
+  }
 
   /* --- Step 3: policy control ------------------------------------------ */
 
@@ -323,23 +670,15 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
   // The attestation reached the classifier as `current_valid`. Re-derive that state
   // from the exact expectations rather than trusting the supplied label, then run the
   // same single constructor again so no second result type can appear.
-  const expectations: PolicyAttestationExpectations = {
-    repositoryDatabaseId: input.repository.databaseId,
-    repositoryNodeId: input.repository.nodeId,
-    repositoryOwner: input.repository.owner,
-    repositoryName: input.repository.name,
-    protectedRef: RELEASE_BASE_REF,
-    pullRequestNumber: input.pullRequest.pullRequestNumber,
-    headOid: input.pullRequest.headOid,
-    baseOid: input.base.oid,
-    admissionContextNonce: context.nonce,
-    admissionContextDigest: context.digest,
-    authorizationPhase: 'pre_intent',
-    requiredPolicyProfileDigest:
-      activationRecord.requiredGitHubPolicyProfileDigest,
-    trustRoot: activationRecord.policyAttestorTrustRoot,
-    expectedPolicyGeneration: null,
-  };
+  const expectations: PolicyAttestationExpectations = releaseAttestationExpectations(
+    input,
+    context,
+    activationRecord.policyAttestorTrustRoot,
+    activationRecord.requiredGitHubPolicyProfileDigest,
+    profile,
+    'pre_intent',
+    null,
+  );
 
   const normalized = normalizePolicyAttestation(
     firstPass.attestation,
@@ -405,29 +744,26 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
       'evidence_target_not_manifest_source',
     );
   }
-  if (bundle.branch !== RELEASE_SOURCE_BRANCH) {
+
+  const binding = bindPublishedHeadEvidence(bundle, {
+    targetCommit: manifest.sourceOid,
+    branch: RELEASE_SOURCE_BRANCH,
+    remoteRef: RELEASE_REMOTE_REF,
+    pullRequestNumber: input.pullRequest.pullRequestNumber,
+    // The observed protected base, not a label the bundle chose for itself.
+    resolvedBases: { [RELEASE_BASE_BRANCH]: input.base.oid },
+  });
+  if (binding !== null) {
     return refusal(
-      'PublishedHeadEvidenceMismatch',
+      binding.code,
       repositoryId,
       keyMaterial,
       subjects,
       null,
-      'evidence_branch_not_integration_branch',
+      binding.reason,
     );
   }
-  if (
-    bundle.control.noLaterContent.pullRequestNumber !==
-    input.pullRequest.pullRequestNumber
-  ) {
-    return refusal(
-      'PublishedHeadEvidenceMismatch',
-      repositoryId,
-      keyMaterial,
-      subjects,
-      null,
-      'evidence_pull_request_mismatch',
-    );
-  }
+
   if (evidence.bundleDigest !== manifest.publishedHeadEvidenceDigest) {
     return refusal(
       'PublishedHeadEvidenceMismatch',
@@ -442,33 +778,6 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
   /* --- Step 5a: aggregate gates ---------------------------------------- */
 
   const releaseTargetCommit = input.pullRequest.headOid;
-
-  if (
-    !isRecordObject(input.securitySnapshot) ||
-    !isSha256Hex(input.securitySnapshot.snapshotDigest) ||
-    !Array.isArray(input.securitySnapshot.findings)
-  ) {
-    return refusal(
-      'SecurityEvidenceMissing',
-      repositoryId,
-      keyMaterial,
-      subjects,
-      null,
-      'security_snapshot_absent_or_unusable',
-    );
-  }
-  for (const finding of input.securitySnapshot.findings) {
-    if (!isSha256Hex(finding.evidenceDigest) || !isGitOid(finding.targetCommit)) {
-      return refusal(
-        'SecurityEvidenceMissing',
-        repositoryId,
-        keyMaterial,
-        subjects,
-        null,
-        `security_finding_evidence_invalid:${finding.findingId}`,
-      );
-    }
-  }
 
   const gates = evaluateReleaseGates(
     manifest,
@@ -532,7 +841,7 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
 
   const coupling = manifest.irreversibleProductionCoupling;
   if (coupling.coupled === true) {
-    if (coupling.authorization === null) {
+    if (coupling.authorization === null || coupling.authorization === undefined) {
       // A merge to `main` is never itself an irreversible production action. Only an
       // explicitly coupled deployment policy detects the second exception.
       return exception({
@@ -548,13 +857,14 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
         }),
       });
     }
-    if (
-      !isGitOid(coupling.authorization.decisionCommit) ||
-      typeof coupling.authorization.decisionId !== 'string' ||
-      coupling.authorization.decisionId === ''
-    ) {
-      // An unclassifiable authorization is refused as a typed exception record; it
-      // never turns the main merge itself into an implicit exception.
+    const authorizationDefect = irreversibleAuthorizationDefect(
+      coupling.authorization,
+      manifest,
+      coupling.policyCommit,
+    );
+    if (authorizationDefect !== null) {
+      // An unclassifiable or unbound authorization is refused as a typed exception
+      // record; it never turns the main merge itself into an implicit exception.
       return exception({
         status: 'human_exception_required',
         classification: 'unclassifiable',
@@ -568,6 +878,7 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
           executor: RELEASE_EXECUTOR,
           phase: 'irreversible_production_authorization_unclassifiable',
           policyCommit: coupling.policyCommit,
+          defect: authorizationDefect,
         }),
       });
     }
@@ -675,6 +986,8 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
     input.integrationEvidence,
     pullRequest.headTreeOid,
     manifest.integrationEvidenceSetDigest,
+    manifest.integrationUnitInventory,
+    manifest.integrationInitialTreeOid,
   );
 
   if (lineage.status === 'refused') {
@@ -690,7 +1003,11 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
 
   /* --- Step 5f: required checks ---------------------------------------- */
 
-  const checks = evaluateRequiredChecks(input.requiredChecks, pullRequest.headOid);
+  const checks = evaluateRequiredChecks(
+    input.requiredChecks,
+    pullRequest.headOid,
+    profile.requiredCheckContexts,
+  );
   if (checks.status === 'refused') {
     return refusal(
       checks.code,
@@ -765,81 +1082,380 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
 }
 
 /* ------------------------------------------------------------------------- *
+ * Attestation expectations
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Builds the exact attestation expectations from the pinned trust root and the pinned
+ * required-policy profile. Both authorization phases use this one constructor, so the
+ * pre-mutation phase can never be checked against weaker expectations than admission.
+ */
+export function releaseAttestationExpectations(
+  input: {
+    readonly repository: {
+      readonly databaseId: number;
+      readonly nodeId: string;
+      readonly owner: string;
+      readonly name: string;
+    };
+    readonly pullRequest: { readonly pullRequestNumber: number; readonly headOid: GitOid };
+    readonly base: { readonly oid: GitOid };
+  },
+  context: AdmissionContext,
+  trustRoot: PolicyAttestationExpectations['trustRoot'],
+  requiredPolicyProfileDigest: Sha256Hex,
+  profile: RequiredGitHubPolicyProfile,
+  phase: 'pre_intent' | 'pre_mutation',
+  expectedPolicyGeneration: number | null,
+): PolicyAttestationExpectations {
+  return {
+    repositoryDatabaseId: input.repository.databaseId,
+    repositoryNodeId: input.repository.nodeId,
+    repositoryOwner: input.repository.owner,
+    repositoryName: input.repository.name,
+    protectedRef: RELEASE_BASE_REF,
+    pullRequestNumber: input.pullRequest.pullRequestNumber,
+    headOid: input.pullRequest.headOid,
+    baseOid: input.base.oid,
+    admissionContextNonce: context.nonce,
+    admissionContextDigest: context.digest,
+    authorizationPhase: phase,
+    requiredPolicyProfileDigest,
+    trustRoot,
+    expectedPolicyGeneration,
+    expectedExecutorApps: profile.executorApps,
+    expectedObserverPrincipalSetDigest: profile.observerPrincipalSetDigest,
+    expectedRequiredCheckSources: profile.requiredCheckContexts.map((context_) => ({
+      name: context_.name,
+      appId: context_.expectedAppId,
+    })),
+    expectedMergeMethods: profile.mergeMethodsRequired,
+  };
+}
+
+/* ------------------------------------------------------------------------- *
+ * Pinned required-policy profile
+ * ------------------------------------------------------------------------- */
+
+function executorAppDefect(value: unknown): string | null {
+  if (!isRecordObject(value)) {
+    return 'executor_app_absent';
+  }
+  const app = value as unknown as ExecutorAppIdentity;
+  if (!Number.isSafeInteger(app.appId) || app.appId < 1) {
+    return 'executor_app_id_invalid';
+  }
+  if (!Number.isSafeInteger(app.installationId) || app.installationId < 1) {
+    return 'executor_app_installation_invalid';
+  }
+  if (!isNonEmptyString(app.nodeId) || !isNonEmptyString(app.slug)) {
+    return 'executor_app_identity_incomplete';
+  }
+  if (!isRecordObject(app.permissions)) {
+    return 'executor_app_permissions_absent';
+  }
+  for (const value_ of Object.values(app.permissions)) {
+    if (value_ !== 'read' && value_ !== 'write' && value_ !== 'admin') {
+      return 'executor_app_permission_value_invalid';
+    }
+  }
+  return null;
+}
+
+function requiredPolicyProfileDefect(value: unknown): string | null {
+  if (!isRecordObject(value)) {
+    return 'profile_absent';
+  }
+  const profile = value as unknown as RequiredGitHubPolicyProfile;
+  if (profile.schema !== 'required-github-policy-profile/v1') {
+    return 'profile_schema_mismatch';
+  }
+  if (!isNonEmptyString(profile.repositoryId)) {
+    return 'profile_repository_missing';
+  }
+  if (profile.protectedRef !== RELEASE_BASE_REF) {
+    return 'profile_protected_ref_mismatch';
+  }
+  if (
+    !Array.isArray(profile.requiredCheckContexts) ||
+    profile.requiredCheckContexts.length === 0
+  ) {
+    return 'profile_required_check_contexts_missing';
+  }
+  for (const context of profile.requiredCheckContexts) {
+    if (!isRecordObject(context)) {
+      return 'profile_required_check_context_invalid';
+    }
+    if (!isNonEmptyString(context.name)) {
+      return 'profile_required_check_name_missing';
+    }
+    if (!Number.isSafeInteger(context.expectedAppId)) {
+      return 'profile_required_check_app_invalid';
+    }
+  }
+  if (
+    !Array.isArray(profile.releaseGateRequirements) ||
+    profile.releaseGateRequirements.length === 0
+  ) {
+    return 'profile_release_gate_requirements_missing';
+  }
+  if (!Array.isArray(profile.executorApps) || profile.executorApps.length !== 2) {
+    return 'profile_executor_apps_incomplete';
+  }
+  for (const app of profile.executorApps) {
+    const defect = executorAppDefect(app);
+    if (defect !== null) {
+      return `profile_${defect}`;
+    }
+  }
+  if (!isSha256Hex(profile.observerPrincipalSetDigest)) {
+    return 'profile_observer_principal_digest_invalid';
+  }
+  if (
+    !Array.isArray(profile.mergeMethodsRequired) ||
+    !profile.mergeMethodsRequired.includes(RELEASE_MERGE_METHOD)
+  ) {
+    return 'profile_merge_methods_missing';
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Irreversible production authorization
+ * ------------------------------------------------------------------------- */
+
+function irreversibleAuthorizationDefect(
+  authorization: ImmutableHumanDecisionRef,
+  manifest: ReleaseGateManifest,
+  policyCommit: GitOid,
+): string | null {
+  if (!isRecordObject(authorization)) {
+    return 'authorization_absent';
+  }
+  if (!isNonEmptyString(authorization.decisionId)) {
+    return 'authorization_decision_id_missing';
+  }
+  if (!isGitOid(authorization.decisionCommit)) {
+    return 'authorization_decision_commit_not_immutable';
+  }
+  if (!isNonEmptyString(authorization.artifactPath)) {
+    return 'authorization_artifact_path_missing';
+  }
+  if (
+    authorization.action !==
+    'authorize_policy_required_irreversible_production_action'
+  ) {
+    return 'authorization_action_mismatch';
+  }
+  if (authorization.repositoryId !== manifest.repositoryId) {
+    return 'authorization_repository_mismatch';
+  }
+  if (authorization.policyCommit !== policyCommit) {
+    return 'authorization_policy_commit_mismatch';
+  }
+  if (authorization.releaseHeadOid !== manifest.sourceOid) {
+    return 'authorization_release_head_mismatch';
+  }
+  if (!isRecordObject(authorization.authorizedBy)) {
+    return 'authorization_principal_absent';
+  }
+  if (authorization.authorizedBy.principalType !== 'human') {
+    return 'authorization_principal_not_human';
+  }
+  if (!isNonEmptyString(authorization.authorizedBy.principalId)) {
+    return 'authorization_principal_id_missing';
+  }
+  if (!isGitOid(authorization.authorizedBy.authorizationCommit)) {
+    return 'authorization_principal_commit_not_immutable';
+  }
+  if (
+    authorization.scopeDigest !==
+    expectedIrreversibleAuthorizationScopeDigest(
+      manifest.repositoryId,
+      policyCommit,
+      manifest.sourceOid,
+    )
+  ) {
+    return 'authorization_scope_digest_mismatch';
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------------- *
  * Source shape
  * ------------------------------------------------------------------------- */
 
-function validateSourceShape(input: ReleaseAdmissionInput): string | null {
+interface ShapeDefect {
+  readonly scope: 'source' | 'security';
+  readonly reason: string;
+}
+
+function sourceDefect(reason: string): ShapeDefect {
+  return { scope: 'source', reason };
+}
+
+/**
+ * Complete structural validation of every declared runtime boundary, performed before
+ * any dereference or digest computation. It reads no property without first proving
+ * its container is a record, so no hostile value can throw here.
+ *
+ * A structurally unusable security snapshot is reported with its own scope so the
+ * ordered selector can still return the typed `SecurityEvidenceMissing` refusal rather
+ * than folding it into a generic source defect.
+ */
+function validateSourceShape(input: ReleaseAdmissionInput): ShapeDefect | null {
   if (input.executor !== RELEASE_EXECUTOR) {
-    return 'executor_mismatch';
+    return sourceDefect('executor_mismatch');
   }
-  if (typeof input.evaluatedAtUtc !== 'string' || input.evaluatedAtUtc === '') {
-    return 'evaluated_at_missing';
+  if (!isNonEmptyString(input.evaluatedAtUtc)) {
+    return sourceDefect('evaluated_at_missing');
   }
   if (!isRecordObject(input.repository)) {
-    return 'repository_identity_missing';
+    return sourceDefect('repository_identity_missing');
   }
-  if (
-    typeof input.repository.repositoryId !== 'string' ||
-    input.repository.repositoryId === ''
-  ) {
-    return 'repository_id_missing';
+  if (!isNonEmptyString(input.repository.repositoryId)) {
+    return sourceDefect('repository_id_missing');
   }
   if (!Number.isSafeInteger(input.repository.databaseId)) {
-    return 'repository_database_id_missing';
+    return sourceDefect('repository_database_id_missing');
+  }
+  if (
+    !isNonEmptyString(input.repository.nodeId) ||
+    !isNonEmptyString(input.repository.owner) ||
+    !isNonEmptyString(input.repository.name)
+  ) {
+    return sourceDefect('repository_identity_incomplete');
   }
   if (!isRecordObject(input.pullRequest)) {
-    return 'pull_request_observation_missing';
+    return sourceDefect('pull_request_observation_missing');
   }
   if (
     !Number.isSafeInteger(input.pullRequest.pullRequestNumber) ||
-    input.pullRequest.pullRequestNumber < 1
+    (input.pullRequest.pullRequestNumber as number) < 1
   ) {
-    return 'pull_request_number_invalid';
+    return sourceDefect('pull_request_number_invalid');
   }
   if (!isGitOid(input.pullRequest.headOid)) {
-    return 'pull_request_head_not_full_oid';
+    return sourceDefect('pull_request_head_not_full_oid');
   }
   if (!isGitOid(input.pullRequest.headTreeOid)) {
-    return 'pull_request_head_tree_not_full_oid';
+    return sourceDefect('pull_request_head_tree_not_full_oid');
   }
   if (!isGitOid(input.pullRequest.baseOid)) {
-    return 'pull_request_base_not_full_oid';
+    return sourceDefect('pull_request_base_not_full_oid');
+  }
+  if (!isNonEmptyString(input.pullRequest.headBranch)) {
+    return sourceDefect('pull_request_head_branch_missing');
+  }
+  if (!isNonEmptyString(input.pullRequest.baseBranch)) {
+    return sourceDefect('pull_request_base_branch_missing');
+  }
+  if (input.pullRequest.state !== 'open' && input.pullRequest.state !== 'closed') {
+    return sourceDefect('pull_request_state_invalid');
+  }
+  if (
+    input.pullRequest.merged !== true &&
+    input.pullRequest.merged !== false
+  ) {
+    return sourceDefect('pull_request_merged_flag_invalid');
+  }
+  if (
+    input.pullRequest.baseIsAncestorOfHead !== true &&
+    input.pullRequest.baseIsAncestorOfHead !== false
+  ) {
+    return sourceDefect('pull_request_ancestry_flag_invalid');
   }
   if (!isRecordObject(input.base)) {
-    return 'base_observation_missing';
+    return sourceDefect('base_observation_missing');
   }
   if (!isGitOid(input.base.oid)) {
-    return 'base_oid_not_full_oid';
+    return sourceDefect('base_oid_not_full_oid');
+  }
+  if (!isNonEmptyString(input.base.ref)) {
+    return sourceDefect('base_ref_missing');
   }
   if (!isRecordObject(input.gateSnapshot)) {
-    return 'gate_snapshot_missing';
+    return sourceDefect('gate_snapshot_missing');
   }
   if (!isSha256Hex(input.gateSnapshot.snapshotDigest)) {
-    return 'gate_snapshot_digest_invalid';
+    return sourceDefect('gate_snapshot_digest_invalid');
   }
   if (!Array.isArray(input.gateSnapshot.relations)) {
-    return 'gate_snapshot_relations_missing';
+    return sourceDefect('gate_snapshot_relations_missing');
   }
   if (!Array.isArray(input.integrationEvidence)) {
-    return 'integration_evidence_missing';
+    return sourceDefect('integration_evidence_missing');
+  }
+  for (const unit of input.integrationEvidence) {
+    if (!isRecordObject(unit)) {
+      return sourceDefect('integration_evidence_unit_not_an_object');
+    }
   }
   if (!Array.isArray(input.changedPaths)) {
-    return 'changed_paths_missing';
+    return sourceDefect('changed_paths_missing');
   }
-  if (typeof input.orderKey !== 'string' || input.orderKey === '') {
-    return 'order_key_missing';
+  for (const path of input.changedPaths) {
+    if (typeof path !== 'string') {
+      return sourceDefect('changed_path_not_a_string');
+    }
+  }
+  if (!isNonEmptyString(input.orderKey)) {
+    return sourceDefect('order_key_missing');
   }
   if (!isSha256Hex(input.admissionContextNonce)) {
-    return 'admission_context_nonce_invalid';
+    return sourceDefect('admission_context_nonce_invalid');
   }
   if (!isRecordObject(input.policyControlFacts)) {
-    return 'policy_control_facts_missing';
+    return sourceDefect('policy_control_facts_missing');
   }
   if (!isRecordObject(input.policyControlFacts.action)) {
-    return 'policy_control_action_missing';
+    return sourceDefect('policy_control_action_missing');
   }
   if (!isRecordObject(input.policyControlFacts.observation)) {
-    return 'policy_control_observation_missing';
+    return sourceDefect('policy_control_observation_missing');
   }
+  if (!isRecordObject(input.requiredChecks)) {
+    return sourceDefect('required_check_observation_missing');
+  }
+  if (
+    input.publishedHeadEvidence !== null &&
+    !isRecordObject(input.publishedHeadEvidence)
+  ) {
+    return sourceDefect('published_head_evidence_not_an_object');
+  }
+  if (input.manifest !== null && !isRecordObject(input.manifest)) {
+    return sourceDefect('manifest_not_an_object');
+  }
+  if (input.activation !== null && !isRecordObject(input.activation)) {
+    return sourceDefect('activation_not_an_object');
+  }
+
+  /* --- The security snapshot keeps its own typed refusal ---------------- */
+
+  if (!isRecordObject(input.securitySnapshot)) {
+    return { scope: 'security', reason: 'security_snapshot_absent_or_unusable' };
+  }
+  if (!isSha256Hex(input.securitySnapshot.snapshotDigest)) {
+    return { scope: 'security', reason: 'security_snapshot_absent_or_unusable' };
+  }
+  if (!Array.isArray(input.securitySnapshot.findings)) {
+    return { scope: 'security', reason: 'security_snapshot_absent_or_unusable' };
+  }
+  for (const finding of input.securitySnapshot.findings) {
+    if (!isRecordObject(finding)) {
+      return { scope: 'security', reason: 'security_finding_not_an_object' };
+    }
+    if (
+      !isSha256Hex(finding.evidenceDigest) ||
+      !isGitOid(finding.targetCommit) ||
+      !isNonEmptyString(finding.findingId)
+    ) {
+      return {
+        scope: 'security',
+        reason: `security_finding_evidence_invalid:${String(finding.findingId)}`,
+      };
+    }
+  }
+
   return null;
 }

@@ -24,6 +24,7 @@ import { MERGE_REFUSAL_CODES } from '../contracts.ts';
 import type { MergeRefusalCode } from '../contracts.ts';
 import {
   digest,
+  gateSnapshotOf,
   oid,
   validManifest,
   validRequiredChecks,
@@ -85,7 +86,7 @@ test('a release manifest defect routes to devops', () => {
 test('a gate evidence failure routes to the recorded gate owner role', () => {
   const result = admit(
     validScenario({
-      gateSnapshot: { snapshotDigest: digest('empty'), relations: [] },
+      gateSnapshot: gateSnapshotOf([]),
     }),
   );
   assert.equal(result.status, 'refused');

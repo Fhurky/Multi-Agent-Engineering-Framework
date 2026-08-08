@@ -28,6 +28,8 @@ import type {
   AuthorPrePublicationEvidence,
   ControlPostPublicationEvidence,
   ExactHeadCheckEvidence,
+  GitOid,
+  NoLaterContentProof,
   PublishedHeadCommandEvidence,
   PublishedHeadEvidenceBundle,
   CompletePublishedHeadEvidenceBundle,
@@ -304,6 +306,140 @@ function validateExactHeadChecks(
 }
 
 /**
+ * The three distinct proof kinds a no-later-content proof must carry. Each is bound to
+ * its own successful command record with a reproducible result digest and material
+ * arguments that name the fact the proof asserts.
+ */
+export const NO_LATER_CONTENT_PROOF_KINDS = [
+  'local_branch_head',
+  'remote_branch_head',
+  'pull_request_head',
+] as const;
+
+export type NoLaterContentProofKind = (typeof NO_LATER_CONTENT_PROOF_KINDS)[number];
+
+function validateProofKinds(
+  proofCommands: readonly PublishedHeadCommandEvidence[],
+  proof: NoLaterContentProof,
+): PublishedHeadEvidenceValidation | null {
+  const observedHeads: Readonly<Record<NoLaterContentProofKind, string>> = {
+    local_branch_head: proof.localBranchHeadOid,
+    remote_branch_head: proof.remoteBranchHeadOid,
+    pull_request_head: proof.pullRequestHeadOid,
+  };
+  const observedCounts: Readonly<Record<NoLaterContentProofKind, number>> = {
+    local_branch_head: proof.commitsAfterTarget.localBranch,
+    remote_branch_head: proof.commitsAfterTarget.remoteBranch,
+    pull_request_head: proof.commitsAfterTarget.pullRequestHead,
+  };
+
+  for (const kind of NO_LATER_CONTENT_PROOF_KINDS) {
+    const matches = proofCommands.filter(
+      (command) => command.materialArguments['proofKind'] === kind,
+    );
+    if (matches.length !== 1) {
+      // One distinct command per proof kind. A single command cannot self-digest all
+      // three claims, and two commands cannot both stand for one of them.
+      return refuse(
+        'PublishedHeadEvidenceIncomplete',
+        `no_later_content_proof_kind_not_distinct:${kind}`,
+      );
+    }
+    const command = matches[0] as PublishedHeadCommandEvidence;
+    if (command.actualResult.outputDigest === null) {
+      return refuse(
+        'PublishedHeadEvidenceIncomplete',
+        `no_later_content_proof_result_not_reproducible:${kind}`,
+      );
+    }
+    if (command.materialArguments['observedHeadOid'] !== observedHeads[kind]) {
+      return refuse(
+        'PublishedHeadEvidenceMismatch',
+        `no_later_content_proof_head_unbound:${kind}`,
+      );
+    }
+    if (command.materialArguments['commitsAfterTarget'] !== observedCounts[kind]) {
+      return refuse(
+        'PublishedHeadEvidenceMismatch',
+        `no_later_content_proof_count_unbound:${kind}`,
+      );
+    }
+    if (
+      kind === 'remote_branch_head' &&
+      command.materialArguments['remoteRef'] !== proof.remoteRef
+    ) {
+      return refuse(
+        'PublishedHeadEvidenceMismatch',
+        'no_later_content_proof_remote_ref_unbound',
+      );
+    }
+    if (
+      kind === 'pull_request_head' &&
+      command.materialArguments['pullRequestNumber'] !== proof.pullRequestNumber
+    ) {
+      return refuse(
+        'PublishedHeadEvidenceMismatch',
+        'no_later_content_proof_pull_request_unbound',
+      );
+    }
+  }
+
+  return null;
+}
+
+function phaseProducerIdentities(
+  commands: readonly PublishedHeadCommandEvidence[],
+): readonly string[] {
+  return [
+    ...new Set(
+      commands.map(
+        (command) => `${command.producer.role} ${command.producer.executionSessionId}`,
+      ),
+    ),
+  ];
+}
+
+/**
+ * The two phases must come from two distinct producer sessions. Without this, one
+ * producer can manufacture both phases and self-digest arbitrary proof claims, which is
+ * precisely what the two-phase split exists to prevent.
+ */
+function validatePhaseProducers(
+  author: AuthorPrePublicationEvidence,
+  control: ControlPostPublicationEvidence,
+): PublishedHeadEvidenceValidation | null {
+  const authorIdentities = phaseProducerIdentities(author.commands);
+  const controlIdentities = phaseProducerIdentities(control.commands);
+
+  if (authorIdentities.length !== 1 || controlIdentities.length !== 1) {
+    return refuse(
+      'PublishedHeadEvidenceIncomplete',
+      'phase_producer_not_a_single_session',
+    );
+  }
+
+  const authorSessions = new Set(
+    author.commands.map((command) => command.producer.executionSessionId),
+  );
+  for (const command of control.commands) {
+    if (authorSessions.has(command.producer.executionSessionId)) {
+      return refuse(
+        'PublishedHeadEvidenceMismatch',
+        'phase_producer_sessions_not_independent',
+      );
+    }
+  }
+  if (authorIdentities[0] === controlIdentities[0]) {
+    return refuse(
+      'PublishedHeadEvidenceMismatch',
+      'phase_producer_sessions_not_independent',
+    );
+  }
+
+  return null;
+}
+
+/**
  * Total validation of a `published-head-evidence/v2` bundle. Never throws.
  * A bundle without its control phase is `PublishedHeadEvidenceIncomplete`, not
  * implicitly successful.
@@ -493,6 +629,7 @@ export function validatePublishedHeadEvidence(
   ) {
     return refuse('PublishedHeadEvidenceIncomplete', 'no_later_content_no_proof_commands');
   }
+  const proofCommands: PublishedHeadCommandEvidence[] = [];
   for (const evidenceId of proof.proofCommandEvidenceIds) {
     const command = control.commands.find(
       (candidate) => candidate.evidenceId === evidenceId,
@@ -503,6 +640,17 @@ export function validatePublishedHeadEvidence(
         'no_later_content_proof_command_absent',
       );
     }
+    proofCommands.push(command);
+  }
+
+  const proofFailure = validateProofKinds(proofCommands, proof);
+  if (proofFailure !== null) {
+    return proofFailure;
+  }
+
+  const producerFailure = validatePhaseProducers(author, control);
+  if (producerFailure !== null) {
+    return producerFailure;
   }
 
   // The control phase carries its own publication-query commands rather than a rerun
@@ -525,4 +673,95 @@ export function validatePublishedHeadEvidence(
   }
 
   return { status: 'complete', bundle: complete, bundleDigest: digest };
+}
+
+/* ------------------------------------------------------------------------- *
+ * Semantic binding to executor-known identities
+ * ------------------------------------------------------------------------- */
+
+/**
+ * The exact remote ref and resolved-base names and values admission expects. They are
+ * derived from executor-known constants and the pinned manifest, never read out of the
+ * bundle that is being validated.
+ */
+export interface PublishedHeadEvidenceExpectations {
+  readonly targetCommit: GitOid;
+  readonly branch: string;
+  readonly remoteRef: string;
+  readonly pullRequestNumber: number;
+  readonly resolvedBases: Readonly<Record<string, GitOid>>;
+}
+
+/**
+ * Binds a structurally complete bundle to the identities the executor already knows.
+ *
+ * An arbitrary non-empty remote ref, an unbound resolved-base label, or a resolved base
+ * whose value is not the expected commit is a mismatch. Recomputing the canonical bundle
+ * digest over the altered bundle does not help, because these values are compared with
+ * executor-known expectations rather than with the bundle's own declarations.
+ */
+export function bindPublishedHeadEvidence(
+  bundle: CompletePublishedHeadEvidenceBundle,
+  expectations: PublishedHeadEvidenceExpectations,
+): PublishedHeadEvidenceValidation | null {
+  if (bundle.targetCommit !== expectations.targetCommit) {
+    return refuse('PublishedHeadEvidenceMismatch', 'bundle_target_not_expected_head');
+  }
+  if (bundle.branch !== expectations.branch) {
+    return refuse('PublishedHeadEvidenceMismatch', 'bundle_branch_not_expected_branch');
+  }
+  if (bundle.control.noLaterContent.remoteRef !== expectations.remoteRef) {
+    return refuse('PublishedHeadEvidenceMismatch', 'remote_ref_not_expected_ref');
+  }
+  if (
+    bundle.control.noLaterContent.pullRequestNumber !== expectations.pullRequestNumber
+  ) {
+    return refuse(
+      'PublishedHeadEvidenceMismatch',
+      'proof_pull_request_not_expected_pull_request',
+    );
+  }
+
+  const expectedNames = Object.keys(expectations.resolvedBases).sort();
+  for (const phase of [bundle.author.resolvedBases, bundle.control.resolvedBases]) {
+    const names = Object.keys(phase).sort();
+    if (names.length !== expectedNames.length) {
+      return refuse('PublishedHeadEvidenceMismatch', 'resolved_base_names_not_expected');
+    }
+    for (let index = 0; index < expectedNames.length; index += 1) {
+      const name = expectedNames[index] as string;
+      if (names[index] !== name) {
+        return refuse(
+          'PublishedHeadEvidenceMismatch',
+          `resolved_base_name_not_expected:${names[index]}`,
+        );
+      }
+      if (phase[name] !== expectations.resolvedBases[name]) {
+        return refuse(
+          'PublishedHeadEvidenceMismatch',
+          `resolved_base_value_not_expected:${name}`,
+        );
+      }
+    }
+  }
+
+  for (const command of [...bundle.author.commands, ...bundle.control.commands]) {
+    const names = Object.keys(command.resolvedBases).sort();
+    if (names.length !== expectedNames.length) {
+      return refuse(
+        'PublishedHeadEvidenceMismatch',
+        'command_resolved_base_names_not_expected',
+      );
+    }
+    for (const name of expectedNames) {
+      if (command.resolvedBases[name] !== expectations.resolvedBases[name]) {
+        return refuse(
+          'PublishedHeadEvidenceMismatch',
+          `command_resolved_base_value_not_expected:${name}`,
+        );
+      }
+    }
+  }
+
+  return null;
 }

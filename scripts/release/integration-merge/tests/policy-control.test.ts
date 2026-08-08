@@ -13,7 +13,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { admit, computeAdmissionContext } from '../admission.ts';
+import {
+  admit,
+  computeAdmissionContext,
+  releaseAttestationExpectations,
+} from '../admission.ts';
 import {
   POLICY_EXECUTION_MARGIN_MS,
   classifyPolicyControl,
@@ -44,6 +48,7 @@ import {
   oid,
   resignAttestation,
   validActivationRecord,
+  validRequiredPolicyProfile,
   validScenario,
 } from './helpers/fixtures.ts';
 
@@ -332,22 +337,19 @@ function expectationsFor(
     input.manifest?.publishedHeadEvidenceDigest ?? digest('none'),
     REQUIRED_POLICY_PROFILE_DIGEST,
   );
-  return {
-    repositoryDatabaseId: REPOSITORY.databaseId,
-    repositoryNodeId: REPOSITORY.nodeId,
-    repositoryOwner: REPOSITORY.owner,
-    repositoryName: REPOSITORY.name,
-    protectedRef: RELEASE_BASE_REF,
-    pullRequestNumber: PULL_REQUEST_NUMBER,
-    headOid: HEAD_OID,
-    baseOid: BASE_OID,
-    admissionContextNonce: context.nonce,
-    admissionContextDigest: context.digest,
-    authorizationPhase: phase,
-    requiredPolicyProfileDigest: REQUIRED_POLICY_PROFILE_DIGEST,
-    trustRoot: validActivationRecord().policyAttestorTrustRoot,
-    expectedPolicyGeneration: null,
-  };
+  return releaseAttestationExpectations(
+    {
+      repository: REPOSITORY,
+      pullRequest: { pullRequestNumber: PULL_REQUEST_NUMBER, headOid: HEAD_OID },
+      base: { oid: BASE_OID },
+    },
+    context,
+    validActivationRecord().policyAttestorTrustRoot,
+    REQUIRED_POLICY_PROFILE_DIGEST,
+    validRequiredPolicyProfile(),
+    phase,
+    null,
+  );
 }
 
 function currentAttestation(

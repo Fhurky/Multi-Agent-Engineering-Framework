@@ -20,6 +20,7 @@ import { RecordingMergePort } from './helpers/fakes.ts';
 import {
   HEAD_OID,
   REQUIRED_CHECK_APP_ID,
+  REQUIRED_CHECK_CONTEXTS,
   oid,
   validRequiredChecks,
   validScenario,
@@ -43,7 +44,11 @@ function admitWithChecks(
 }
 
 test('the fixture check set is all successful', () => {
-  const evaluation = evaluateRequiredChecks(validRequiredChecks(), HEAD_OID);
+  const evaluation = evaluateRequiredChecks(
+    validRequiredChecks(),
+    HEAD_OID,
+    REQUIRED_CHECK_CONTEXTS,
+  );
   assert.equal(evaluation.status, 'all_successful');
 });
 
@@ -100,7 +105,11 @@ test('a wrong publisher refuses with RequiredCheckPublisherMismatch', () => {
 });
 
 test('a check observation read for another commit is never transferable', () => {
-  const evaluation = evaluateRequiredChecks(validRequiredChecks(), oid('another-head'));
+  const evaluation = evaluateRequiredChecks(
+    validRequiredChecks(),
+    oid('another-head'),
+    REQUIRED_CHECK_CONTEXTS,
+  );
   assert.equal(evaluation.status, 'refused');
   if (evaluation.status !== 'refused') {
     return;
@@ -113,6 +122,7 @@ test('an empty required-context configuration fails closed', () => {
   const evaluation = evaluateRequiredChecks(
     { targetCommit: HEAD_OID, requiredContexts: [], observed: [] },
     HEAD_OID,
+    [],
   );
   assert.equal(evaluation.status, 'refused');
   if (evaluation.status !== 'refused') {

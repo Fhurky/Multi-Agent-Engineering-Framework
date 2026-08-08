@@ -18,8 +18,23 @@ export type {
   AcceptedBlockingSecurityRiskRecord,
   ActivationMember,
   AggregateGateRelation,
+  ArtifactProducerType,
+  AttestorIssuerStatus,
   AuthorPrePublicationEvidence,
   Clock,
+  DurableAttemptReceipt,
+  DurableHistoryAuthenticity,
+  ImmutableArtifactProducer,
+  ImmutableMergePortIdentity,
+  ImmutableNegativeCapabilityAttestationRef,
+  ImmutableProvenancedArtifactRef,
+  PolicyObserverPrincipal,
+  PreMutationAuthorizationRequest,
+  ReleaseAdmissionFacts,
+  ReleaseAttestationRequestChannel,
+  ReleaseBaseContainment,
+  ReleaseIntegrationInventoryEntry,
+  RequiredGitHubPolicyProfile,
   CompleteGitHubPolicyPayload,
   CompletePublishedHeadEvidenceBundle,
   ControlPostPublicationEvidence,
@@ -95,6 +110,7 @@ export type {
 
 export {
   ACTIVATION_MEMBERS,
+  GATE_VERDICT_STATES,
   GOVERNANCE_DECISION_COMMIT,
   HUMAN_EXCEPTION_KIND_ORDER,
   MERGE_REFUSAL_CODES,
@@ -104,26 +120,39 @@ export {
   RELEASE_EXECUTOR,
   RELEASE_GATE_DOMAINS,
   RELEASE_MERGE_METHOD,
+  RELEASE_REMOTE_NAME,
+  RELEASE_REMOTE_REF,
   RELEASE_SOURCE_BRANCH,
 } from './contracts.ts';
 
 export {
+  canonicalBytes,
   canonicalJson,
+  decodeBase64,
+  isBase64,
   isGitOid,
   isIsoTimestamp,
   isSha256Hex,
   omitTopLevel,
   selfDigest,
+  sha256Bytes,
   sha256Canonical,
 } from './canonical-json.ts';
 
-export { validateActivation } from './activation.ts';
+export {
+  ACTIVATION_ARTIFACT_KINDS,
+  ACTIVATION_GATE_EXPECTATIONS,
+  validateActivation,
+} from './activation.ts';
 export type { ActivationDefect, ActivationValidation } from './activation.ts';
 
 export {
+  aggregateGateSnapshotDigest,
   evaluateRelation,
   expectedAcceptanceScopeDigest,
   matchingBlockingFindings,
+  relationDefect,
+  releaseSecuritySnapshotDigest,
   resolveAuthoritativeRound,
 } from './gate-admissibility.ts';
 
@@ -138,26 +167,38 @@ export type {
 
 export {
   integrationEvidenceSetDigest,
+  integrationInventoryDigest,
   validateReleaseLineage,
 } from './release-lineage.ts';
 
 export {
+  NO_LATER_CONTENT_PROOF_KINDS,
   authorEvidenceDigest,
+  bindPublishedHeadEvidence,
   bundleDigest,
   commandEvidenceId,
   validatePublishedHeadEvidence,
+} from './published-head-evidence.ts';
+export type {
+  NoLaterContentProofKind,
+  PublishedHeadEvidenceExpectations,
 } from './published-head-evidence.ts';
 
 export {
   POLICY_EXECUTION_MARGIN_MS,
   POLICY_FRESHNESS_WINDOW_MS,
+  attestationSignedPayload,
   classifyPolicyControl,
+  executorAppSetDigest,
   normalizePolicyAttestation,
+  observerPrincipalSetDigest,
   orderedDetectedActions,
+  verifyAttestationSignature,
 } from './policy-control.ts';
 export type { PolicyAttestationExpectations } from './policy-control.ts';
 
 export { evaluateRequiredChecks } from './required-checks.ts';
+export type { PinnedRequiredCheckContext } from './required-checks.ts';
 export {
   findProtectedPathChanges,
   isProtectedPath,
@@ -185,6 +226,10 @@ export {
   computeAdmissionContext,
   computeIdempotencyKey,
   evidenceStoreKey,
+  expectedIrreversibleAuthorizationScopeDigest,
+  provenancedArtifactDefect,
+  releaseAttestationExpectations,
 } from './admission.ts';
+export type { AdmissionContext } from './admission.ts';
 
-export { execute, planStoreKey } from './execute.ts';
+export { execute, planSelfDefect, planStoreKey } from './execute.ts';

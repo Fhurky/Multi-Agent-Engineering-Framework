@@ -5,7 +5,11 @@
 import { admit } from '../../admission.ts';
 import type {
   GitOid,
+  PolicyControlFacts,
+  PreMutationAuthorizationRequest,
+  ReleaseAdmissionFacts,
   ReleaseAdmissionInput,
+  ReleaseBaseContainment,
   ReleaseExecutionDependencies,
   ReleaseExecutionInput,
   ReleaseMergePlan,
@@ -13,15 +17,18 @@ import type {
   ImmutablePullRequestObservation,
 } from '../../contracts.ts';
 import {
+  FakeAttestorChannel,
   FakeClock,
   FakeLeaseManager,
   FakeObservationPort,
   InMemoryEvidenceStore,
   RecordingMergePort,
   fakeSleep,
+  validContainment,
 } from './fakes.ts';
 import {
   BASE_TIME_MS,
+  MERGE_PORT_IDENTITY,
   oid,
   preMutationFacts,
   validBaseRef,
@@ -42,16 +49,55 @@ export interface Harness {
   readonly mergePort: RecordingMergePort;
   readonly observation: FakeObservationPort;
   readonly leases: FakeLeaseManager;
+  readonly attestor: FakeAttestorChannel;
 }
 
 export interface HarnessOptions {
   readonly mergeResults?: readonly ReleaseMergePortResult[];
   readonly mergeFallback?: ReleaseMergePortResult;
   readonly pullRequests?: readonly ImmutablePullRequestObservation[];
+  /**
+   * The pull-request observation the authoritative revalidation reads. It is separate
+   * from the reconciliation queue because revalidation happens before each mutation
+   * while reconciliation happens after one.
+   */
+  readonly admissionPullRequest?: ImmutablePullRequestObservation;
   readonly mergedTree?: GitOid;
+  readonly containment?: ReleaseBaseContainment;
   readonly store?: InMemoryEvidenceStore;
   readonly scenario?: ReleaseAdmissionInput;
   readonly suppliedReceipt?: unknown;
+  readonly mergePortIdentity?: { brokerId: string; portIdentityDigest: string };
+  readonly preMutationFactsFor?: (
+    plan: ReleaseMergePlan,
+    request: PreMutationAuthorizationRequest,
+  ) => PolicyControlFacts;
+}
+
+/** The authoritative admission facts derived from one admission input. */
+export function admissionFactsFrom(
+  input: ReleaseAdmissionInput,
+  pullRequest: ImmutablePullRequestObservation,
+): ReleaseAdmissionFacts {
+  return {
+    activation: input.activation,
+    manifest: input.manifest,
+    manifestSource: input.manifestSource,
+    repository: input.repository,
+    pullRequest,
+    base: input.base,
+    gateSnapshot: input.gateSnapshot,
+    gateSnapshotSource: input.gateSnapshotSource,
+    securitySnapshot: input.securitySnapshot,
+    securitySnapshotSource: input.securitySnapshotSource,
+    integrationEvidence: input.integrationEvidence,
+    integrationEvidenceSource: input.integrationEvidenceSource,
+    requiredPolicyProfile: input.requiredPolicyProfile,
+    requiredPolicyProfileSource: input.requiredPolicyProfileSource,
+    requiredChecks: input.requiredChecks,
+    changedPaths: input.changedPaths,
+    publishedHeadEvidence: input.publishedHeadEvidence,
+  };
 }
 
 /**
@@ -84,14 +130,27 @@ export function buildHarness(options: HarnessOptions = {}): Harness {
   const mergedTrees = new Map<GitOid, GitOid>();
   mergedTrees.set(MERGED_COMMIT_OID, options.mergedTree ?? plan.expectedTreeOid);
 
+  const admissionPullRequest =
+    options.admissionPullRequest ??
+    options.pullRequests?.[0] ??
+    validPullRequest();
+
   const observation = new FakeObservationPort({
     pullRequests: [...(options.pullRequests ?? [validPullRequest()])],
     base: validBaseRef(),
     checks: validRequiredChecks(),
     mergedTrees,
+    admissionFacts: admissionFactsFrom(admissionInput, admissionPullRequest),
+    containment: options.containment ?? validContainment(),
   });
 
   const leases = new FakeLeaseManager();
+
+  const attestor = new FakeAttestorChannel((request) =>
+    options.preMutationFactsFor === undefined
+      ? preMutationFacts(plan)
+      : options.preMutationFactsFor(plan, request),
+  );
 
   const dependencies: ReleaseExecutionDependencies = {
     clock,
@@ -99,13 +158,16 @@ export function buildHarness(options: HarnessOptions = {}): Harness {
     store,
     observation,
     mergePort,
+    mergePortIdentity: options.mergePortIdentity ?? MERGE_PORT_IDENTITY,
+    attestor,
     leases,
   };
 
+  const preIntentPolicyFacts = admissionInput.policyControlFacts;
+
   const executionInput: ReleaseExecutionInput = {
     plan,
-    admissionInput,
-    preMutationPolicyFacts: preMutationFacts(plan),
+    preIntentPolicyFacts,
     ...(options.suppliedReceipt === undefined
       ? {}
       : { receipt: options.suppliedReceipt }),
@@ -121,6 +183,7 @@ export function buildHarness(options: HarnessOptions = {}): Harness {
     mergePort,
     observation,
     leases,
+    attestor,
   };
 }
 

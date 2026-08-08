@@ -100,6 +100,47 @@ export function sha256Utf8(value: string): Sha256Hex {
   return createHash('sha256').update(value, 'utf8').digest('hex');
 }
 
+/** Lowercase hexadecimal SHA-256 over raw bytes. */
+export function sha256Bytes(bytes: Uint8Array): Sha256Hex {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+/**
+ * UTF-8 bytes of the canonical JSON encoding of `value`. This is the exact byte string
+ * an attestor signs, so verification never re-serializes through a different encoder.
+ */
+export function canonicalBytes(value: unknown): Uint8Array {
+  return new Uint8Array(Buffer.from(canonicalJson(value), 'utf8'));
+}
+
+const BASE64_ALPHABET = /^[A-Za-z0-9+/]*={0,2}$/;
+
+/** True when `value` is a non-empty, correctly padded standard base64 string. */
+export function isBase64(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value.length % 4 === 0 &&
+    BASE64_ALPHABET.test(value)
+  );
+}
+
+/**
+ * Strict base64 decoding. A malformed, non-canonical, or non-base64 value returns
+ * `null` rather than a silently truncated buffer, so a decode failure is always
+ * distinguishable from a valid empty result.
+ */
+export function decodeBase64(value: unknown): Uint8Array | null {
+  if (!isBase64(value)) {
+    return null;
+  }
+  const decoded = Buffer.from(value as string, 'base64');
+  if (decoded.toString('base64') !== value) {
+    return null;
+  }
+  return new Uint8Array(decoded);
+}
+
 /**
  * Returns a shallow copy of `record` with exactly the one named top-level property
  * absent. The property is removed rather than set to `null`, an empty string, or a

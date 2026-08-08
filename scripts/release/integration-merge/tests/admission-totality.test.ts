@@ -36,7 +36,10 @@ import {
   digest,
   emptySecuritySnapshot,
   excludedControlAction,
+  gateSnapshotOf,
+  irreversibleAuthorizationFor,
   oid,
+  securitySnapshotOf,
   validGateSnapshot,
   validIntegrationEvidence,
   validManifest,
@@ -178,7 +181,7 @@ const TABLE: readonly TableRow[] = [
     code: 'PreMergeGateOpen',
     input: () =>
       validScenario({
-        gateSnapshot: { snapshotDigest: digest('empty'), relations: [] },
+        gateSnapshot: gateSnapshotOf([]),
       }),
   },
   {
@@ -186,14 +189,13 @@ const TABLE: readonly TableRow[] = [
     input: () => {
       const snapshot = validGateSnapshot();
       return validScenario({
-        gateSnapshot: {
-          snapshotDigest: snapshot.snapshotDigest,
-          relations: snapshot.relations.map((relation) =>
+        gateSnapshot: gateSnapshotOf(
+          snapshot.relations.map((relation) =>
             relation.gate === 'documentation' && relation.lineageRound === 2
               ? { ...relation, verdictState: 'changes_required' as never }
               : relation,
           ),
-        },
+        ),
       });
     },
   },
@@ -216,9 +218,8 @@ const TABLE: readonly TableRow[] = [
       const finding = blockingFinding();
       const snapshot = validGateSnapshot();
       return validScenario({
-        gateSnapshot: {
-          snapshotDigest: snapshot.snapshotDigest,
-          relations: snapshot.relations.map((relation) =>
+        gateSnapshot: gateSnapshotOf(
+          snapshot.relations.map((relation) =>
             relation.gate === 'security' && relation.lineageRound === 2
               ? {
                   ...relation,
@@ -229,11 +230,8 @@ const TABLE: readonly TableRow[] = [
                 }
               : relation,
           ),
-        },
-        securitySnapshot: {
-          snapshotDigest: digest('security-snapshot'),
-          findings: [finding],
-        },
+        ),
+        securitySnapshot: securitySnapshotOf([finding]),
       });
     },
   },
@@ -245,6 +243,7 @@ const TABLE: readonly TableRow[] = [
           snapshotDigest: 'not-a-digest',
           findings: [],
         } as never,
+        securitySnapshotSource: null,
       }),
   },
   {
@@ -457,10 +456,7 @@ test('an unresolved blocking finding without acceptance detects only the first k
   const finding = blockingFinding();
   const result = admit(
     validScenario({
-      securitySnapshot: {
-        snapshotDigest: digest('security-snapshot'),
-        findings: [finding],
-      },
+      securitySnapshot: securitySnapshotOf([finding]),
     }),
   );
   assert.equal(result.status, 'human_exception_required');
@@ -519,11 +515,7 @@ test('a coupled action with a valid human authorization is admitted', () => {
         irreversibleProductionCoupling: {
           coupled: true,
           policyCommit: oid('deployment-policy'),
-          authorization: {
-            decisionId: 'HUMAN-00X',
-            decisionCommit: oid('human-authorization-decision'),
-            artifactPath: 'plans/decisions/HUMAN-00X.md',
-          },
+          authorization: irreversibleAuthorizationFor(oid('deployment-policy')),
         },
       }),
     }),
@@ -539,9 +531,9 @@ test('an unclassifiable production authorization returns one unclassifiable exce
           coupled: true,
           policyCommit: oid('deployment-policy'),
           authorization: {
+            ...irreversibleAuthorizationFor(oid('deployment-policy')),
             decisionId: '',
             decisionCommit: 'refs/heads/main',
-            artifactPath: 'plans/decisions/unknown.md',
           },
         },
       }),
@@ -585,10 +577,7 @@ test('coexisting exception facts return the policy-control result first', () => 
   const finding = blockingFinding();
   const result = admit(
     validScenario({
-      securitySnapshot: {
-        snapshotDigest: digest('security-snapshot'),
-        findings: [finding],
-      },
+      securitySnapshot: securitySnapshotOf([finding]),
       manifest: validManifest({
         irreversibleProductionCoupling: {
           coupled: true,
@@ -625,10 +614,7 @@ test('with policy usable, the security exception precedes the production excepti
   const finding = blockingFinding();
   const result = admit(
     validScenario({
-      securitySnapshot: {
-        snapshotDigest: digest('security-snapshot'),
-        findings: [finding],
-      },
+      securitySnapshot: securitySnapshotOf([finding]),
       manifest: validManifest({
         irreversibleProductionCoupling: {
           coupled: true,

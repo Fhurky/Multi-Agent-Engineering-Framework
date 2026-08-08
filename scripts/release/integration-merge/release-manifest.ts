@@ -90,6 +90,47 @@ export function validateReleaseManifest(
   if (!isSha256Hex(record['publishedHeadEvidenceDigest'])) {
     return invalid('published_head_evidence_digest_invalid');
   }
+  if (!isGitOid(record['integrationInitialTreeOid'])) {
+    return invalid('integration_initial_tree_not_immutable');
+  }
+
+  const inventory = record['integrationUnitInventory'];
+  if (!Array.isArray(inventory) || inventory.length === 0) {
+    return invalid('integration_unit_inventory_missing');
+  }
+  const inventoryIds = new Set<string>();
+  const inventoryOrderKeys = new Set<string>();
+  for (const entry of inventory as readonly unknown[]) {
+    if (!isRecordObject(entry)) {
+      return invalid('integration_unit_inventory_entry_invalid');
+    }
+    if (typeof entry['unitId'] !== 'string' || entry['unitId'] === '') {
+      return invalid('integration_unit_inventory_unit_id_missing');
+    }
+    if (typeof entry['orderKey'] !== 'string' || entry['orderKey'] === '') {
+      return invalid('integration_unit_inventory_order_key_missing');
+    }
+    if (
+      entry['unitKind'] !== 'ordinary-task' &&
+      entry['unitKind'] !== 'cumulative-lineage'
+    ) {
+      return invalid('integration_unit_inventory_kind_invalid');
+    }
+    if (
+      entry['proof'] !== 'content-merged' &&
+      entry['proof'] !== 'lineage-subsumed'
+    ) {
+      return invalid('integration_unit_inventory_proof_invalid');
+    }
+    if (inventoryIds.has(entry['unitId'])) {
+      return invalid('integration_unit_inventory_duplicate_unit');
+    }
+    inventoryIds.add(entry['unitId']);
+    if (inventoryOrderKeys.has(entry['orderKey'])) {
+      return invalid('integration_unit_inventory_duplicate_order_key');
+    }
+    inventoryOrderKeys.add(entry['orderKey']);
+  }
 
   const coupling = record['irreversibleProductionCoupling'];
   if (!isRecordObject(coupling)) {
@@ -202,6 +243,15 @@ export function evaluateReleaseGates(
 
     const resolution = resolveAuthoritativeRound(snapshot, requirement.lineage, domain);
 
+    if (resolution.status === 'invalid_relation') {
+      // A relation in the claimed complete set is malformed or names a mutable verdict
+      // ref: the set is not authoritative passing evidence.
+      return { status: 'not_admissible', domain, code: 'PreMergeGateNotPassing' };
+    }
+    if (resolution.status === 'ambiguous') {
+      // Conflicting relations at one authoritative round leave the round unclosed.
+      return { status: 'not_admissible', domain, code: 'PreMergeGateOpen' };
+    }
     if (resolution.status !== 'resolved') {
       return { status: 'not_admissible', domain, code: 'PreMergeGateOpen' };
     }

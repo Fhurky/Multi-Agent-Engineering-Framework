@@ -34,9 +34,11 @@ import {
   blockingFinding,
   digest,
   emptySecuritySnapshot,
+  gateSnapshotOf,
   HEAD_OID,
   oid,
   passingRelation,
+  securitySnapshotOf,
   validGateSnapshot,
   validScenario,
 } from './helpers/fixtures.ts';
@@ -46,14 +48,13 @@ function snapshotWith(
   overrides: Partial<AggregateGateRelation>,
 ): ImmutableAggregateGateSnapshot {
   const snapshot = validGateSnapshot();
-  return {
-    snapshotDigest: snapshot.snapshotDigest,
-    relations: snapshot.relations.map((relation) =>
+  return gateSnapshotOf(
+    snapshot.relations.map((relation) =>
       relation.gate === domain && relation.lineageRound === 2
         ? { ...relation, ...overrides }
         : relation,
     ),
-  };
+  );
 }
 
 interface Assertion {
@@ -97,10 +98,7 @@ test('F-041-01: changes-required review plus a generic formal acceptance', () =>
     return relation;
   });
 
-  const outcome = admitWith({
-    snapshotDigest: snapshot.snapshotDigest,
-    relations,
-  });
+  const outcome = admitWith(gateSnapshotOf(relations));
 
   assert.equal(outcome.code, 'PreMergeGateNotPassing');
   assert.equal(outcome.mergeCalls, 0);
@@ -232,10 +230,7 @@ test('an exact accepted-blocking-security-risk record admits the release', () =>
   const result = admit(
     validScenario({
       gateSnapshot: acceptedSecuritySnapshot(),
-      securitySnapshot: {
-        snapshotDigest: digest('security-snapshot'),
-        findings: [finding],
-      },
+      securitySnapshot: securitySnapshotOf([finding]),
     }),
   );
   assert.equal(result.status, 'admitted', JSON.stringify(result).slice(0, 400));
@@ -249,10 +244,7 @@ test('a High severity record is admissible for a High finding', () => {
         verdictState: 'formally_accepted',
         acceptedRisks: [acceptanceFor(finding)],
       }),
-      securitySnapshot: {
-        snapshotDigest: digest('security-snapshot'),
-        findings: [finding],
-      },
+      securitySnapshot: securitySnapshotOf([finding]),
     }),
   );
   assert.equal(result.status, 'admitted');
@@ -342,7 +334,7 @@ for (const entry of ONE_FIELD_OFF) {
         verdictState: 'formally_accepted',
         acceptedRisks: [entry.mutate(acceptanceFor(finding))],
       }),
-      { snapshotDigest: digest('security-snapshot'), findings: [finding] },
+      securitySnapshotOf([finding]),
     );
     assert.equal(outcome.code, 'SecurityRiskAcceptanceInvalid');
     assert.equal(outcome.mergeCalls, 0);
@@ -360,7 +352,7 @@ test('a Low or Medium acceptance is SecurityRiskAcceptanceInvalid', () => {
       verdictState: 'formally_accepted',
       acceptedRisks: [record],
     }),
-    { snapshotDigest: digest('security-snapshot'), findings: [finding] },
+    securitySnapshotOf([finding]),
   );
   assert.equal(outcome.code, 'SecurityRiskAcceptanceInvalid');
 });
@@ -376,7 +368,7 @@ test('a missing record for one of two findings is SecurityRiskAcceptanceInvalid'
       verdictState: 'formally_accepted',
       acceptedRisks: [acceptanceFor(first)],
     }),
-    { snapshotDigest: digest('security-snapshot'), findings: [first, second] },
+    securitySnapshotOf([first, second]),
   );
   assert.equal(outcome.code, 'SecurityRiskAcceptanceInvalid');
 });
@@ -396,7 +388,7 @@ test('an extra record with no matching finding is SecurityRiskAcceptanceInvalid'
         ),
       ],
     }),
-    { snapshotDigest: digest('security-snapshot'), findings: [finding] },
+    securitySnapshotOf([finding]),
   );
   assert.equal(outcome.code, 'SecurityRiskAcceptanceInvalid');
 });
@@ -415,7 +407,7 @@ test('an acceptance cannot waive another admission predicate', () => {
         { ...acceptanceFor(finding), acceptanceScopeDigest: broadened },
       ],
     }),
-    { snapshotDigest: digest('security-snapshot'), findings: [finding] },
+    securitySnapshotOf([finding]),
   );
   assert.equal(outcome.code, 'SecurityRiskAcceptanceInvalid');
 });
@@ -426,18 +418,14 @@ test('an accepted security risk never discharges a non-security gate', () => {
     verdictState: 'formally_accepted',
     acceptedRisks: [acceptanceFor(finding)],
   });
-  const withFailingQa: ImmutableAggregateGateSnapshot = {
-    snapshotDigest: snapshot.snapshotDigest,
-    relations: snapshot.relations.map((relation) =>
+  const withFailingQa: ImmutableAggregateGateSnapshot = gateSnapshotOf(
+    snapshot.relations.map((relation) =>
       relation.gate === 'qa' && relation.lineageRound === 2
         ? { ...relation, verdictState: 'failed' as GateVerdictState }
         : relation,
     ),
-  };
+  );
 
-  const outcome = admitWith(withFailingQa, {
-    snapshotDigest: digest('security-snapshot'),
-    findings: [finding],
-  });
+  const outcome = admitWith(withFailingQa, securitySnapshotOf([finding]));
   assert.equal(outcome.code, 'PreMergeGateNotPassing');
 });

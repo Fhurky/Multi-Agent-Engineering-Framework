@@ -18,6 +18,7 @@ import type {
   GitOid,
   IntegrationUnitEvidence,
   MergeRefusalCode,
+  ReleaseIntegrationInventoryEntry,
   Sha256Hex,
 } from './contracts.ts';
 
@@ -70,17 +71,46 @@ export function integrationEvidenceSetDigest(
   );
 }
 
+/** Canonical digest of the pinned ordered inventory. */
+export function integrationInventoryDigest(
+  inventory: readonly ReleaseIntegrationInventoryEntry[],
+): Sha256Hex {
+  return sha256Canonical(
+    [...inventory]
+      .map((entry) => ({
+        unitId: entry.unitId,
+        orderKey: entry.orderKey,
+        unitKind: entry.unitKind,
+        proof: entry.proof,
+      }))
+      .sort((left, right) =>
+        left.orderKey < right.orderKey ? -1 : left.orderKey > right.orderKey ? 1 : 0,
+      ),
+  );
+}
+
 /**
  * Validates the complete integration evidence set and folds it.
+ *
+ * Verification is derived from the evidence itself. The caller's `verified` boolean is
+ * a claim that must not contradict the derivation, never the source of it: a unit is
+ * accepted only when it appears in the pinned immutable inventory with the same kind,
+ * order key, and proof; carries immutable source, tree, and gate-snapshot identities;
+ * and either chains the fold from the pinned initial tree or is a subsumed unit that
+ * names a present content unit and contributes no tree.
  *
  * @param units                the observed evidence set, in any array order
  * @param integrationHeadTree  the tree of the pinned `sourceOid`
  * @param pinnedSetDigest      `ReleaseGateManifest.integrationEvidenceSetDigest`
+ * @param inventory            `ReleaseGateManifest.integrationUnitInventory`
+ * @param initialTreeOid       `ReleaseGateManifest.integrationInitialTreeOid`
  */
 export function validateReleaseLineage(
   units: readonly IntegrationUnitEvidence[],
   integrationHeadTree: GitOid,
   pinnedSetDigest: Sha256Hex,
+  inventory: readonly ReleaseIntegrationInventoryEntry[],
+  initialTreeOid: GitOid,
 ): ReleaseLineageValidation {
   if (!Array.isArray(units) || units.length === 0) {
     return refuse(
@@ -130,8 +160,29 @@ export function validateReleaseLineage(
     if (!isGitOid(unit.resultTreeOid)) {
       return refuse('IntegrationEvidenceIncomplete', 'result_tree_not_immutable', id);
     }
+    // The caller's `verified` flag is a claim, not the verification. A false claim
+    // refuses immediately, and a true claim grants nothing: the inventory coverage,
+    // chain continuity, and digest recomputation below are what verify the unit.
     if (unit.verified !== true) {
       return refuse('IntegrationEvidenceIncomplete', 'unit_unverifiable', id);
+    }
+    if (
+      unit.previousResultTreeOid !== null &&
+      !isGitOid(unit.previousResultTreeOid)
+    ) {
+      return refuse(
+        'IntegrationEvidenceIncomplete',
+        'previous_result_tree_not_immutable',
+        id,
+      );
+    }
+    if (unit.proof === 'lineage-subsumed' && unit.previousResultTreeOid !== null) {
+      // A subsumed unit contributes no Git content, so it declares no predecessor tree.
+      return refuse(
+        'IntegrationEvidenceIncomplete',
+        'subsumed_unit_declares_predecessor_tree',
+        id,
+      );
     }
     if (unit.proof === 'lineage-subsumed') {
       if (typeof unit.subsumedBy !== 'string' || unit.subsumedBy === '') {
@@ -184,6 +235,58 @@ export function validateReleaseLineage(
     }
   }
 
+  /* --- Coverage of the pinned immutable inventory ------------------------ */
+
+  if (!Array.isArray(inventory) || inventory.length === 0) {
+    return refuse(
+      'IntegrationEvidenceIncomplete',
+      'integration_unit_inventory_absent',
+      null,
+    );
+  }
+  if (!isGitOid(initialTreeOid)) {
+    return refuse(
+      'IntegrationEvidenceIncomplete',
+      'integration_initial_tree_not_immutable',
+      null,
+    );
+  }
+
+  for (const entry of inventory) {
+    const supplied = units.find((unit) => unit.unitId === entry.unitId);
+    if (supplied === undefined) {
+      // A prefix or suffix omission: recomputing the evidence-set digest over the
+      // remaining units cannot conceal a unit the pinned inventory requires.
+      return refuse(
+        'IntegrationEvidenceIncomplete',
+        'inventory_unit_absent_from_evidence',
+        entry.unitId,
+      );
+    }
+    if (
+      supplied.orderKey !== entry.orderKey ||
+      supplied.unitKind !== entry.unitKind ||
+      supplied.proof !== entry.proof
+    ) {
+      return refuse(
+        'IntegrationOrderViolation',
+        'inventory_unit_does_not_match_evidence',
+        entry.unitId,
+      );
+    }
+  }
+
+  const inventoryIds = new Set(inventory.map((entry) => entry.unitId));
+  for (const unit of units) {
+    if (!inventoryIds.has(unit.unitId)) {
+      return refuse(
+        'IntegrationOrderViolation',
+        'evidence_unit_absent_from_inventory',
+        unit.unitId,
+      );
+    }
+  }
+
   const ordered = [...units].sort((left, right) =>
     left.orderKey < right.orderKey ? -1 : left.orderKey > right.orderKey ? 1 : 0,
   );
@@ -203,11 +306,12 @@ export function validateReleaseLineage(
     const unit = contentUnits[index] as IntegrationUnitEvidence;
 
     if (index === 0) {
-      // The first content unit establishes the lineage base tree.
-      if (unit.previousResultTreeOid !== null && !isGitOid(unit.previousResultTreeOid)) {
+      // The first content unit is bound to the pinned initial integration tree, so a
+      // truncated lineage cannot silently start part-way through the history.
+      if (unit.previousResultTreeOid !== initialTreeOid) {
         return refuse(
           'IntegrationEvidenceIncomplete',
-          'lineage_base_tree_not_immutable',
+          'lineage_base_tree_not_pinned_initial_tree',
           unit.unitId,
         );
       }

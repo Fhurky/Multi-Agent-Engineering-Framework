@@ -13,6 +13,8 @@
  * booleans are never passed to separate refusal and exception constructors.
  */
 
+import { createPublicKey, verify as verifyDetachedSignature } from 'node:crypto';
+
 import {
   POLICY_CONTROL_ACTION_ORDER,
   RELEASE_EXECUTOR,
@@ -27,10 +29,13 @@ import type {
   PolicyControlAction,
   PolicyControlClassification,
   PolicyControlFacts,
+  PolicyObserverPrincipal,
   Sha256Hex,
   TrustedCurrentPolicyAttestation,
 } from './contracts.ts';
 import {
+  canonicalBytes,
+  decodeBase64,
   isIsoTimestamp,
   isGitOid,
   isSha256Hex,
@@ -40,15 +45,108 @@ import {
 } from './canonical-json.ts';
 
 /**
- * `canonicalPayloadDigest` is SHA-256 over every attestation field other than
- * `signature`, and necessarily other than the digest property itself. The attestor
- * signs the canonical payload; it never signs a caller-supplied digest.
+ * The exact canonical payload the attestor signs: every attestation field other than
+ * `signature`, and necessarily other than the self-referential digest property. The
+ * attestor signs these bytes, never a caller-supplied digest.
  */
+export function attestationSignedPayload(
+  attestation: TrustedCurrentPolicyAttestation,
+): unknown {
+  const withoutSignature = omitTopLevel(attestation, 'signature');
+  return omitTopLevel(withoutSignature, 'canonicalPayloadDigest');
+}
+
+/** SHA-256 over the exact canonical payload bytes. */
 export function attestationPayloadDigest(
   attestation: TrustedCurrentPolicyAttestation,
 ): Sha256Hex {
-  const withoutSignature = omitTopLevel(attestation, 'signature');
-  return sha256Canonical(omitTopLevel(withoutSignature, 'canonicalPayloadDigest'));
+  return sha256Canonical(attestationSignedPayload(attestation));
+}
+
+/**
+ * Real Ed25519 verification over the exact canonical payload, using the
+ * activation-pinned verification key.
+ *
+ * Every failure mode is closed: unusable key material, a non-base64 or wrong-length
+ * signature, a key the pinned digest does not cover, and a mathematically invalid
+ * signature all return `false`. No branch treats a decode or key error as success, and
+ * no branch substitutes digest equality for signature verification.
+ */
+export function verifyAttestationSignature(
+  attestation: TrustedCurrentPolicyAttestation,
+  trustRoot: ImmutablePolicyAttestorTrustRootRef,
+): boolean {
+  if (trustRoot.keyAlgorithm !== 'Ed25519') {
+    return false;
+  }
+  const keyBytes = decodeBase64(trustRoot.publicKeySpkiBase64);
+  if (keyBytes === null) {
+    return false;
+  }
+  const signatureBytes = decodeBase64(attestation.signature);
+  if (signatureBytes === null || signatureBytes.length !== 64) {
+    return false;
+  }
+  try {
+    const key = createPublicKey({
+      key: Buffer.from(keyBytes),
+      format: 'der',
+      type: 'spki',
+    });
+    if (key.asymmetricKeyType !== 'ed25519') {
+      return false;
+    }
+    return verifyDetachedSignature(
+      null,
+      Buffer.from(canonicalBytes(attestationSignedPayload(attestation))),
+      key,
+      Buffer.from(signatureBytes),
+    );
+  }
+  catch {
+    // A malformed key, an unsupported curve, or any decode failure is a refusal.
+    return false;
+  }
+}
+
+/** Canonical digest of the pinned observer principal set. */
+export function observerPrincipalSetDigest(
+  principals: readonly PolicyObserverPrincipal[],
+): Sha256Hex {
+  return sha256Canonical(
+    [...principals]
+      .map((principal) => ({
+        principalId: principal.principalId,
+        principalType: principal.principalType,
+        installationScope: principal.installationScope,
+        permissions: principal.permissions,
+        credentialScopeDigest: principal.credentialScopeDigest,
+      }))
+      .sort((left, right) =>
+        left.principalId < right.principalId
+          ? -1
+          : left.principalId > right.principalId
+            ? 1
+            : 0,
+      ),
+  );
+}
+
+/** Canonical digest of a complete executor App identity set, order-independent. */
+export function executorAppSetDigest(
+  apps: readonly ExecutorAppIdentity[],
+): Sha256Hex {
+  return sha256Canonical(
+    [...apps]
+      .map((app) => ({
+        appId: app.appId,
+        installationId: app.installationId,
+        nodeId: app.nodeId,
+        slug: app.slug,
+        permissions: app.permissions,
+      }))
+      .sort((left, right) => left.appId - right.appId),
+  );
 }
 
 /** Maximum observation-to-issue and observation-to-expiry window, in milliseconds. */
@@ -180,6 +278,18 @@ export interface PolicyAttestationExpectations {
   readonly trustRoot: ImmutablePolicyAttestorTrustRootRef;
   /** Expected policy generation; null for the first observation of a plan. */
   readonly expectedPolicyGeneration: number | null;
+  /**
+   * The two exact executor App identities, installations, and complete permission maps
+   * pinned by the activation-bound required-policy profile. Any additional, missing, or
+   * altered permission is rejected; the executor never infers an allowed set.
+   */
+  readonly expectedExecutorApps: readonly ExecutorAppIdentity[];
+  readonly expectedObserverPrincipalSetDigest: Sha256Hex;
+  readonly expectedRequiredCheckSources: readonly {
+    readonly name: string;
+    readonly appId: number;
+  }[];
+  readonly expectedMergeMethods: readonly string[];
 }
 
 function invalid(
@@ -255,6 +365,11 @@ export function normalizePolicyAttestation(
   if (typeof attestation.signature !== 'string' || attestation.signature === '') {
     return invalid('signature');
   }
+  // The signature itself, not merely its presence. An unkeyed canonical digest is
+  // integrity against accidental mutation; only this step is signer authentication.
+  if (!verifyAttestationSignature(attestation, expectations.trustRoot)) {
+    return invalid('signature');
+  }
   if (
     !Number.isSafeInteger(issuer.policyGeneration) ||
     issuer.policyGeneration < 1
@@ -321,6 +436,21 @@ export function normalizePolicyAttestation(
     // observing only the active identity.
     return invalid('completeness');
   }
+  if (
+    !Array.isArray(expectations.expectedExecutorApps) ||
+    expectations.expectedExecutorApps.length !== 2
+  ) {
+    // Without a pinned expectation there is nothing to confine the identities to.
+    return invalid('completeness');
+  }
+  if (
+    executorAppSetDigest(subject.executorApps as readonly ExecutorAppIdentity[]) !==
+    executorAppSetDigest(expectations.expectedExecutorApps)
+  ) {
+    // Exact App IDs, installations, node IDs, slugs, and complete permission maps.
+    // An augmented permission map is a different set and is rejected here.
+    return invalid('subject');
+  }
 
   if (!isSha256Hex(attestation.policyDigest)) {
     return invalid('digest');
@@ -367,22 +497,84 @@ export function normalizePolicyAttestation(
   if (policy.observerPrincipalSetDigest !== issuer.observerPrincipalSetDigest) {
     return invalid('completeness');
   }
+  // The observer set is pinned and verified, not merely claimed: its recomputed digest
+  // must equal both declarations and the activation-bound expected value.
+  if (!Array.isArray(policy.observerPrincipals) || policy.observerPrincipals.length === 0) {
+    return invalid('completeness');
+  }
+  const observedPrincipalDigest = observerPrincipalSetDigest(
+    policy.observerPrincipals as readonly PolicyObserverPrincipal[],
+  );
+  if (observedPrincipalDigest !== policy.observerPrincipalSetDigest) {
+    return invalid('completeness');
+  }
+  if (observedPrincipalDigest !== expectations.expectedObserverPrincipalSetDigest) {
+    return invalid('completeness');
+  }
   if (policy.executorAppsAbsentFromBypassSets !== true) {
     return invalid('completeness');
   }
   if (!Array.isArray(policy.executorApps) || policy.executorApps.length !== 2) {
     return invalid('completeness');
   }
+  if (
+    executorAppSetDigest(policy.executorApps as readonly ExecutorAppIdentity[]) !==
+    executorAppSetDigest(subject.executorApps as readonly ExecutorAppIdentity[])
+  ) {
+    // The subject App list and the observed policy App list must be identical, so one
+    // cannot name a confined identity while the other observes a privileged one.
+    return invalid('completeness');
+  }
   if (!appsAbsentFromBypass(policy.executorApps, attestation)) {
     return invalid('completeness');
   }
   if (
+    !Array.isArray(policy.requiredCheckSources) ||
+    sha256Canonical(
+      [...(policy.requiredCheckSources as readonly { name: string; appId: number }[])]
+        .map((source) => ({ name: source.name, appId: source.appId }))
+        .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0)),
+    ) !==
+      sha256Canonical(
+        [...expectations.expectedRequiredCheckSources]
+          .map((source) => ({ name: source.name, appId: source.appId }))
+          .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0)),
+      )
+  ) {
+    // The authoritative required-check set and its publisher identities come from the
+    // pinned signed profile; the observation that supplies the runs cannot declare them.
+    return invalid('completeness');
+  }
+  if (
     !Array.isArray(policy.mergeMethodsConfigured) ||
-    !policy.mergeMethodsConfigured.includes('merge')
+    !policy.mergeMethodsConfigured.includes('merge') ||
+    !expectations.expectedMergeMethods.every((method) =>
+      (policy.mergeMethodsConfigured as readonly string[]).includes(method),
+    )
   ) {
     // The release pull request needs an ordinary merge commit; an executor cannot
     // change either the repository merge method or a linear-history rule.
     return invalid('completeness');
+  }
+  const issuerStatus = policy.issuerStatus;
+  if (!isRecordObject(issuerStatus)) {
+    return invalid('completeness');
+  }
+  if (
+    issuerStatus.channelId !== expectations.trustRoot.revocationChannelId ||
+    issuerStatus.authorityId !== expectations.trustRoot.authorityId ||
+    issuerStatus.keyId !== expectations.trustRoot.keyId ||
+    issuerStatus.publicKeyDigest !== expectations.trustRoot.publicKeyDigest
+  ) {
+    return invalid('signature');
+  }
+  if (issuerStatus.policyGeneration !== issuer.policyGeneration) {
+    return invalid('signature');
+  }
+  if (issuerStatus.state !== 'active') {
+    // A revoked or indeterminate issuer or key is never usable, and a caller cannot
+    // classify it away: this status is inside the signed canonical payload.
+    return invalid('signature');
   }
   if (policy.paginationComplete !== true) {
     return invalid('pagination');
@@ -424,6 +616,14 @@ export function normalizePolicyAttestation(
   }
   if (expiresAt - observedAt > POLICY_FRESHNESS_WINDOW_MS) {
     return invalid('completeness');
+  }
+  // The online issuer/key status must be as fresh as the observation it authorizes.
+  if (!isIsoTimestamp(issuerStatus.observedAtUtc)) {
+    return invalid('completeness');
+  }
+  const statusObservedAt = isoToEpochMs(issuerStatus.observedAtUtc as string);
+  if (Math.abs(issuedAt - statusObservedAt) > POLICY_FRESHNESS_WINDOW_MS) {
+    return invalid('signature');
   }
 
   if (now < notBefore) {

@@ -16,6 +16,7 @@ import type { ReleaseGateManifest } from '../contracts.ts';
 import { RecordingMergePort } from './helpers/fakes.ts';
 import {
   digest,
+  gateSnapshotOf,
   oid,
   validManifest,
   validRequirements,
@@ -168,7 +169,7 @@ test('the manifest neither creates nor passes a gate', () => {
   // authoritative relation: declaring a requirement is not satisfying it.
   const result = admit(
     validScenario({
-      gateSnapshot: { snapshotDigest: digest('empty-gates'), relations: [] },
+      gateSnapshot: gateSnapshotOf([]),
     }),
   );
   assert.equal(result.status, 'refused');

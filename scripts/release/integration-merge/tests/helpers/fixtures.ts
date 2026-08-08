@@ -4,20 +4,34 @@
  * Every identifier here is derived from a fixed label, so no fixture depends on wall
  * clock time, randomness, the filesystem, the network, or repository state.
  *
- * NO SECRET MATERIAL. The `signature` field is a clearly non-secret deterministic
- * placeholder string and no key, token, or credential is present anywhere in this
- * file. The module never verifies a raw signature itself: complete policy observation
- * and signing belong to the separate human-controlled `RepositoryPolicyAttestor`.
+ * NO SECRET MATERIAL IS STORED. The fixtures now perform real Ed25519 signing, so a
+ * signing key must exist while the tests run; it is DERIVED AT RUN TIME from a public,
+ * non-secret label through SHA-256 and is never written to disk, committed, logged, or
+ * shared. It authenticates nothing outside this offline suite: the real attestor's key
+ * lives in the human-controlled policy plane, outside this repository and outside every
+ * executor process.
  */
 
-import { computeAdmissionContext } from '../../admission.ts';
-import { sha256Canonical, sha256Utf8, selfDigest } from '../../canonical-json.ts';
+import { createPrivateKey, createPublicKey, sign } from 'node:crypto';
+
+import {
+  computeAdmissionContext,
+  expectedIrreversibleAuthorizationScopeDigest,
+} from '../../admission.ts';
+import {
+  canonicalBytes,
+  selfDigest,
+  sha256Bytes,
+  sha256Canonical,
+  sha256Utf8,
+} from '../../canonical-json.ts';
 import {
   RELEASE_BASE_BRANCH,
   RELEASE_BASE_REF,
   RELEASE_EXECUTOR,
   RELEASE_GATE_DOMAINS,
   RELEASE_MERGE_METHOD,
+  RELEASE_REMOTE_REF,
   RELEASE_SOURCE_BRANCH,
   GOVERNANCE_DECISION_COMMIT,
 } from '../../contracts.ts';
@@ -31,24 +45,37 @@ import type {
   GitOid,
   ImmutableAggregateGateSnapshot,
   ImmutableArtifactRef,
+  ImmutableHumanDecisionRef,
+  ImmutableProvenancedArtifactRef,
   ImmutablePullRequestObservation,
   ImmutableRefObservation,
   ImmutableReleaseSecuritySnapshot,
   IntegrationUnitEvidence,
   MergeExecutorActivationRecord,
   PolicyControlFacts,
+  PolicyObserverPrincipal,
   PublishedHeadCommandEvidence,
   ReleaseAdmissionInput,
   ReleaseGateManifest,
   ReleaseGateRequirement,
+  ReleaseIntegrationInventoryEntry,
   ReleaseRepositoryIdentity,
   ReleaseRequiredCheckObservation,
   ReleaseSecurityFinding,
+  RequiredGitHubPolicyProfile,
   Sha256Hex,
   TrustedCurrentPolicyAttestation,
 } from '../../contracts.ts';
-import { expectedAcceptanceScopeDigest } from '../../gate-admissibility.ts';
-import { attestationPayloadDigest } from '../../policy-control.ts';
+import {
+  aggregateGateSnapshotDigest,
+  expectedAcceptanceScopeDigest,
+  releaseSecuritySnapshotDigest,
+} from '../../gate-admissibility.ts';
+import {
+  attestationPayloadDigest,
+  attestationSignedPayload,
+  observerPrincipalSetDigest,
+} from '../../policy-control.ts';
 import { integrationEvidenceSetDigest } from '../../release-lineage.ts';
 
 /** Deterministic full 40-hex object id derived from a label. */
@@ -84,7 +111,62 @@ export const REPOSITORY: ReleaseRepositoryIdentity = Object.freeze({
   nodeId: 'R_kgDOFIXTURE',
 });
 
-export const REQUIRED_POLICY_PROFILE_DIGEST = digest('required-policy-profile');
+/* ------------------------------------------------------------------------- *
+ * Deterministic Ed25519 fixture key material, derived at run time
+ * ------------------------------------------------------------------------- */
+
+/** RFC 8410 PKCS#8 prefix for an Ed25519 private key carrying a 32-byte seed. */
+const PKCS8_ED25519_PREFIX = '302e020100300506032b657004220420';
+
+function fixtureSeed(label: string): Buffer {
+  return Buffer.from(sha256Utf8(`ed25519-seed:${label}`), 'hex');
+}
+
+function fixturePrivateKey(label: string) {
+  const der = Buffer.concat([
+    Buffer.from(PKCS8_ED25519_PREFIX, 'hex'),
+    fixtureSeed(label),
+  ]);
+  return createPrivateKey({ key: der, format: 'der', type: 'pkcs8' });
+}
+
+const ATTESTOR_PRIVATE_KEY = fixturePrivateKey('repository-policy-attestor');
+const ATTESTOR_PUBLIC_KEY_DER = createPublicKey(ATTESTOR_PRIVATE_KEY).export({
+  format: 'der',
+  type: 'spki',
+}) as Buffer;
+
+export const ATTESTOR_PUBLIC_KEY_SPKI_BASE64 =
+  ATTESTOR_PUBLIC_KEY_DER.toString('base64');
+export const ATTESTOR_PUBLIC_KEY_DIGEST = sha256Bytes(
+  new Uint8Array(ATTESTOR_PUBLIC_KEY_DER),
+);
+
+/** A second, unrelated attestor identity used by the wrong-key fixtures. */
+const WRONG_PRIVATE_KEY = fixturePrivateKey('an-unrelated-signer');
+
+/** Signs the exact canonical payload with the pinned fixture key. */
+export function signAttestationPayload(
+  attestation: TrustedCurrentPolicyAttestation,
+  key = ATTESTOR_PRIVATE_KEY,
+): string {
+  return sign(
+    null,
+    Buffer.from(canonicalBytes(attestationSignedPayload(attestation))),
+    key,
+  ).toString('base64');
+}
+
+/** Signs with a key the activation record does not pin. */
+export function signWithWrongKey(
+  attestation: TrustedCurrentPolicyAttestation,
+): string {
+  return signAttestationPayload(attestation, WRONG_PRIVATE_KEY);
+}
+
+/* ------------------------------------------------------------------------- *
+ * Immutable artifact references
+ * ------------------------------------------------------------------------- */
 
 export function artifactRef(label: string): ImmutableArtifactRef {
   return {
@@ -95,49 +177,232 @@ export function artifactRef(label: string): ImmutableArtifactRef {
   };
 }
 
+/** A provenanced artifact reference with a named non-executor producer. */
+export function provenancedRef(
+  kind: string,
+  label: string,
+  digestValue: Sha256Hex = digest(`artifact-${label}`),
+): ImmutableProvenancedArtifactRef {
+  return {
+    kind,
+    commit: oid(`artifact-${label}`),
+    path: `docs/fixtures/${label}.md`,
+    digest: digestValue,
+    producedByExecutor: false,
+    producer: {
+      principalId: `producer-${label}`,
+      principalType: 'agent_role',
+      authorizationCommit: oid(`producer-authorization-${label}`),
+    },
+  };
+}
+
+/* ------------------------------------------------------------------------- *
+ * Executor App identities and the pinned required-policy profile
+ * ------------------------------------------------------------------------- */
+
+export const EXECUTOR_APPS: readonly ExecutorAppIdentity[] = Object.freeze([
+  {
+    appId: 111,
+    installationId: 1111,
+    nodeId: 'A_task_integration',
+    slug: 'task-integration-executor',
+    permissions: { contents: 'write', pull_requests: 'read', checks: 'read' },
+  },
+  {
+    appId: 222,
+    installationId: 2222,
+    nodeId: 'A_release_main',
+    slug: 'release-merge-executor',
+    permissions: { contents: 'write', pull_requests: 'read', checks: 'read' },
+  },
+]);
+
+export const OBSERVER_PRINCIPALS: readonly PolicyObserverPrincipal[] = Object.freeze([
+  {
+    principalId: 'policy-observer-administration',
+    principalType: 'App',
+    installationScope: 'repository',
+    permissions: { administration: 'read', metadata: 'read' },
+    credentialScopeDigest: digest('observer-administration-scope'),
+  },
+  {
+    principalId: 'policy-observer-rulesets',
+    principalType: 'App',
+    installationScope: 'organization',
+    permissions: { repository_rulesets: 'write', metadata: 'read' },
+    credentialScopeDigest: digest('observer-ruleset-scope'),
+  },
+]);
+
+export const OBSERVER_PRINCIPAL_SET_DIGEST =
+  observerPrincipalSetDigest(OBSERVER_PRINCIPALS);
+
+export const REQUIRED_CHECK_CONTEXTS: readonly {
+  readonly name: string;
+  readonly expectedAppId: number;
+}[] = Object.freeze([
+  { name: 'CI / validate', expectedAppId: REQUIRED_CHECK_APP_ID },
+  { name: 'Security / scan', expectedAppId: REQUIRED_CHECK_APP_ID },
+]);
+
+export function validRequirements(): ReleaseGateRequirement[] {
+  return RELEASE_GATE_DOMAINS.map((domain) => ({
+    domain,
+    lineage: `LIN-RELEASE-${domain.toUpperCase()}`,
+    minimumRound: 1,
+    gateClass: 'aggregate' as const,
+  }));
+}
+
+export function validRequiredPolicyProfile(): RequiredGitHubPolicyProfile {
+  return {
+    schema: 'required-github-policy-profile/v1',
+    repositoryId: REPOSITORY_ID,
+    protectedRef: RELEASE_BASE_REF,
+    requiredCheckContexts: REQUIRED_CHECK_CONTEXTS,
+    releaseGateRequirements: validRequirements(),
+    executorApps: EXECUTOR_APPS,
+    observerPrincipalSetDigest: OBSERVER_PRINCIPAL_SET_DIGEST,
+    mergeMethodsRequired: [RELEASE_MERGE_METHOD],
+  };
+}
+
+export const REQUIRED_POLICY_PROFILE_DIGEST = sha256Canonical(
+  validRequiredPolicyProfile(),
+);
+
+export const REQUIRED_POLICY_PROFILE_COMMIT = oid('required-policy-profile-artifact');
+export const REQUIRED_POLICY_PROFILE_PATH =
+  'docs/fixtures/required-github-policy-profile.json';
+
+export function requiredPolicyProfileRef(): ImmutableProvenancedArtifactRef {
+  return {
+    kind: 'required-github-policy-profile',
+    commit: REQUIRED_POLICY_PROFILE_COMMIT,
+    path: REQUIRED_POLICY_PROFILE_PATH,
+    digest: REQUIRED_POLICY_PROFILE_DIGEST,
+    producedByExecutor: false,
+    producer: {
+      principalId: 'repository-owner',
+      principalType: 'human',
+      authorizationCommit: oid('human-authorization'),
+    },
+  };
+}
+
+export const MERGE_PORT_IDENTITY = Object.freeze({
+  brokerId: 'release-merge-token-broker',
+  portIdentityDigest: digest('release-merge-port-identity'),
+});
+
 /* ------------------------------------------------------------------------- *
  * Activation record
  * ------------------------------------------------------------------------- */
 
 export function validActivationRecord(): MergeExecutorActivationRecord {
-  return {
+  const withoutSource = {
     executor: RELEASE_EXECUTOR,
     governanceDecisionCommit: GOVERNANCE_DECISION_COMMIT,
+    issuer: {
+      principalId: 'repository-owner',
+      principalType: 'human' as const,
+      authorizationCommit: oid('human-authorization'),
+    },
+    producedByExecutor: false,
     architectureReview: {
+      member: 'architectureReview' as const,
       lineage: 'LIN-INTEGRATION-AUTHORITY-REVIEW',
       lineageRound: 3,
-      gate: 'review',
+      gate: 'review' as const,
+      targetCommit: oid('approved-architecture-source'),
       verdictCommit: oid('architecture-review-verdict'),
-      verdictState: 'passing',
+      verdictState: 'passing' as const,
       producedByExecutor: false,
+      producer: {
+        principalId: 'reviewer',
+        principalType: 'agent_role' as const,
+        authorizationCommit: oid('reviewer-authorization'),
+      },
     },
     implementationReview: {
+      member: 'implementationReview' as const,
       lineage: 'LIN-RELEASE-EXECUTOR-REVIEW',
-      lineageRound: 1,
-      gate: 'review',
+      lineageRound: 2,
+      gate: 'review' as const,
+      targetCommit: oid('release-executor-implementation'),
       verdictCommit: oid('implementation-review-verdict'),
-      verdictState: 'passing',
+      verdictState: 'passing' as const,
       producedByExecutor: false,
+      producer: {
+        principalId: 'reviewer',
+        principalType: 'agent_role' as const,
+        authorizationCommit: oid('reviewer-authorization'),
+      },
     },
     implementationSecurityReview: {
+      member: 'implementationSecurityReview' as const,
       lineage: 'LIN-RELEASE-EXECUTOR-SECURITY',
-      lineageRound: 1,
-      gate: 'security',
+      lineageRound: 2,
+      gate: 'security' as const,
+      targetCommit: oid('release-executor-implementation'),
       verdictCommit: oid('implementation-security-verdict'),
-      verdictState: 'passing',
+      verdictState: 'passing' as const,
       producedByExecutor: false,
+      producer: {
+        principalId: 'security',
+        principalType: 'agent_role' as const,
+        authorizationCommit: oid('security-authorization'),
+      },
     },
-    negativeCapabilityTestAttestation: artifactRef('negative-capability'),
-    gateVocabularyCorrection: artifactRef('gate-vocabulary-correction'),
-    requiredGitHubPolicyProfile: artifactRef('required-policy-profile'),
+    negativeCapabilityTestAttestation: {
+      ...provenancedRef('negative-capability-test-attestation', 'negative-capability'),
+      attestedMergePortIdentity: MERGE_PORT_IDENTITY,
+    },
+    gateVocabularyCorrection: provenancedRef(
+      'gate-vocabulary-correction',
+      'gate-vocabulary-correction',
+    ),
+    requiredGitHubPolicyProfile: requiredPolicyProfileRef(),
     requiredGitHubPolicyProfileDigest: REQUIRED_POLICY_PROFILE_DIGEST,
     policyAttestorTrustRoot: {
       authorityId: 'repository-policy-attestor',
       keyId: 'key-1',
-      publicKeyDigest: digest('attestor-public-key'),
-      acceptedSchema: 'github-current-policy-attestation/v1',
+      keyAlgorithm: 'Ed25519' as const,
+      publicKeySpkiBase64: ATTESTOR_PUBLIC_KEY_SPKI_BASE64,
+      publicKeyDigest: ATTESTOR_PUBLIC_KEY_DIGEST,
+      acceptedSchema: 'github-current-policy-attestation/v1' as const,
       revocationChannelId: 'revocation-channel-1',
       pinnedCommit: oid('attestor-trust-root'),
+    },
+    recordSource: {
+      kind: 'merge-executor-activation-record',
+      commit: oid('activation-record-artifact'),
+      path: 'docs/fixtures/merge-executor-activation-record.json',
+      digest: '',
+    },
+  };
+
+  const recordDigest = selfDigest(
+    withoutSource as unknown as MergeExecutorActivationRecord,
+    'recordSource',
+  );
+
+  return {
+    ...withoutSource,
+    recordSource: { ...withoutSource.recordSource, digest: recordDigest },
+  } as unknown as MergeExecutorActivationRecord;
+}
+
+/** Recomputes `recordSource.digest` after a fixture mutates the activation record. */
+export function reseal(
+  record: MergeExecutorActivationRecord,
+): MergeExecutorActivationRecord {
+  return {
+    ...record,
+    recordSource: {
+      ...record.recordSource,
+      digest: selfDigest(record, 'recordSource'),
     },
   };
 }
@@ -163,6 +428,16 @@ export function passingRelation(
   };
 }
 
+/** A snapshot whose digest is recomputed over its own canonical relation bytes. */
+export function gateSnapshotOf(
+  relations: readonly AggregateGateRelation[],
+): ImmutableAggregateGateSnapshot {
+  return {
+    snapshotDigest: aggregateGateSnapshotDigest(relations),
+    relations,
+  };
+}
+
 /** Two contiguous rounds per domain; round 2 is authoritative. */
 export function validGateSnapshot(): ImmutableAggregateGateSnapshot {
   const relations: AggregateGateRelation[] = [];
@@ -170,27 +445,25 @@ export function validGateSnapshot(): ImmutableAggregateGateSnapshot {
     relations.push(passingRelation(domain, 1));
     relations.push(passingRelation(domain, 2));
   }
-  return {
-    snapshotDigest: digest('gate-snapshot'),
-    relations,
-  };
-}
-
-export function validRequirements(): ReleaseGateRequirement[] {
-  return RELEASE_GATE_DOMAINS.map((domain) => ({
-    domain,
-    lineage: `LIN-RELEASE-${domain.toUpperCase()}`,
-    minimumRound: 1,
-    gateClass: 'aggregate' as const,
-  }));
+  return gateSnapshotOf(relations);
 }
 
 /* ------------------------------------------------------------------------- *
  * Security snapshot
  * ------------------------------------------------------------------------- */
 
+/** A snapshot whose digest is recomputed over its own canonical finding bytes. */
+export function securitySnapshotOf(
+  findings: readonly ReleaseSecurityFinding[],
+): ImmutableReleaseSecuritySnapshot {
+  return {
+    snapshotDigest: releaseSecuritySnapshotDigest(findings),
+    findings,
+  };
+}
+
 export function emptySecuritySnapshot(): ImmutableReleaseSecuritySnapshot {
-  return { snapshotDigest: digest('security-snapshot'), findings: [] };
+  return securitySnapshotOf([]);
 }
 
 export function blockingFinding(
@@ -287,6 +560,47 @@ export function validIntegrationEvidence(): IntegrationUnitEvidence[] {
   ];
 }
 
+/**
+ * The pinned inventory for an evidence set. Duplicate unit identities and duplicate
+ * order keys are dropped so a fixture that deliberately supplies a duplicate unit still
+ * reaches the lineage predicate that owns that case rather than a manifest shape defect.
+ */
+export function inventoryFor(
+  units: readonly IntegrationUnitEvidence[],
+): ReleaseIntegrationInventoryEntry[] {
+  const entries: ReleaseIntegrationInventoryEntry[] = [];
+  const ids = new Set<string>();
+  const orderKeys = new Set<string>();
+  for (const unit of units) {
+    if (ids.has(unit.unitId) || orderKeys.has(unit.orderKey)) {
+      continue;
+    }
+    ids.add(unit.unitId);
+    orderKeys.add(unit.orderKey);
+    entries.push({
+      unitId: unit.unitId,
+      orderKey: unit.orderKey,
+      unitKind: unit.unitKind,
+      proof: unit.proof,
+    });
+  }
+  return entries;
+}
+
+/** The tree the integration branch carried before the first content unit. */
+export function initialTreeFor(units: readonly IntegrationUnitEvidence[]): GitOid {
+  const content = [...units]
+    .filter((unit) => unit.proof === 'content-merged')
+    .sort((left, right) =>
+      left.orderKey < right.orderKey ? -1 : left.orderKey > right.orderKey ? 1 : 0,
+    );
+  const first = content[0];
+  if (first === undefined || first.previousResultTreeOid === null) {
+    return BASE_TREE_OID;
+  }
+  return first.previousResultTreeOid;
+}
+
 /* ------------------------------------------------------------------------- *
  * Published-head evidence
  * ------------------------------------------------------------------------- */
@@ -297,37 +611,48 @@ const DECLARED_CHECK_IDS: readonly string[] = Object.freeze([
 ]);
 
 const RESOLVED_BASES: Readonly<Record<string, GitOid>> = Object.freeze({
-  'integration/autonomous-runtime': BASE_OID,
+  [RELEASE_BASE_BRANCH]: BASE_OID,
+});
+
+const AUTHOR_PRODUCER = Object.freeze({
+  role: 'devops',
+  executionSessionId: 'session-author-pre-publication',
+});
+
+const CONTROL_PRODUCER = Object.freeze({
+  role: 'devops-control',
+  executionSessionId: 'session-control-post-publication',
 });
 
 function command(
   phase: 'author_pre_publication' | 'control_post_publication',
-  checkId: string,
+  label: string,
   targetCommit: GitOid,
   branch: string,
+  materialArguments: Readonly<Record<string, string | number | boolean>>,
   overrides: Partial<PublishedHeadCommandEvidence> = {},
 ): PublishedHeadCommandEvidence {
   const withoutId = {
     schema: 'published-head-command-evidence/v2' as const,
     phase,
-    producer: { role: 'devops', executionSessionId: `session-${phase}` },
+    producer: phase === 'author_pre_publication' ? AUTHOR_PRODUCER : CONTROL_PRODUCER,
     targetCommit,
     branch,
     workingDirectory: 'C:/fixtures/worktree',
     startedAtUtc: isoAt(1_000),
     endedAtUtc: isoAt(2_000),
     executable: 'powershell',
-    arguments: ['-NoProfile', '-File', `./scripts/ci/${checkId}.ps1`],
-    renderedCommand: `powershell -NoProfile -File ./scripts/ci/${checkId}.ps1`,
-    materialArguments: { checkId },
+    arguments: ['-NoProfile', '-File', `./scripts/ci/${label}.ps1`],
+    renderedCommand: `powershell -NoProfile -File ./scripts/ci/${label}.ps1`,
+    materialArguments,
     resolvedBases: RESOLVED_BASES,
     headBefore: targetCommit,
     headAfter: targetCommit,
     expectedExitCode: 0,
     exitCode: 0,
     actualResult: {
-      summary: `${checkId} passed`,
-      outputDigest: digest(`output-${phase}-${checkId}`),
+      summary: `${label} completed`,
+      outputDigest: digest(`output-${phase}-${label}`),
       derivation: null,
     },
     ...overrides,
@@ -344,7 +669,7 @@ export function validAuthorPhase(
   branch: string = RELEASE_SOURCE_BRANCH,
 ): AuthorPrePublicationEvidence {
   const commands = DECLARED_CHECK_IDS.map((checkId) =>
-    command('author_pre_publication', checkId, targetCommit, branch),
+    command('author_pre_publication', checkId, targetCommit, branch, { checkId }),
   );
   const withoutDigest = {
     phase: 'author_pre_publication' as const,
@@ -368,10 +693,51 @@ export function validControlPhase(
   author: AuthorPrePublicationEvidence,
   targetCommit: GitOid = HEAD_OID,
   branch: string = RELEASE_SOURCE_BRANCH,
+  pullRequestNumber: number = PULL_REQUEST_NUMBER,
+  remoteRef: string = RELEASE_REMOTE_REF,
 ): ControlPostPublicationEvidence {
-  const commands = DECLARED_CHECK_IDS.map((checkId) =>
-    command('control_post_publication', checkId, targetCommit, branch),
+  const checkCommands = DECLARED_CHECK_IDS.map((checkId) =>
+    command('control_post_publication', checkId, targetCommit, branch, { checkId }),
   );
+
+  const localProof = command(
+    'control_post_publication',
+    'proof-local-branch-head',
+    targetCommit,
+    branch,
+    {
+      proofKind: 'local_branch_head',
+      observedHeadOid: targetCommit,
+      commitsAfterTarget: 0,
+    },
+  );
+  const remoteProof = command(
+    'control_post_publication',
+    'proof-remote-branch-head',
+    targetCommit,
+    branch,
+    {
+      proofKind: 'remote_branch_head',
+      observedHeadOid: targetCommit,
+      commitsAfterTarget: 0,
+      remoteRef,
+    },
+  );
+  const pullRequestProof = command(
+    'control_post_publication',
+    'proof-pull-request-head',
+    targetCommit,
+    branch,
+    {
+      proofKind: 'pull_request_head',
+      observedHeadOid: targetCommit,
+      commitsAfterTarget: 0,
+      pullRequestNumber,
+    },
+  );
+
+  const proofCommands = [localProof, remoteProof, pullRequestProof];
+
   return {
     phase: 'control_post_publication',
     targetCommit,
@@ -379,18 +745,18 @@ export function validControlPhase(
     authorEvidenceDigest: author.canonicalAuthorEvidenceDigest,
     resolvedBases: RESOLVED_BASES,
     declaredCheckIds: DECLARED_CHECK_IDS,
-    commands,
+    commands: [...checkCommands, ...proofCommands],
     noLaterContent: {
       targetCommit,
       branch,
-      remoteRef: `refs/remotes/origin/${branch}`,
-      pullRequestNumber: PULL_REQUEST_NUMBER,
+      remoteRef,
+      pullRequestNumber,
       localBranchHeadOid: targetCommit,
       remoteBranchHeadOid: targetCommit,
       pullRequestHeadOid: targetCommit,
       commitsAfterTarget: { localBranch: 0, remoteBranch: 0, pullRequestHead: 0 },
       observedAtUtc: isoAt(4_000),
-      proofCommandEvidenceIds: commands.map((entry) => entry.evidenceId),
+      proofCommandEvidenceIds: proofCommands.map((entry) => entry.evidenceId),
     },
     exactHeadChecks: {
       targetCommit,
@@ -418,20 +784,41 @@ export function validControlPhase(
   };
 }
 
-export function validPublishedHeadBundle(): CompletePublishedHeadEvidenceBundle {
-  const author = validAuthorPhase();
-  const control = validControlPhase(author);
+/** Recomputes a command's self-identifying `evidenceId` after a fixture mutates it. */
+export function resealCommand(
+  command: PublishedHeadCommandEvidence,
+): PublishedHeadCommandEvidence {
+  return {
+    ...command,
+    evidenceId: selfDigest({ ...command, evidenceId: '' }, 'evidenceId'),
+  };
+}
+
+export function sealBundle(
+  author: AuthorPrePublicationEvidence,
+  control: ControlPostPublicationEvidence,
+  targetCommit: GitOid = HEAD_OID,
+  branch: string = RELEASE_SOURCE_BRANCH,
+): CompletePublishedHeadEvidenceBundle {
   const withoutDigest = {
     schema: 'published-head-evidence/v2' as const,
     status: 'complete' as const,
-    targetCommit: HEAD_OID,
-    branch: RELEASE_SOURCE_BRANCH,
+    targetCommit,
+    branch,
     author,
     control,
     canonicalBundleDigest: '',
   };
-  const canonicalBundleDigest = selfDigest(withoutDigest, 'canonicalBundleDigest');
-  return { ...withoutDigest, canonicalBundleDigest };
+  return {
+    ...withoutDigest,
+    canonicalBundleDigest: selfDigest(withoutDigest, 'canonicalBundleDigest'),
+  };
+}
+
+export function validPublishedHeadBundle(): CompletePublishedHeadEvidenceBundle {
+  const author = validAuthorPhase();
+  const control = validControlPhase(author);
+  return sealBundle(author, control);
 }
 
 /* ------------------------------------------------------------------------- *
@@ -441,10 +828,7 @@ export function validPublishedHeadBundle(): CompletePublishedHeadEvidenceBundle 
 export function validRequiredChecks(): ReleaseRequiredCheckObservation {
   return {
     targetCommit: HEAD_OID,
-    requiredContexts: [
-      { name: 'CI / validate', expectedAppId: REQUIRED_CHECK_APP_ID },
-      { name: 'Security / scan', expectedAppId: REQUIRED_CHECK_APP_ID },
-    ],
+    requiredContexts: [...REQUIRED_CHECK_CONTEXTS],
     observed: [
       {
         name: 'CI / validate',
@@ -495,6 +879,7 @@ export function validManifest(
   overrides: Partial<ReleaseGateManifest> = {},
 ): ReleaseGateManifest {
   const bundle = validPublishedHeadBundle();
+  const units = validIntegrationEvidence();
   return {
     schema: 'release-gates/v1',
     repositoryId: REPOSITORY_ID,
@@ -504,37 +889,70 @@ export function validManifest(
     baseOid: BASE_OID,
     mergeMethod: RELEASE_MERGE_METHOD,
     requirements: validRequirements(),
-    integrationEvidenceSetDigest: integrationEvidenceSetDigest(
-      validIntegrationEvidence(),
-    ),
+    integrationEvidenceSetDigest: integrationEvidenceSetDigest(units),
+    integrationUnitInventory: inventoryFor(units),
+    integrationInitialTreeOid: initialTreeFor(units),
     publishedHeadEvidenceDigest: bundle.canonicalBundleDigest,
     irreversibleProductionCoupling: { coupled: false },
     ...overrides,
   };
 }
 
+/** The provenanced artifact reference that contains a manifest's exact bytes. */
+export function manifestSourceFor(
+  manifest: ReleaseGateManifest | null,
+): ImmutableProvenancedArtifactRef {
+  return {
+    kind: 'release-gate-manifest',
+    commit: oid('release-gate-manifest-artifact'),
+    path: 'release/release-gates.json',
+    digest:
+      manifest === null
+        ? digest('absent-manifest')
+        : sha256Canonical(manifest),
+    producedByExecutor: false,
+    producer: {
+      principalId: 'devops',
+      principalType: 'agent_role',
+      authorizationCommit: oid('devops-authorization'),
+    },
+  };
+}
+
+/**
+ * A complete, release-bound irreversible-production authorization: it names this
+ * repository, this policy commit, and this release head, and its scope digest is
+ * computed from exactly those values.
+ */
+export function irreversibleAuthorizationFor(
+  policyCommit: GitOid,
+  releaseHeadOid: GitOid = HEAD_OID,
+  repositoryId: string = REPOSITORY_ID,
+): ImmutableHumanDecisionRef {
+  return {
+    decisionId: 'HUMAN-00X',
+    decisionCommit: oid('human-authorization-decision'),
+    artifactPath: 'plans/decisions/HUMAN-00X.md',
+    repositoryId,
+    policyCommit,
+    releaseHeadOid,
+    action: 'authorize_policy_required_irreversible_production_action',
+    authorizedBy: {
+      principalId: 'repository-owner',
+      principalType: 'human',
+      authorizationCommit: oid('human-authorization'),
+    },
+    scopeDigest: expectedIrreversibleAuthorizationScopeDigest(
+      repositoryId,
+      policyCommit,
+      releaseHeadOid,
+    ),
+  };
+}
+
 /* ------------------------------------------------------------------------- *
  * Policy attestation
  * ------------------------------------------------------------------------- */
-
-const EXECUTOR_APPS: readonly ExecutorAppIdentity[] = Object.freeze([
-  {
-    appId: 111,
-    installationId: 1111,
-    nodeId: 'A_task_integration',
-    slug: 'task-integration-executor',
-    permissions: { contents: 'write', pull_requests: 'read', checks: 'read' },
-  },
-  {
-    appId: 222,
-    installationId: 2222,
-    nodeId: 'A_release_main',
-    slug: 'release-merge-executor',
-    permissions: { contents: 'write', pull_requests: 'read', checks: 'read' },
-  },
-]);
-
-const OBSERVER_PRINCIPAL_SET_DIGEST = digest('observer-principal-set');
 
 export interface AttestationOptions {
   readonly phase?: 'pre_intent' | 'pre_mutation';
@@ -549,26 +967,35 @@ export interface AttestationOptions {
   readonly headOid?: GitOid;
   readonly baseOid?: GitOid;
   readonly pullRequestNumber?: number;
+  readonly executorApps?: readonly ExecutorAppIdentity[];
+  readonly issuerStatusState?: 'active' | 'revoked' | 'unknown';
+  /** Signs with a key the activation record does not pin. */
+  readonly wrongKey?: boolean;
 }
 
 /**
- * Builds a structurally complete attestation. `signature` is a clearly non-secret
- * deterministic placeholder; no key material exists in this repository.
+ * Builds a structurally complete attestation and signs its exact canonical payload with
+ * the run-time-derived fixture key. `signatureLabel` distinguishes the two independently
+ * signed phases through the payload's own `sourceEvidenceDigest`, so the two
+ * authorizations carry genuinely different canonical digests and signatures.
  */
 export function buildAttestation(
   options: AttestationOptions,
 ): TrustedCurrentPolicyAttestation {
   const observedAt = options.observedAtOffsetMs ?? 0;
   const expiresAt = options.expiresAtOffsetMs ?? 55_000;
+  const policyGeneration = options.policyGeneration ?? 7;
+  const apps = options.executorApps ?? EXECUTOR_APPS;
+  const label = options.signatureLabel ?? options.phase ?? 'pre_intent';
 
   const withoutDigest = {
     schema: 'github-current-policy-attestation/v1' as const,
     issuer: {
       authorityId: 'repository-policy-attestor',
       keyId: 'key-1',
-      publicKeyDigest: digest('attestor-public-key'),
+      publicKeyDigest: ATTESTOR_PUBLIC_KEY_DIGEST,
       signatureAlgorithm: 'Ed25519' as const,
-      policyGeneration: options.policyGeneration ?? 7,
+      policyGeneration,
       observerPrincipalSetDigest: OBSERVER_PRINCIPAL_SET_DIGEST,
     },
     subject: {
@@ -587,20 +1014,30 @@ export function buildAttestation(
       admissionContextNonce: options.admissionContextNonce,
       admissionContextDigest: options.admissionContextDigest,
       authorizationPhase: options.phase ?? ('pre_intent' as const),
-      executorApps: EXECUTOR_APPS,
+      executorApps: apps,
     },
     policy: {
       bypassActorsComplete: true,
       bypassActors: [],
+      observerPrincipals: OBSERVER_PRINCIPALS,
+      issuerStatus: {
+        channelId: 'revocation-channel-1',
+        authorityId: 'repository-policy-attestor',
+        keyId: 'key-1',
+        publicKeyDigest: ATTESTOR_PUBLIC_KEY_DIGEST,
+        state: options.issuerStatusState ?? ('active' as const),
+        policyGeneration,
+        observedAtUtc: isoAt(observedAt + 1_000),
+      },
       paginationComplete: true,
       rulesetEnumerationComplete: true,
       classicProtectionComplete: true,
-      requiredCheckSources: [
-        { name: 'CI / validate', appId: REQUIRED_CHECK_APP_ID },
-        { name: 'Security / scan', appId: REQUIRED_CHECK_APP_ID },
-      ],
+      requiredCheckSources: REQUIRED_CHECK_CONTEXTS.map((context) => ({
+        name: context.name,
+        appId: context.expectedAppId,
+      })),
       mergeMethodsConfigured: ['merge', 'squash'],
-      executorApps: EXECUTOR_APPS,
+      executorApps: apps,
       observerPrincipalSetDigest: OBSERVER_PRINCIPAL_SET_DIGEST,
       executorAppsAbsentFromBypassSets: true,
       unknownPayloadMembers: [],
@@ -610,39 +1047,48 @@ export function buildAttestation(
     issuedAt: isoAt(observedAt + 1_000),
     notBefore: isoAt(observedAt),
     expiresAt: isoAt(observedAt + expiresAt),
-    sourceEvidenceDigest: digest('policy-source-evidence'),
+    sourceEvidenceDigest: digest(`policy-source-evidence:${label}`),
     policyDigest: options.policyDigest ?? digest('policy'),
     effectivePolicyProfileDigest:
       options.effectivePolicyProfileDigest ?? REQUIRED_POLICY_PROFILE_DIGEST,
     canonicalPayloadDigest: '',
-    signature: `non-secret-fixture-signature:${options.signatureLabel ?? options.phase ?? 'pre_intent'}`,
+    signature: '',
   };
 
-  // `canonicalPayloadDigest` covers every attestation field other than `signature`
-  // and other than the digest property itself.
-  const canonicalPayloadDigest = attestationPayloadDigest({
+  const canonicalPayloadDigest = attestationPayloadDigest(
+    withoutDigest as unknown as TrustedCurrentPolicyAttestation,
+  );
+  const unsigned = {
     ...withoutDigest,
-    canonicalPayloadDigest: '',
-  });
-  return { ...withoutDigest, canonicalPayloadDigest };
+    canonicalPayloadDigest,
+  } as unknown as TrustedCurrentPolicyAttestation;
+
+  return {
+    ...unsigned,
+    signature:
+      options.wrongKey === true
+        ? signWithWrongKey(unsigned)
+        : signAttestationPayload(unsigned),
+  };
 }
 
 /**
- * Recomputes `canonicalPayloadDigest` after a fixture mutates the payload, modelling an
- * attestor that honestly signs a payload which is itself incomplete or incorrect. It
- * lets a fixture reach the completeness, pagination, and unknown-member branches
- * instead of stopping at the digest branch.
+ * Recomputes `canonicalPayloadDigest` and the Ed25519 signature after a fixture mutates
+ * the payload, modelling an attestor that honestly signs a payload which is itself
+ * incomplete or incorrect. It lets a fixture reach the completeness, pagination, and
+ * unknown-member branches instead of stopping at the digest or signature branch.
  */
 export function resignAttestation(
   attestation: TrustedCurrentPolicyAttestation,
 ): TrustedCurrentPolicyAttestation {
-  return {
+  const withDigest = {
     ...attestation,
     canonicalPayloadDigest: attestationPayloadDigest({
       ...attestation,
       canonicalPayloadDigest: '',
     }),
   };
+  return { ...withDigest, signature: signAttestationPayload(withDigest) };
 }
 
 export function excludedControlAction(): PolicyControlFacts['action'] {
@@ -656,11 +1102,17 @@ export function excludedControlAction(): PolicyControlFacts['action'] {
 export interface ScenarioOverrides {
   readonly activation?: MergeExecutorActivationRecord | null;
   readonly manifest?: ReleaseGateManifest | null;
+  readonly manifestSource?: ImmutableProvenancedArtifactRef | null;
   readonly pullRequest?: ImmutablePullRequestObservation;
   readonly base?: ImmutableRefObservation;
   readonly gateSnapshot?: ImmutableAggregateGateSnapshot;
+  readonly gateSnapshotSource?: ImmutableProvenancedArtifactRef | null;
   readonly securitySnapshot?: ImmutableReleaseSecuritySnapshot;
+  readonly securitySnapshotSource?: ImmutableProvenancedArtifactRef | null;
   readonly integrationEvidence?: readonly IntegrationUnitEvidence[];
+  readonly integrationEvidenceSource?: ImmutableProvenancedArtifactRef | null;
+  readonly requiredPolicyProfile?: RequiredGitHubPolicyProfile | null;
+  readonly requiredPolicyProfileSource?: ImmutableProvenancedArtifactRef | null;
   readonly requiredChecks?: ReleaseRequiredCheckObservation;
   readonly changedPaths?: readonly string[];
   readonly publishedHeadEvidence?: ReleaseAdmissionInput['publishedHeadEvidence'];
@@ -670,6 +1122,14 @@ export interface ScenarioOverrides {
 }
 
 export const ADMISSION_CONTEXT_NONCE = digest('admission-context-nonce');
+
+function sourceRefFor(
+  kind: string,
+  label: string,
+  digestValue: Sha256Hex,
+): ImmutableProvenancedArtifactRef {
+  return { ...provenancedRef(kind, label, digestValue) };
+}
 
 /**
  * The success fixture: one release manifest covering all seven aggregate domains,
@@ -682,20 +1142,58 @@ export function validScenario(
     overrides.activation === undefined ? validActivationRecord() : overrides.activation;
   const manifest =
     overrides.manifest === undefined ? validManifest() : overrides.manifest;
+  const gateSnapshot = overrides.gateSnapshot ?? validGateSnapshot();
+  const securitySnapshot = overrides.securitySnapshot ?? emptySecuritySnapshot();
+  const integrationEvidence =
+    overrides.integrationEvidence ?? validIntegrationEvidence();
 
   const skeleton: ReleaseAdmissionInput = {
     executor: RELEASE_EXECUTOR,
     evaluatedAtUtc: overrides.evaluatedAtUtc ?? isoAt(5_000),
     activation,
     manifest,
-    manifestSource: artifactRef('release-gate-manifest'),
+    manifestSource:
+      overrides.manifestSource === undefined
+        ? manifestSourceFor(manifest)
+        : overrides.manifestSource,
     repository: REPOSITORY,
     pullRequest: overrides.pullRequest ?? validPullRequest(),
     base: overrides.base ?? validBaseRef(),
-    gateSnapshot: overrides.gateSnapshot ?? validGateSnapshot(),
-    securitySnapshot: overrides.securitySnapshot ?? emptySecuritySnapshot(),
-    integrationEvidence:
-      overrides.integrationEvidence ?? validIntegrationEvidence(),
+    gateSnapshot,
+    gateSnapshotSource:
+      overrides.gateSnapshotSource === undefined
+        ? sourceRefFor(
+            'aggregate-gate-snapshot',
+            'gate-snapshot',
+            aggregateGateSnapshotDigest(gateSnapshot.relations),
+          )
+        : overrides.gateSnapshotSource,
+    securitySnapshot,
+    securitySnapshotSource:
+      overrides.securitySnapshotSource === undefined
+        ? sourceRefFor(
+            'release-security-snapshot',
+            'security-snapshot',
+            releaseSecuritySnapshotDigest(securitySnapshot.findings ?? []),
+          )
+        : overrides.securitySnapshotSource,
+    integrationEvidence,
+    integrationEvidenceSource:
+      overrides.integrationEvidenceSource === undefined
+        ? sourceRefFor(
+            'release-integration-evidence',
+            'integration-evidence',
+            integrationEvidenceSetDigest(integrationEvidence),
+          )
+        : overrides.integrationEvidenceSource,
+    requiredPolicyProfile:
+      overrides.requiredPolicyProfile === undefined
+        ? validRequiredPolicyProfile()
+        : overrides.requiredPolicyProfile,
+    requiredPolicyProfileSource:
+      overrides.requiredPolicyProfileSource === undefined
+        ? requiredPolicyProfileRef()
+        : overrides.requiredPolicyProfileSource,
     requiredChecks: overrides.requiredChecks ?? validRequiredChecks(),
     changedPaths: overrides.changedPaths ?? [
       'src/orchestrator/state/index.ts',
@@ -764,6 +1262,7 @@ export function preMutationFacts(
     readonly baseOid: GitOid;
     readonly pullRequestNumber: number;
   },
+  overrides: Partial<AttestationOptions> = {},
 ): PolicyControlFacts {
   return {
     action: excludedControlAction(),
@@ -782,6 +1281,7 @@ export function preMutationFacts(
         // A distinct canonical attestation digest, as the two independently signed
         // authorizations require.
         signatureLabel: 'pre-mutation',
+        ...overrides,
       }),
     },
   };
