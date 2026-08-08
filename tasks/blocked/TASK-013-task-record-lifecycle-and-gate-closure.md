@@ -39,7 +39,7 @@ activation:
     MC-020 / ACT-034 corrects TASK-062 from devops/claude to devops/gpt before dispatch because
     config/agents/settings.yaml assigns devops to gpt. The correction changes only execution identity;
     owner, scope, lock, dependencies, findings, gates, lineage, and target are unchanged. Effects commit:
-    [PENDING_MC_020_EFFECTS_COMMIT].
+    7768eedd1a7c6b3e20b53650104ea15b167393c0.
   provider_reroute_decisions:
     - id: HUMAN-005
       source_commit: dbac01ea4f7ec9adf85768e607f4ed894befe669
