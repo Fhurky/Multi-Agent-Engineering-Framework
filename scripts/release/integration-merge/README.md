@@ -1,8 +1,9 @@
 # Integration release merge executor — module note
 
 DevOps-owned release control-plane module. Authored under TASK-049, remediated under
-TASK-056 against the round-1 findings, and hardened under TASK-059 against the eight
-round-2 findings. Its normative contract is
+TASK-056 against the round-1 findings, hardened under TASK-059 against the eight
+round-2 findings, and remediated under TASK-062 against the three round-3 Security
+findings. Its normative contract is
 `docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md`,
 `docs/architecture/runtime/COMPONENT-BOUNDARIES.md`,
 `docs/architecture/runtime/INTEGRATION-STRATEGY.md`, and ADR-0042/0043/0044, read at
@@ -19,9 +20,8 @@ verdict.
 this source activates nothing: the `MergeExecutorActivationRecord` and every member
 must resolve through the separately injected read-only `ReleaseAuthorityPort`, and this
 module exposes no function that can construct, complete, sign, publish, or mutate one.
-**TASK-059 resolves no finding and satisfies no activation prerequisite**; only the
-separate TASK-060 Reviewer and TASK-061 Security execution contexts may disposition the
-round-2 findings.
+**TASK-062 resolves no finding and satisfies no activation prerequisite**; only the
+separate TASK-063 Security execution context may disposition the round-3 findings.
 
 ## Layout
 
@@ -30,6 +30,8 @@ round-2 findings.
 | `index.ts` | Published entry point; the only surface a caller may import |
 | `contracts.ts` | Executor-local types, including the read-only authenticated authority boundary |
 | `canonical-json.ts` | Canonical JSON, SHA-256, strict base64, and the one-property digest projection |
+| `composition-capability.ts` | Private nominal capability root binding the authenticated resolver and concrete merge client |
+| `immutable-diff.ts` | Exact base/head immutable diff normalization, completeness, and canonical digest verification |
 | `activation.ts` | Immutable activation-record validation and member binding |
 | `gate-admissibility.ts` | `ExecutorGateAdmissibility`, the authoritative-round rule, and snapshot digests |
 | `release-manifest.ts` | `release-gates/v1` shape and the seven aggregate domains |
@@ -46,6 +48,7 @@ round-2 findings.
 | `run-tests.ps1` | PowerShell entry point for the test suite |
 | `tests/` | Nested fixtures, including `round-1-remediation.test.ts` |
 | `TASK-059-EVIDENCE.md` | Owner counterexample and regression evidence; not a gate verdict |
+| `TASK-062-EVIDENCE.md` | Round-3 owner remediation and verification evidence; not a gate verdict |
 
 ## Round-1 finding verification matrix
 
@@ -130,6 +133,17 @@ is the one convention to revisit.
   revocation evidence. The attestor request channel added for the per-attempt
   `pre_mutation` authorization carries exactly one operation, supplies a closed subject,
   and can neither observe nor mutate policy.
+- Admission and execution consume one non-caller-constructible nominal capability. Its
+  private composition root binds independently authenticated authority and merge-client
+  objects to the exact callable instances; labels or structurally compatible objects do
+  not confer authority.
+- Protected-path evaluation consumes the canonical path universe derived from a complete
+  authenticated immutable diff keyed by the exact base and head. Pagination gaps,
+  omissions, ambiguous renames/deletions, or canonical-byte substitutions fail closed.
+- Branch controls are typed and parameterized. The executor independently derives the
+  normalized effective policy for `refs/heads/main` from signed applicable sources and
+  compares its digest with the immutable required profile; Boolean completeness and a
+  copied profile digest cannot substitute for the controls.
 - No import of a runtime implementation module or either runtime contract root, and no
   third-party dependency at all. The only non-local production import is `node:crypto`.
 
