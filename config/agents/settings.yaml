@@ -173,7 +173,7 @@ assignments:
     title: DevOps Engineer
     role_path: .agents/devops
     enabled: true
-    llm: claude
+    llm: gpt
     task_queue: plans/releases
     write_scope:
       - package.json
