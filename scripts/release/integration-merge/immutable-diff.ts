@@ -3,7 +3,9 @@
 import type {
   AuthenticatedImmutableDiff,
   AuthenticatedImmutableDiffEntry,
+  AuthenticatedImmutableDiffResolution,
   GitOid,
+  ImmutableDiffArtifactRef,
 } from './contracts.ts';
 import {
   canonicalJson,
@@ -19,6 +21,64 @@ export interface ImmutableDiffExpectation {
   readonly repositoryId: string;
   readonly baseOid: GitOid;
   readonly headOid: GitOid;
+}
+
+function artifactIdentityProjection(source: ImmutableDiffArtifactRef): unknown {
+  return {
+    kind: source.kind,
+    commit: source.commit,
+    path: source.path,
+    digest: source.digest,
+    producedByExecutor: source.producedByExecutor,
+    producer: source.producer,
+    repositoryId: source.repositoryId,
+    baseOid: source.baseOid,
+    headOid: source.headOid,
+    canonicalBytesDigest: source.canonicalBytesDigest,
+  };
+}
+
+export function immutableDiffArtifactIdentityDigest(
+  source: ImmutableDiffArtifactRef,
+): string {
+  return sha256Canonical(artifactIdentityProjection(source));
+}
+
+export function validateImmutableDiffResolution(
+  value: unknown,
+  source: ImmutableDiffArtifactRef,
+  expected: ImmutableDiffExpectation,
+): ImmutableDiffValidation {
+  if (!isRecordObject(value)) {
+    return { status: 'invalid', reason: 'immutable_diff_object_unresolved' };
+  }
+  const resolution = value as unknown as AuthenticatedImmutableDiffResolution;
+  if (
+    source.kind !== 'authenticated-immutable-diff' ||
+    source.repositoryId !== expected.repositoryId ||
+    source.baseOid !== expected.baseOid || source.headOid !== expected.headOid ||
+    !isGitOid(source.commit) || typeof source.path !== 'string' || source.path.length === 0 ||
+    !isSha256Hex(source.digest) || !isSha256Hex(source.canonicalBytesDigest) ||
+    source.producedByExecutor !== false ||
+    source.producer.principalType === 'merge_executor' ||
+    !isGitOid(source.producer.authorizationCommit) ||
+    source.artifactIdentityDigest !== immutableDiffArtifactIdentityDigest(source)
+  ) {
+    return { status: 'invalid', reason: 'immutable_diff_source_identity_invalid' };
+  }
+  if (
+    resolution.producerAuthorized !== true ||
+    !isGitOid(resolution.authorizationEvidenceCommit) ||
+    canonicalJson(resolution.source) !== canonicalJson(source) ||
+    canonicalJson(resolution.producer) !== canonicalJson(source.producer) ||
+    typeof resolution.canonicalBytes !== 'string' ||
+    resolution.canonicalBytes !== canonicalJson(resolution.diff) ||
+    sha256Utf8(resolution.canonicalBytes) !== source.canonicalBytesDigest ||
+    sha256Canonical(resolution.diff) !== source.digest
+  ) {
+    return { status: 'invalid', reason: 'immutable_diff_object_authentication_invalid' };
+  }
+  return validateAuthenticatedImmutableDiff(resolution.diff, expected);
 }
 
 export type ImmutableDiffValidation =
@@ -118,7 +178,7 @@ export function validateAuthenticatedImmutableDiff(
   }
   const diff = value as unknown as AuthenticatedImmutableDiff;
   if (
-    diff.schema !== 'authenticated-immutable-diff/v1' ||
+    diff.schema !== 'authenticated-immutable-diff/v2' ||
     diff.repositoryId !== expected.repositoryId ||
     diff.baseOid !== expected.baseOid || diff.headOid !== expected.headOid ||
     diff.comparison !== 'base_to_head'
@@ -192,13 +252,6 @@ export function validateAuthenticatedImmutableDiff(
   ) {
     return { status: 'invalid', reason: 'immutable_diff_canonical_bytes_mismatch' };
   }
-  if (
-    !isGitOid(diff.evidenceCommit) || !isSha256Hex(diff.evidenceDigest) ||
-    diff.evidenceDigest !== selfDigest(diff, 'evidenceDigest')
-  ) {
-    return { status: 'invalid', reason: 'immutable_diff_evidence_invalid' };
-  }
-
   return {
     status: 'valid',
     diff,

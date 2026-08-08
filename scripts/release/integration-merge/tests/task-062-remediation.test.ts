@@ -5,9 +5,9 @@ import { admit as productionAdmit } from '../admission.ts';
 import { admit } from './helpers/admission.ts';
 import { selfDigest } from '../canonical-json.ts';
 import {
-  createReleaseExecutorCompositionRoot,
   resolveReleaseExecutorCapability,
 } from '../composition-capability.ts';
+import { startReleaseExecutorRuntimeHost } from '../runtime-host/index.ts';
 import type {
   GitHubPolicyRuleRecord,
   ReleaseAuthorityPort,
@@ -112,27 +112,22 @@ test('F-061-01: same-identity resolver and merge objects cannot construct the no
     },
   };
 
-  const independentlyProvisionedRoot = createReleaseExecutorCompositionRoot({
-    authenticateAuthorityPort(candidate) {
-      return candidate === trustedAuthority ? AUTHORITY_PORT_IDENTITY : null;
-    },
-    authenticateMergePort(candidate) {
-      return candidate === trustedMergePort ? MERGE_PORT_IDENTITY : null;
-    },
-    authenticateComposition(candidateAuthority, candidateMergePort) {
-      return candidateAuthority === trustedAuthority &&
-        candidateMergePort === trustedMergePort
-        ? RELEASE_CAPABILITY_BINDING
-        : null;
-    },
+  const independentlyProvisionedHost = startReleaseExecutorRuntimeHost({
+    authority: trustedAuthority,
+    mergePort: trustedMergePort,
+    authorityIdentity: AUTHORITY_PORT_IDENTITY,
+    mergePortIdentity: MERGE_PORT_IDENTITY,
+    capabilityBinding: RELEASE_CAPABILITY_BINDING,
   });
 
+  const independentlyIssuedCapability =
+    independentlyProvisionedHost.issueCapability();
   assert.equal(
-    independentlyProvisionedRoot.bind(maliciousAuthority, maliciousMergePort),
-    null,
+    resolveReleaseExecutorCapability(independentlyIssuedCapability)?.authority,
+    trustedAuthority,
   );
   const structuralForgery = Object.freeze({
-    schema: 'release-executor-capability/v1',
+    schema: 'release-executor-capability/v2',
   });
   assert.equal(resolveReleaseExecutorCapability(structuralForgery as never), null);
 
@@ -187,14 +182,9 @@ test('F-061-02: incomplete pagination refuses even when the outer evidence is re
     ['src/backend/a.ts', 'src/backend/b.ts'],
     { pageSize: 1 },
   );
-  const withoutEvidence = {
+  const incomplete = {
     ...complete,
     pages: complete.pages.slice(0, 1),
-    evidenceDigest: '',
-  };
-  const incomplete = {
-    ...withoutEvidence,
-    evidenceDigest: selfDigest(withoutEvidence, 'evidenceDigest'),
   };
   const result = admit(validScenario({
     changedPaths: ['src/backend/a.ts', 'src/backend/b.ts'],
@@ -216,14 +206,9 @@ test('F-061-02: base/head mismatch and canonical-byte substitution refuse', () =
   assert.equal(subjectResult.status, 'refused');
 
   const complete = authenticatedDiffFor(paths);
-  const withoutEvidence = {
+  const tampered = {
     ...complete,
     canonicalEntriesBytes: `${complete.canonicalEntriesBytes} `,
-    evidenceDigest: '',
-  };
-  const tampered = {
-    ...withoutEvidence,
-    evidenceDigest: selfDigest(withoutEvidence, 'evidenceDigest'),
   };
   const bytesResult = admit(validScenario({
     changedPaths: paths,

@@ -23,6 +23,7 @@ export type {
   AuthenticatedImmutableDiff,
   AuthenticatedImmutableDiffEntry,
   AuthenticatedImmutableDiffPage,
+  AuthenticatedImmutableDiffResolution,
   AuthenticatedArtifactResolution,
   AuthenticatedExecutionIdentity,
   AuthenticatedGateResolution,
@@ -71,6 +72,7 @@ export type {
   ImmutableAuthorityPortIdentity,
   ImmutableAuthorizedHumanPrincipal,
   ImmutableHumanDecisionRef,
+  ImmutableDiffArtifactRef,
   ImmutablePassingGateRef,
   ImmutablePolicyAttestorTrustRootRef,
   ImmutablePullRequestObservation,
@@ -221,7 +223,9 @@ export type { PinnedRequiredCheckContext } from './required-checks.ts';
 export {
   canonicalImmutableDiffEntriesBytes,
   canonicalImmutableDiffEntriesDigest,
+  immutableDiffArtifactIdentityDigest,
   validateAuthenticatedImmutableDiff,
+  validateImmutableDiffResolution,
 } from './immutable-diff.ts';
 export type {
   ImmutableDiffExpectation,

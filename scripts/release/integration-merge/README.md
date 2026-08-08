@@ -2,8 +2,9 @@
 
 DevOps-owned release control-plane module. Authored under TASK-049, remediated under
 TASK-056 against the round-1 findings, hardened under TASK-059 against the eight
-round-2 findings, and remediated under TASK-062 against the three round-3 Security
-findings. Its normative contract is
+round-2 findings, remediated under TASK-062 against the three round-3 Security
+findings, and hardened under TASK-064 against the two round-4 Security findings. Its
+normative contract is
 `docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md`,
 `docs/architecture/runtime/COMPONENT-BOUNDARIES.md`,
 `docs/architecture/runtime/INTEGRATION-STRATEGY.md`, and ADR-0042/0043/0044, read at
@@ -20,8 +21,8 @@ verdict.
 this source activates nothing: the `MergeExecutorActivationRecord` and every member
 must resolve through the separately injected read-only `ReleaseAuthorityPort`, and this
 module exposes no function that can construct, complete, sign, publish, or mutate one.
-**TASK-062 resolves no finding and satisfies no activation prerequisite**; only the
-separate TASK-063 Security execution context may disposition the round-3 findings.
+**TASK-064 resolves no finding and satisfies no activation prerequisite**; only the
+separate TASK-065 Security execution context may disposition the round-4 findings.
 
 ## Layout
 
@@ -30,8 +31,10 @@ separate TASK-063 Security execution context may disposition the round-3 finding
 | `index.ts` | Published entry point; the only surface a caller may import |
 | `contracts.ts` | Executor-local types, including the read-only authenticated authority boundary |
 | `canonical-json.ts` | Canonical JSON, SHA-256, strict base64, and the one-property digest projection |
-| `composition-capability.ts` | Private nominal capability root binding the authenticated resolver and concrete merge client |
-| `immutable-diff.ts` | Exact base/head immutable diff normalization, completeness, and canonical digest verification |
+| `composition-capability.ts` | Consumer-only facade for the externally issued nominal capability |
+| `capability-registry.ts` | Package-internal nominal registry; the application package exports no seal subpath |
+| `runtime-host/` | Separately deployable composition/seal owner, excluded from the application package |
+| `immutable-diff.ts` | Exact immutable object identity, independent diff resolution, and complete base/head validation |
 | `activation.ts` | Immutable activation-record validation and member binding |
 | `gate-admissibility.ts` | `ExecutorGateAdmissibility`, the authoritative-round rule, and snapshot digests |
 | `release-manifest.ts` | `release-gates/v1` shape and the seven aggregate domains |
@@ -49,6 +52,7 @@ separate TASK-063 Security execution context may disposition the round-3 finding
 | `tests/` | Nested fixtures, including `round-1-remediation.test.ts` |
 | `TASK-059-EVIDENCE.md` | Owner counterexample and regression evidence; not a gate verdict |
 | `TASK-062-EVIDENCE.md` | Round-3 owner remediation and verification evidence; not a gate verdict |
+| `TASK-064-EVIDENCE.md` | Round-4 owner remediation and verification evidence; not a gate verdict |
 
 ## Round-1 finding verification matrix
 
@@ -98,10 +102,11 @@ discriminated unions whose totality ADR-0001 records PowerShell cannot express. 
 tests use `node:test` with `node:assert/strict`, which ADR-0001 selects precisely so a
 module can be covered with zero third-party dependencies.
 
-The repository has no root `package.json` or `tsconfig.json` — TASK-018 owns those and
-is not integrated — and this task's write scope is `scripts/release/integration-merge/**`
-only. The module therefore relies on Node.js native TypeScript type stripping and runs
-with no manifest, no build step, and no dependency:
+The repository has no integrated root toolchain for this module, and this task's write
+scope is `scripts/release/integration-merge/**` only. The module therefore relies on
+Node.js native TypeScript type stripping and runs with no build step or third-party
+dependency. The two nested package manifests are deployment-boundary allowlists, not a
+dependency installation surface:
 
 ```powershell
 ./scripts/release/integration-merge/run-tests.ps1
@@ -133,13 +138,17 @@ is the one convention to revisit.
   revocation evidence. The attestor request channel added for the per-attempt
   `pre_mutation` authorization carries exactly one operation, supplies a closed subject,
   and can neither observe nor mutate policy.
-- Admission and execution consume one non-caller-constructible nominal capability. Its
-  private composition root binds independently authenticated authority and merge-client
-  objects to the exact callable instances; labels or structurally compatible objects do
-  not confer authority.
-- Protected-path evaluation consumes the canonical path universe derived from a complete
-  authenticated immutable diff keyed by the exact base and head. Pagination gaps,
-  omissions, ambiguous renames/deletions, or canonical-byte substitutions fail closed.
+- Admission and execution consume one externally issued nominal capability. The
+  release-control package exports only `index.ts`, physically excludes `runtime-host/`
+  from its deployable file allowlist, and exposes no issuer, authenticator, composition
+  constructor, or raw-port binding operation. Only the separately deployed host owns
+  composition and one-shot seal issuance; the application receives the resulting
+  capability.
+- Protected-path evaluation consumes canonical entries from an independently resolved
+  immutable object. Its source binds the exact repository/base/head, commit, path,
+  canonical bytes, producer, producer authorization, and artifact identity. Admission
+  rejects unresolved/nonexistent objects, caller-local receipts, pagination gaps,
+  omissions, ambiguous renames/deletions, and subject or canonical-byte substitutions.
 - Branch controls are typed and parameterized. The executor independently derives the
   normalized effective policy for `refs/heads/main` from signed applicable sources and
   compares its digest with the immutable required profile; Boolean completeness and a

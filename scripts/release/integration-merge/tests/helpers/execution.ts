@@ -165,7 +165,7 @@ export function buildHarness(options: HarnessOptions = {}): Harness {
     capability:
       options.mergePortIdentity === undefined
         ? admissionInput.capability!
-        : Object.freeze({ schema: 'release-executor-capability/v1' }) as never,
+        : Object.freeze({ schema: 'release-executor-capability/v2' }) as never,
     attestor,
     leases,
   };

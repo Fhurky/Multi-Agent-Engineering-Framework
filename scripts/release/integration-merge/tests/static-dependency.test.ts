@@ -33,6 +33,7 @@ interface SourceFile {
   readonly path: string;
   readonly text: string;
   readonly isTest: boolean;
+  readonly isRuntimeHost: boolean;
 }
 
 function collect(directory: string, accumulator: SourceFile[]): SourceFile[] {
@@ -50,6 +51,7 @@ function collect(directory: string, accumulator: SourceFile[]): SourceFile[] {
       path,
       text: readFileSync(full, 'utf8'),
       isTest: path.startsWith('tests/'),
+      isRuntimeHost: path.startsWith('runtime-host/'),
     });
   }
   return accumulator;
@@ -187,7 +189,7 @@ test('the published entry point is index.ts', () => {
   assert.ok(SOURCES.some((file) => file.path === 'index.ts'));
 });
 
-test('every non-test module file is reachable from the entry point', () => {
+test('every application file is reachable from the consumer entry point', () => {
   const entry = SOURCES.find((file) => file.path === 'index.ts');
   assert.ok(entry !== undefined);
 
@@ -213,9 +215,51 @@ test('every non-test module file is reachable from the entry point', () => {
   }
 
   const unreachable = SOURCES.filter(
-    (file) => !file.isTest && !reachable.has(file.path),
+    (file) => !file.isTest && !file.isRuntimeHost && !reachable.has(file.path),
   ).map((file) => file.path);
   assert.deepEqual(unreachable, []);
+});
+
+test('runtime-host issuance is a separate deployable package, not an application import', () => {
+  const applicationPackage = JSON.parse(
+    readFileSync(join(MODULE_ROOT, 'package.json'), 'utf8'),
+  ) as { readonly exports: Record<string, unknown>; readonly files: readonly string[] };
+  const hostPackage = JSON.parse(
+    readFileSync(join(MODULE_ROOT, 'runtime-host', 'package.json'), 'utf8'),
+  ) as { readonly name: string; readonly exports: Record<string, unknown> };
+
+  assert.deepEqual(Object.keys(applicationPackage.exports), ['.']);
+  assert.equal(applicationPackage.files.some((path) => path.startsWith('runtime-host/')), false);
+  assert.equal(applicationPackage.files.some((path) => path.startsWith('tests/')), false);
+  assert.equal(hostPackage.name, '@multi-agent/release-integration-merge-runtime-host');
+  assert.deepEqual(Object.keys(hostPackage.exports), ['.']);
+
+  for (const file of SOURCES.filter(
+    (candidate) => !candidate.isTest && !candidate.isRuntimeHost,
+  )) {
+    for (const specifier of importSpecifiers(file.text)) {
+      assert.equal(
+        specifier.includes('runtime-host'),
+        false,
+        `${file.path} imports the independently controlled runtime host`,
+      );
+    }
+    assert.equal(
+      file.text.includes('startReleaseExecutorRuntimeHost'),
+      false,
+      `${file.path} can invoke capability issuance`,
+    );
+    assert.equal(
+      file.text.includes('createReleaseExecutorCompositionRoot'),
+      false,
+      `${file.path} retains the caller-authenticator composition factory`,
+    );
+  }
+});
+
+test('the application capability facade exports no issuer or authenticator', async () => {
+  const facade = await import('../composition-capability.ts');
+  assert.deepEqual(Object.keys(facade).sort(), ['resolveReleaseExecutorCapability']);
 });
 
 test('nothing outside the module could import it without a deep path', () => {

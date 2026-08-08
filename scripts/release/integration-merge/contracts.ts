@@ -172,7 +172,7 @@ declare const releaseExecutorCapabilityBrand: unique symbol;
  * sealed in its private composition-root registry.
  */
 export interface ReleaseExecutorCapability {
-  readonly schema: 'release-executor-capability/v1';
+  readonly schema: 'release-executor-capability/v2';
   readonly [releaseExecutorCapabilityBrand]: true;
 }
 
@@ -262,12 +262,26 @@ export interface AuthenticatedImmutableDiffPage {
 }
 
 /**
+ * Exact immutable object identity from which the complete diff must be resolved.
+ * The subject tuple is repeated in the reference so neither a caller nor a resolver
+ * can substitute a different comparison behind a digest-shaped label.
+ */
+export interface ImmutableDiffArtifactRef extends ImmutableProvenancedArtifactRef {
+  readonly kind: 'authenticated-immutable-diff';
+  readonly repositoryId: string;
+  readonly baseOid: GitOid;
+  readonly headOid: GitOid;
+  readonly canonicalBytesDigest: Sha256Hex;
+  readonly artifactIdentityDigest: Sha256Hex;
+}
+
+/**
  * Independently authenticated complete diff for one exact `(baseOid, headOid)` pair.
  * Canonical bytes and their digest are explicit so a path list cannot be narrowed,
  * repaginated, or reinterpreted after authority enumeration.
  */
 export interface AuthenticatedImmutableDiff {
-  readonly schema: 'authenticated-immutable-diff/v1';
+  readonly schema: 'authenticated-immutable-diff/v2';
   readonly repositoryId: string;
   readonly baseOid: GitOid;
   readonly headOid: GitOid;
@@ -279,8 +293,20 @@ export interface AuthenticatedImmutableDiff {
   readonly pages: readonly AuthenticatedImmutableDiffPage[];
   readonly canonicalEntriesBytes: string;
   readonly canonicalEntriesDigest: Sha256Hex;
-  readonly evidenceCommit: GitOid;
-  readonly evidenceDigest: Sha256Hex;
+}
+
+/**
+ * Resolution issued by the independently controlled immutable-object authority.
+ * `canonicalBytes` are the exact bytes stored at `source.commit:source.path`, not a
+ * digest supplied alongside a locally constructed receipt.
+ */
+export interface AuthenticatedImmutableDiffResolution {
+  readonly source: ImmutableDiffArtifactRef;
+  readonly canonicalBytes: string;
+  readonly diff: AuthenticatedImmutableDiff;
+  readonly producer: ImmutableArtifactProducer;
+  readonly producerAuthorized: true;
+  readonly authorizationEvidenceCommit: GitOid;
 }
 
 /**
@@ -300,7 +326,7 @@ export interface AuthenticatedAdmissionUniverse {
   readonly securityFindings: readonly ReleaseSecurityFinding[];
   readonly integrationEvidence: readonly IntegrationUnitEvidence[];
   readonly requiredChecks: ReleaseRequiredCheckObservation;
-  readonly immutableDiff: AuthenticatedImmutableDiff;
+  readonly immutableDiffSource: ImmutableDiffArtifactRef;
   readonly publicationCommandEvidenceIds: readonly Sha256Hex[];
   readonly humanDecisions: readonly ImmutableHumanDecisionRef[];
   readonly evidenceCommit: GitOid;
@@ -325,6 +351,9 @@ export interface ReleaseAuthorityPort {
     repositoryId: string,
     releaseHeadOid: GitOid,
   ): AuthenticatedAdmissionUniverse | null;
+  resolveImmutableDiff(
+    source: ImmutableDiffArtifactRef,
+  ): AuthenticatedImmutableDiffResolution | null;
   resolveIssuerStatus(
     authorityId: string,
     keyId: string,

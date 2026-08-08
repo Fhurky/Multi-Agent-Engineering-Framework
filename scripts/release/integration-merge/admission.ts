@@ -100,7 +100,7 @@ import {
 } from './published-head-evidence.ts';
 import { evaluateRequiredChecks } from './required-checks.ts';
 import { findProtectedPathChanges } from './protected-paths.ts';
-import { validateAuthenticatedImmutableDiff } from './immutable-diff.ts';
+import { validateImmutableDiffResolution } from './immutable-diff.ts';
 import { remediationFor } from './remediation.ts';
 
 /* ------------------------------------------------------------------------- *
@@ -682,8 +682,12 @@ function admitOrdered(
     );
   }
 
-  const diffValidation = validateAuthenticatedImmutableDiff(
-    authorityUniverse.immutableDiff,
+  const diffResolution = authority.resolveImmutableDiff(
+    authorityUniverse.immutableDiffSource,
+  );
+  const diffValidation = validateImmutableDiffResolution(
+    diffResolution,
+    authorityUniverse.immutableDiffSource,
     {
       repositoryId,
       baseOid: input.base.oid,
@@ -828,7 +832,7 @@ function admitOrdered(
     expectedTreeOid,
     manifest.publishedHeadEvidenceDigest,
     activationRecord.requiredGitHubPolicyProfileDigest,
-    diffValidation.diff.evidenceDigest,
+    authorityUniverse.immutableDiffSource.digest,
   );
 
   const policyEvidenceRecord = evidenceRef(repositoryId, keyMaterial, {
@@ -1362,7 +1366,7 @@ function admitOrdered(
     gateSnapshotDigest: input.gateSnapshot.snapshotDigest,
     securitySnapshotDigest: input.securitySnapshot.snapshotDigest,
     publishedHeadEvidenceDigest: evidence.bundleDigest,
-    immutableDiffDigest: diffValidation.diff.evidenceDigest,
+    immutableDiffDigest: authorityUniverse.immutableDiffSource.digest,
     requiredPolicyProfileDigest:
       activationRecord.requiredGitHubPolicyProfileDigest,
     policyDigest: attestation.policyDigest,

@@ -142,7 +142,7 @@ function contextOf(scenario: ReleaseAdmissionInput) {
     scenario.pullRequest.headTreeOid,
     scenario.manifest?.publishedHeadEvidenceDigest ?? digest('none'),
     REQUIRED_POLICY_PROFILE_DIGEST,
-    (scenario as ReturnType<typeof validScenario>).authenticatedDiff.evidenceDigest,
+    (scenario as ReturnType<typeof validScenario>).authenticatedDiffSource.digest,
   );
 }
 

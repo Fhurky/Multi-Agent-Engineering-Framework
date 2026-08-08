@@ -60,6 +60,7 @@ function authorityOverride(
     resolveTrustRoot: base.resolveTrustRoot.bind(base),
     resolveAuthorizedHuman: base.resolveAuthorizedHuman.bind(base),
     enumerateAdmissionUniverse: base.enumerateAdmissionUniverse.bind(base),
+    resolveImmutableDiff: base.resolveImmutableDiff.bind(base),
     resolveIssuerStatus: base.resolveIssuerStatus.bind(base),
     authenticateExecutionEvidence: base.authenticateExecutionEvidence.bind(base),
     resolveHumanDecision: base.resolveHumanDecision.bind(base),

@@ -18,7 +18,7 @@ import {
   computeAdmissionContext,
   expectedIrreversibleAuthorizationScopeDigest,
 } from '../../admission.ts';
-import { createReleaseExecutorCompositionRoot } from '../../composition-capability.ts';
+import { startReleaseExecutorRuntimeHost } from '../../runtime-host/index.ts';
 import { DormantReleaseMergePort } from '../../merge-port.ts';
 import {
   canonicalBytes,
@@ -53,6 +53,7 @@ import type {
   ImmutableAggregateGateSnapshot,
   ImmutableArtifactRef,
   ImmutableHumanDecisionRef,
+  ImmutableDiffArtifactRef,
   ImmutableProvenancedArtifactRef,
   ImmutablePullRequestObservation,
   ImmutableRefObservation,
@@ -90,6 +91,7 @@ import { integrationEvidenceSetDigest } from '../../release-lineage.ts';
 import {
   canonicalImmutableDiffEntriesBytes,
   canonicalImmutableDiffEntriesDigest,
+  immutableDiffArtifactIdentityDigest,
 } from '../../immutable-diff.ts';
 
 /** Deterministic full 40-hex object id derived from a label. */
@@ -162,8 +164,8 @@ export function authenticatedDiffFor(
     };
   });
   const canonicalEntriesBytes = canonicalImmutableDiffEntriesBytes(entries);
-  const withoutEvidence = {
-    schema: 'authenticated-immutable-diff/v1' as const,
+  return {
+    schema: 'authenticated-immutable-diff/v2' as const,
     repositoryId: options.repositoryId ?? REPOSITORY_ID,
     baseOid: options.baseOid ?? BASE_OID,
     headOid: options.headOid ?? HEAD_OID,
@@ -175,12 +177,38 @@ export function authenticatedDiffFor(
     pages,
     canonicalEntriesBytes,
     canonicalEntriesDigest: canonicalImmutableDiffEntriesDigest(entries),
-    evidenceCommit: oid('authenticated-immutable-diff-evidence'),
-    evidenceDigest: '',
+  };
+}
+
+export function immutableDiffSourceFor(
+  diff: AuthenticatedImmutableDiff,
+  options: {
+    readonly commit?: GitOid;
+    readonly path?: string;
+    readonly producerId?: string;
+  } = {},
+): ImmutableDiffArtifactRef {
+  const producer = {
+    principalId: options.producerId ?? 'immutable-git-diff-observer',
+    principalType: 'agent_role' as const,
+    authorizationCommit: oid('immutable-git-diff-observer-authorization'),
+  };
+  const withoutIdentity: ImmutableDiffArtifactRef = {
+    kind: 'authenticated-immutable-diff',
+    commit: options.commit ?? oid('authenticated-immutable-diff-artifact'),
+    path: options.path ?? 'release-evidence/immutable-diffs/main-to-integration.json',
+    digest: sha256Canonical(diff),
+    producedByExecutor: false,
+    producer,
+    repositoryId: diff.repositoryId,
+    baseOid: diff.baseOid,
+    headOid: diff.headOid,
+    canonicalBytesDigest: sha256Utf8(canonicalJson(diff)),
+    artifactIdentityDigest: '' as Sha256Hex,
   };
   return {
-    ...withoutEvidence,
-    evidenceDigest: selfDigest(withoutEvidence, 'evidenceDigest'),
+    ...withoutIdentity,
+    artifactIdentityDigest: immutableDiffArtifactIdentityDigest(withoutIdentity),
   };
 }
 
@@ -1343,6 +1371,7 @@ export type FixtureReleaseAdmissionInput = ReleaseAdmissionInput & {
   readonly mergePort: ReleasePullRequestMergePort | null;
   readonly capability: ReleaseExecutorCapability | null;
   readonly authenticatedDiff: AuthenticatedImmutableDiff;
+  readonly authenticatedDiffSource: ImmutableDiffArtifactRef;
 };
 
 export const ADMISSION_CONTEXT_NONCE = digest('admission-context-nonce');
@@ -1384,6 +1413,7 @@ class FixtureAuthorityPort implements ReleaseAuthorityPort {
   readonly identity = AUTHORITY_PORT_IDENTITY;
   readonly #input: ReleaseAdmissionInput;
   readonly #artifacts = new Map<string, unknown>();
+  readonly #immutableDiffs = new Map<string, AuthenticatedImmutableDiff>();
 
   constructor(input: ReleaseAdmissionInput) {
     this.#input = input;
@@ -1463,6 +1493,11 @@ class FixtureAuthorityPort implements ReleaseAuthorityPort {
         integrationAuthorityValue(input.integrationEvidence),
       );
     }
+    const fixture = input as FixtureReleaseAdmissionInput;
+    this.#immutableDiffs.set(
+      canonicalJson(fixture.authenticatedDiffSource),
+      fixture.authenticatedDiff,
+    );
   }
 
   resolveArtifact(ref: ImmutableArtifactRef) {
@@ -1575,7 +1610,8 @@ class FixtureAuthorityPort implements ReleaseAuthorityPort {
       securityFindings: input.securitySnapshot.findings,
       integrationEvidence: input.integrationEvidence,
       requiredChecks: input.requiredChecks,
-      immutableDiff: (input as FixtureReleaseAdmissionInput).authenticatedDiff,
+      immutableDiffSource:
+        (input as FixtureReleaseAdmissionInput).authenticatedDiffSource,
       publicationCommandEvidenceIds: commands.map((command_) => command_.evidenceId).sort(),
       humanDecisions,
       evidenceCommit: oid('authority-universe-evidence'),
@@ -1584,6 +1620,21 @@ class FixtureAuthorityPort implements ReleaseAuthorityPort {
     return {
       ...withoutDigest,
       universeDigest: selfDigest(withoutDigest, 'universeDigest'),
+    };
+  }
+
+  resolveImmutableDiff(source: ImmutableDiffArtifactRef) {
+    const diff = this.#immutableDiffs.get(canonicalJson(source));
+    if (diff === undefined) {
+      return null;
+    }
+    return {
+      source,
+      canonicalBytes: canonicalJson(diff),
+      diff,
+      producer: source.producer,
+      producerAuthorized: true as const,
+      authorizationEvidenceCommit: source.producer.authorizationCommit,
     };
   }
 
@@ -1677,27 +1728,16 @@ function bindFixtureCapability(
   authority: ReleaseAuthorityPort,
   mergePort: ReleasePullRequestMergePort,
 ): ReleaseExecutorCapability {
-  // The fixture authenticator models provisioned composition-root registrations with
-  // exact object identity. Copying either identity label onto another object is not an
-  // authentication event and cannot produce a capability.
-  const root = createReleaseExecutorCompositionRoot({
-    authenticateAuthorityPort(candidate) {
-      return candidate === authority ? AUTHORITY_PORT_IDENTITY : null;
-    },
-    authenticateMergePort(candidate) {
-      return candidate === mergePort ? MERGE_PORT_IDENTITY : null;
-    },
-    authenticateComposition(candidateAuthority, candidateMergePort) {
-      return candidateAuthority === authority && candidateMergePort === mergePort
-        ? RELEASE_CAPABILITY_BINDING
-        : null;
-    },
+  // Tests model the independently controlled host as a separate package. Application
+  // code receives only the one-shot issued capability and never supplies these ports.
+  const host = startReleaseExecutorRuntimeHost({
+    authority,
+    mergePort,
+    authorityIdentity: AUTHORITY_PORT_IDENTITY,
+    mergePortIdentity: MERGE_PORT_IDENTITY,
+    capabilityBinding: RELEASE_CAPABILITY_BINDING,
   });
-  const capability = root.bind(authority, mergePort);
-  if (capability === null) {
-    throw new Error('fixture composition root failed to bind trusted ports');
-  }
-  return capability;
+  return host.issueCapability();
 }
 
 /** Rebinds one fixture input to the exact callable broker used by execution tests. */
@@ -1754,6 +1794,7 @@ export function validScenario(
       baseOid: (overrides.base ?? validBaseRef()).oid,
       headOid: (overrides.pullRequest ?? validPullRequest()).headOid,
     });
+  const authenticatedDiffSource = immutableDiffSourceFor(authenticatedDiff);
 
   const skeleton: FixtureReleaseAdmissionInput = {
     executor: RELEASE_EXECUTOR,
@@ -1818,6 +1859,7 @@ export function validScenario(
     mergePort: null,
     capability: null,
     authenticatedDiff,
+    authenticatedDiffSource,
   };
 
   if (overrides.policyControlFacts !== undefined) {
@@ -1846,7 +1888,7 @@ export function validScenario(
     skeleton.pullRequest.headTreeOid,
     publishedHeadEvidenceDigest,
     requiredPolicyProfileDigest,
-    authenticatedDiff.evidenceDigest,
+    authenticatedDiffSource.digest,
   );
 
   const attestation = buildAttestation({
