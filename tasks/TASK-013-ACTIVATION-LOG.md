@@ -3130,7 +3130,7 @@ No gate closed. TASK-060 and TASK-061 are authorization to perform two independe
 
 ### Effects commit for ACT-032
 
-- Effects commit: `[PENDING_ACT_032_EFFECTS_COMMIT]`; a narrow binding commit replaces only this placeholder after the effects commit exists.
+- Effects commit: `6b019912c049fe6f2f2e13eef275674d782fb076`; this narrow binding records the already-created effects commit without adding an effect, ledger row, cursor movement, verdict, lifecycle transition, task creation, or gate action.
 - Branch: `agent/gpt/orchestrator/task-013`; base binding head: `6afb8e1ebcf36f43d25ac49e3561605443db0926`.
 - Scope: only `tasks/**`. No review or security report, implementation source, governance safeguard, settings file, architecture, workflow, policy, or credential state changed.
 
