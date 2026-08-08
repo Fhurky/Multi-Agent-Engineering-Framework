@@ -9,17 +9,80 @@ import {
   resolveReleaseExecutorCapability,
 } from '../composition-capability.ts';
 import type {
+  GitHubPolicyRuleRecord,
   ReleaseAuthorityPort,
   ReleasePullRequestMergePort,
+  TrustedCurrentPolicyAttestation,
 } from '../contracts.ts';
 import {
   AUTHORITY_PORT_IDENTITY,
   MERGE_PORT_IDENTITY,
   RELEASE_CAPABILITY_BINDING,
   authenticatedDiffFor,
+  excludedControlAction,
   oid,
+  resignAttestation,
   validScenario,
 } from './helpers/fixtures.ts';
+
+function signedPolicyMutation(
+  mutateRules: (rules: GitHubPolicyRuleRecord[]) => GitHubPolicyRuleRecord[],
+  mutateSource?: (
+    source: TrustedCurrentPolicyAttestation['policy']['policySources'][number],
+  ) => TrustedCurrentPolicyAttestation['policy']['policySources'][number],
+): ReturnType<typeof validScenario> {
+  const baseline = validScenario();
+  const observation = baseline.policyControlFacts.observation;
+  assert.equal(observation.state, 'current_valid');
+  if (observation.state !== 'current_valid') {
+    throw new Error('fixture attestation is not current');
+  }
+  const attestation = observation.attestation;
+  const policySources = attestation.policy.policySources.map((source) => {
+    if (source.sourcePolicyId !== 'repository-main') {
+      return source;
+    }
+    const mutated = mutateSource?.(source) ?? {
+      ...source,
+      rules: mutateRules([...source.rules]),
+    };
+    const withoutDigest = { ...mutated, responseDigest: '' };
+    return {
+      ...withoutDigest,
+      responseDigest: selfDigest(withoutDigest, 'responseDigest'),
+    };
+  });
+  const effectiveRules = policySources.flatMap((source) =>
+    source.rules.map((rule) => ({
+      rule,
+      sourcePolicyId: source.sourcePolicyId,
+      sourceLevel: source.sourceLevel,
+      effective: source.enforcement === 'active',
+    })),
+  );
+  const mutatedAttestation = resignAttestation({
+    ...attestation,
+    policy: {
+      ...attestation.policy,
+      policySources,
+      effectiveRules,
+      bypassActors: policySources
+        .filter((source) => source.enforcement === 'active')
+        .flatMap((source) => source.bypassActors),
+    },
+  });
+  return validScenario({
+    policyControlFacts: {
+      action: excludedControlAction(),
+      observation: { state: 'current_valid', attestation: mutatedAttestation },
+    },
+  });
+}
+
+function policyRefusalCode(input: ReturnType<typeof validScenario>): string {
+  const result = admit(input);
+  return result.status === 'refused' ? result.refusal.code : result.status;
+}
 
 test('F-061-01: same-identity resolver and merge objects cannot construct the nominal capability', () => {
   const scenario = validScenario();
@@ -222,4 +285,108 @@ test('F-061-02: rename and deletion paths are complete and ambiguity fails close
   if (ambiguousResult.status === 'refused') {
     assert.equal(ambiguousResult.refusal.code, 'SourceRecordInvalid');
   }
+});
+
+test('F-061-03: every missing HUMAN-004 branch control is rejected after signing', () => {
+  const requiredRuleTypes: GitHubPolicyRuleRecord['ruleType'][] = [
+    'pull_request',
+    'required_status_checks',
+    'enforce_admins',
+    'force_push',
+    'deletion',
+    'required_conversation_resolution',
+    'required_signatures',
+    'linear_history',
+  ];
+  for (const missing of requiredRuleTypes) {
+    const scenario = signedPolicyMutation((rules) =>
+      rules.filter((rule) => rule.ruleType !== missing),
+    );
+    assert.equal(policyRefusalCode(scenario), 'PolicyAttestationInvalid', missing);
+  }
+});
+
+test('F-061-03: every weakened HUMAN-004 control is rejected despite a copied profile digest', () => {
+  const mutations: readonly [string, (rule: GitHubPolicyRuleRecord) => GitHubPolicyRuleRecord][] = [
+    ['review_count', (rule) => rule.ruleType === 'pull_request'
+      ? { ...rule, parameters: { ...rule.parameters, requiredApprovingReviewCount: 0 } }
+      : rule],
+    ['dismiss_stale', (rule) => rule.ruleType === 'pull_request'
+      ? { ...rule, parameters: { ...rule.parameters, dismissStaleReviews: false } }
+      : rule],
+    ['code_owner', (rule) => rule.ruleType === 'pull_request'
+      ? { ...rule, parameters: { ...rule.parameters, requireCodeOwnerReview: false } }
+      : rule],
+    ['last_push', (rule) => rule.ruleType === 'pull_request'
+      ? { ...rule, parameters: { ...rule.parameters, requireLastPushApproval: false } }
+      : rule],
+    ['strict_base', (rule) => rule.ruleType === 'required_status_checks'
+      ? { ...rule, parameters: { ...rule.parameters, strict: false } }
+      : rule],
+    ['required_check_context', (rule) => rule.ruleType === 'required_status_checks'
+      ? { ...rule, parameters: { ...rule.parameters, contexts: [] } }
+      : rule],
+    ['administrators', (rule) => rule.ruleType === 'enforce_admins'
+      ? { ...rule, parameters: { enabled: false } }
+      : rule],
+    ['force_push', (rule) => rule.ruleType === 'force_push'
+      ? { ...rule, parameters: { allowed: true } }
+      : rule],
+    ['deletion', (rule) => rule.ruleType === 'deletion'
+      ? { ...rule, parameters: { allowed: true } }
+      : rule],
+    ['conversation', (rule) => rule.ruleType === 'required_conversation_resolution'
+      ? { ...rule, parameters: { required: false } }
+      : rule],
+    ['signatures', (rule) => rule.ruleType === 'required_signatures'
+      ? { ...rule, parameters: { required: false } }
+      : rule],
+    ['linear_history', (rule) => rule.ruleType === 'linear_history'
+      ? { ...rule, parameters: { required: true } }
+      : rule],
+  ];
+  for (const [label, mutate] of mutations) {
+    const scenario = signedPolicyMutation((rules) => rules.map(mutate));
+    assert.equal(policyRefusalCode(scenario), 'PolicyAttestationInvalid', label);
+  }
+});
+
+test('F-061-03: non-applicable and permission-redacted policy sources fail closed', () => {
+  const nonApplicable = signedPolicyMutation(
+    (rules) => rules,
+    (source) => ({
+      ...source,
+      conditions: {
+        refName: { include: ['refs/heads/release/*'], exclude: [] },
+        unknownConditions: [],
+      },
+    }),
+  );
+  assert.equal(policyRefusalCode(nonApplicable), 'PolicyAttestationInvalid');
+
+  const redacted = signedPolicyMutation(
+    (rules) => rules,
+    (source) => ({
+      ...source,
+      permissionRedactedFields: ['bypass_actors'],
+    }),
+  );
+  assert.equal(policyRefusalCode(redacted), 'PolicyAttestationInvalid');
+});
+
+test('F-061-03: a signed effective bypass actor cannot be hidden by the pinned digest', () => {
+  const bypass = signedPolicyMutation(
+    (rules) => rules,
+    (source) => ({
+      ...source,
+      bypassActors: [{
+        actorId: 999_001,
+        actorType: 'Integration',
+        bypassMode: 'always',
+        sourcePolicyId: source.sourcePolicyId,
+        sourceLevel: source.sourceLevel,
+      }],
+    }),
+  );
+  assert.equal(policyRefusalCode(bypass), 'PolicyAttestationInvalid');
 });

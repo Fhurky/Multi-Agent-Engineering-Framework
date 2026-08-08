@@ -386,6 +386,24 @@ export interface RequiredGitHubPolicyProfile {
   readonly executorApps: readonly ExecutorAppIdentity[];
   readonly observerPrincipalSetDigest: Sha256Hex;
   readonly mergeMethodsRequired: readonly string[];
+  readonly branchControls: RequiredBranchControlProfile;
+}
+
+/** Every HUMAN-004 branch semantic, including its complete review parameters. */
+export interface RequiredBranchControlProfile {
+  readonly updatesRequirePullRequest: true;
+  readonly strictCurrentBase: true;
+  readonly enforceAdministrators: true;
+  readonly forcePushAllowed: false;
+  readonly deletionAllowed: false;
+  readonly minimumApprovingReviewCount: number;
+  readonly dismissStaleReviews: true;
+  readonly requireCodeOwnerReview: true;
+  readonly requireLastPushApproval: true;
+  readonly requireConversationResolution: true;
+  readonly requireSignedCommits: true;
+  readonly linearHistoryRequired: false;
+  readonly effectiveBypassActors: 'none';
 }
 
 /** The seven immutable activation members, in their declared order. */
@@ -769,11 +787,18 @@ export interface CompleteGitHubPolicyPayload {
   /** The complete pinned observer principal set; its digest is compared, not claimed. */
   readonly observerPrincipals: readonly PolicyObserverPrincipal[];
   readonly issuerStatus: AttestorIssuerStatus;
-  /** Every page of every enumerated policy response was consumed. */
+  /** Supplemental aggregate assertion; detailed page proofs remain authoritative. */
   readonly paginationComplete: boolean;
-  /** Classic protection and every applicable ruleset were enumerated with parents. */
-  readonly rulesetEnumerationComplete: boolean;
-  readonly classicProtectionComplete: boolean;
+  /** Detailed enumeration proof; the validator never trusts a completeness Boolean. */
+  readonly enumeration: {
+    readonly classicProtectionSourceId: string;
+    readonly rulesetSourceLevels: readonly (
+      'repository' | 'organization' | 'enterprise'
+    )[];
+    readonly parentRulesetsIncluded: true;
+    readonly permissionRedactions: readonly string[];
+    readonly unknownPolicyKinds: readonly string[];
+  };
   readonly requiredCheckSources: readonly {
     readonly name: string;
     readonly appId: number;
@@ -785,7 +810,6 @@ export interface CompleteGitHubPolicyPayload {
   readonly executorAppsAbsentFromBypassSets: boolean;
   /** Unknown, redacted, or unrecognized response members make the payload incomplete. */
   readonly unknownPayloadMembers: readonly string[];
-  readonly effectiveControlEvaluationComplete: boolean;
   /** Enumerated classic protection and every applicable ruleset and effective rule. */
   readonly policySources: readonly GitHubPolicySourceRecord[];
   readonly effectiveRules: readonly GitHubEffectiveRuleRecord[];
@@ -797,9 +821,19 @@ export interface GitHubPolicySourceRecord {
   readonly parentPolicyId: string | null;
   readonly enforcement: 'active' | 'evaluate' | 'disabled';
   readonly version: string;
-  readonly conditions: Readonly<Record<string, string>>;
-  readonly rules: readonly string[];
+  readonly target: 'branch';
+  readonly conditions: {
+    readonly refName: {
+      readonly include: readonly string[];
+      readonly exclude: readonly string[];
+    };
+    readonly unknownConditions: readonly string[];
+  };
+  readonly rules: readonly GitHubPolicyRuleRecord[];
   readonly bypassActors: readonly PolicyBypassActor[];
+  readonly bypassActorsComplete: true;
+  readonly permissionRedactedFields: readonly string[];
+  readonly unknownFields: readonly string[];
   readonly page: number;
   readonly pageCount: number;
   readonly pages: readonly {
@@ -810,11 +844,64 @@ export interface GitHubPolicySourceRecord {
 }
 
 export interface GitHubEffectiveRuleRecord {
-  readonly rule: string;
+  readonly rule: GitHubPolicyRuleRecord;
   readonly sourcePolicyId: string;
   readonly sourceLevel: 'classic' | 'repository' | 'organization' | 'enterprise';
   readonly effective: boolean;
 }
+
+export type GitHubPolicyRuleRecord =
+  | {
+      readonly ruleType: 'pull_request';
+      readonly parameters: {
+        readonly requiredApprovingReviewCount: number;
+        readonly dismissStaleReviews: boolean;
+        readonly requireCodeOwnerReview: boolean;
+        readonly requireLastPushApproval: boolean;
+      };
+      readonly unknownFields: readonly string[];
+    }
+  | {
+      readonly ruleType: 'required_status_checks';
+      readonly parameters: {
+        readonly strict: boolean;
+        readonly contexts: readonly {
+          readonly name: string;
+          readonly appId: number;
+        }[];
+      };
+      readonly unknownFields: readonly string[];
+    }
+  | {
+      readonly ruleType: 'enforce_admins';
+      readonly parameters: { readonly enabled: boolean };
+      readonly unknownFields: readonly string[];
+    }
+  | {
+      readonly ruleType: 'force_push';
+      readonly parameters: { readonly allowed: boolean };
+      readonly unknownFields: readonly string[];
+    }
+  | {
+      readonly ruleType: 'deletion';
+      readonly parameters: { readonly allowed: boolean };
+      readonly unknownFields: readonly string[];
+    }
+  | {
+      readonly ruleType: 'required_conversation_resolution';
+      readonly parameters: { readonly required: boolean };
+      readonly unknownFields: readonly string[];
+    }
+  | {
+      readonly ruleType: 'required_signatures';
+      readonly parameters: { readonly required: boolean };
+      readonly unknownFields: readonly string[];
+    }
+  | {
+      readonly ruleType: 'linear_history';
+      readonly parameters: { readonly required: boolean };
+      readonly unknownFields: readonly string[];
+    };
 
 export interface TrustedCurrentPolicyAttestation {
   readonly schema: 'github-current-policy-attestation/v1';

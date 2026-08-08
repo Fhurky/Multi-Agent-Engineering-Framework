@@ -1431,6 +1431,7 @@ export function releaseAttestationExpectations(
       appId: context_.expectedAppId,
     })),
     expectedMergeMethods: profile.mergeMethodsRequired,
+    expectedRequiredPolicyProfile: profile,
     authority,
   };
 }
@@ -1526,6 +1527,28 @@ function requiredPolicyProfileDefect(value: unknown): string | null {
     !profile.mergeMethodsRequired.includes(RELEASE_MERGE_METHOD)
   ) {
     return 'profile_merge_methods_missing';
+  }
+  if (!isRecordObject(profile.branchControls)) {
+    return 'profile_branch_controls_missing';
+  }
+  const controls = profile.branchControls;
+  if (
+    controls.updatesRequirePullRequest !== true ||
+    controls.strictCurrentBase !== true ||
+    controls.enforceAdministrators !== true ||
+    controls.forcePushAllowed !== false ||
+    controls.deletionAllowed !== false ||
+    !Number.isSafeInteger(controls.minimumApprovingReviewCount) ||
+    controls.minimumApprovingReviewCount < 1 ||
+    controls.dismissStaleReviews !== true ||
+    controls.requireCodeOwnerReview !== true ||
+    controls.requireLastPushApproval !== true ||
+    controls.requireConversationResolution !== true ||
+    controls.requireSignedCommits !== true ||
+    controls.linearHistoryRequired !== false ||
+    controls.effectiveBypassActors !== 'none'
+  ) {
+    return 'profile_branch_controls_weakened_or_incomplete';
   }
   return null;
 }

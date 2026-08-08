@@ -31,6 +31,8 @@ import type {
   PolicyControlFacts,
   PolicyObserverPrincipal,
   ReleaseAuthorityPort,
+  RequiredGitHubPolicyProfile,
+  GitHubPolicyRuleRecord,
   Sha256Hex,
   TrustedCurrentPolicyAttestation,
 } from './contracts.ts';
@@ -293,6 +295,8 @@ export interface PolicyAttestationExpectations {
     readonly appId: number;
   }[];
   readonly expectedMergeMethods: readonly string[];
+  /** Full immutable profile used only as the comparison target for derivation. */
+  readonly expectedRequiredPolicyProfile: RequiredGitHubPolicyProfile;
   readonly authority: ReleaseAuthorityPort;
 }
 
@@ -367,6 +371,216 @@ function appsAbsentFromBypass(
     attestation.policy.bypassActors.map((actor) => actor.actorId),
   );
   return apps.every((app) => !bypassActorIds.has(app.appId));
+}
+
+function hasExactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  return actual.length === wanted.length &&
+    actual.every((key, index) => key === wanted[index]);
+}
+
+function textArrayValid(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every(
+    (item) => typeof item === 'string' && item.length > 0 &&
+      !hasControlCharacters(item),
+  );
+}
+
+function checkContextsValid(value: unknown): value is readonly {
+  readonly name: string;
+  readonly appId: number;
+}[] {
+  return Array.isArray(value) && value.length > 0 && value.every(
+    (context) => isRecordObject(context) &&
+      hasExactKeys(context, ['name', 'appId']) &&
+      typeof context.name === 'string' && context.name.length > 0 &&
+      !hasControlCharacters(context.name) &&
+      Number.isSafeInteger(context.appId) && (context.appId as number) > 0,
+  );
+}
+
+function policyRuleValid(value: unknown): value is GitHubPolicyRuleRecord {
+  if (
+    !isRecordObject(value) ||
+    !hasExactKeys(value, ['ruleType', 'parameters', 'unknownFields']) ||
+    !Array.isArray(value.unknownFields) || value.unknownFields.length !== 0 ||
+    !isRecordObject(value.parameters)
+  ) {
+    return false;
+  }
+  const parameters = value.parameters;
+  switch (value.ruleType) {
+    case 'pull_request':
+      return hasExactKeys(parameters, [
+        'requiredApprovingReviewCount',
+        'dismissStaleReviews',
+        'requireCodeOwnerReview',
+        'requireLastPushApproval',
+      ]) &&
+        Number.isSafeInteger(parameters.requiredApprovingReviewCount) &&
+        (parameters.requiredApprovingReviewCount as number) >= 0 &&
+        typeof parameters.dismissStaleReviews === 'boolean' &&
+        typeof parameters.requireCodeOwnerReview === 'boolean' &&
+        typeof parameters.requireLastPushApproval === 'boolean';
+    case 'required_status_checks':
+      return hasExactKeys(parameters, ['strict', 'contexts']) &&
+        typeof parameters.strict === 'boolean' &&
+        checkContextsValid(parameters.contexts);
+    case 'enforce_admins':
+      return hasExactKeys(parameters, ['enabled']) &&
+        typeof parameters.enabled === 'boolean';
+    case 'force_push':
+    case 'deletion':
+      return hasExactKeys(parameters, ['allowed']) &&
+        typeof parameters.allowed === 'boolean';
+    case 'required_conversation_resolution':
+    case 'required_signatures':
+    case 'linear_history':
+      return hasExactKeys(parameters, ['required']) &&
+        typeof parameters.required === 'boolean';
+    default:
+      return false;
+  }
+}
+
+function policySourceApplicability(
+  source: TrustedCurrentPolicyAttestation['policy']['policySources'][number],
+  protectedRef: 'refs/heads/main',
+): boolean | null {
+  const include = source.conditions.refName.include;
+  const exclude = source.conditions.refName.exclude;
+  const supported = new Set([protectedRef, '~DEFAULT_BRANCH']);
+  if (
+    include.some((pattern) => !supported.has(pattern)) ||
+    exclude.some((pattern) => !supported.has(pattern))
+  ) {
+    return null;
+  }
+  const included = include.includes(protectedRef) || include.includes('~DEFAULT_BRANCH');
+  const excluded = exclude.includes(protectedRef) || exclude.includes('~DEFAULT_BRANCH');
+  return included && !excluded;
+}
+
+/**
+ * Derives the normalized effective profile from signed enumerated source rules. No
+ * attestor-declared completeness or effective digest participates in this reduction.
+ */
+export function deriveEffectivePolicyProfile(
+  attestation: TrustedCurrentPolicyAttestation,
+  expectations: PolicyAttestationExpectations,
+): RequiredGitHubPolicyProfile | null {
+  const effectiveSources = [] as typeof attestation.policy.policySources[number][];
+  for (const source of attestation.policy.policySources) {
+    const applies = policySourceApplicability(source, expectations.protectedRef);
+    if (applies === null) {
+      return null;
+    }
+    if (source.enforcement === 'active' && applies) {
+      effectiveSources.push(source);
+    }
+  }
+
+  const rules = effectiveSources.flatMap((source) => source.rules);
+  const pullRequests = rules.filter((rule) => rule.ruleType === 'pull_request');
+  const checks = rules.filter((rule) => rule.ruleType === 'required_status_checks');
+  const administrators = rules.filter((rule) => rule.ruleType === 'enforce_admins');
+  const forcePush = rules.filter((rule) => rule.ruleType === 'force_push');
+  const deletion = rules.filter((rule) => rule.ruleType === 'deletion');
+  const conversations = rules.filter(
+    (rule) => rule.ruleType === 'required_conversation_resolution',
+  );
+  const signatures = rules.filter((rule) => rule.ruleType === 'required_signatures');
+  const linearHistory = rules.filter((rule) => rule.ruleType === 'linear_history');
+
+  // HUMAN-004 requires a complete control observation, including controls whose
+  // secure value is `false`. Absence must not be interpreted as an equivalent
+  // disabled value because that would let an omitted linear-history observation
+  // authenticate as the required profile.
+  if (
+    pullRequests.length === 0 ||
+    checks.length === 0 ||
+    administrators.length === 0 ||
+    forcePush.length === 0 ||
+    deletion.length === 0 ||
+    conversations.length === 0 ||
+    signatures.length === 0 ||
+    linearHistory.length === 0
+  ) {
+    return null;
+  }
+
+  const requiredCheckContexts = checks
+    .flatMap((rule) => rule.parameters.contexts)
+    .map((context) => ({ name: context.name, expectedAppId: context.appId }))
+    .sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : left.expectedAppId - right.expectedAppId)
+    .filter((context, index, all) =>
+      index === 0 || canonicalJson(context) !== canonicalJson(all[index - 1]),
+    );
+  const bypassActors = effectiveSources.flatMap((source) => source.bypassActors);
+
+  return {
+    schema: 'required-github-policy-profile/v1',
+    repositoryId: expectations.expectedRequiredPolicyProfile.repositoryId,
+    protectedRef: expectations.protectedRef,
+    requiredCheckContexts,
+    // Release gates are not GitHub policy observations. They remain immutable inputs
+    // from the pinned profile while every GitHub control below is source-derived.
+    releaseGateRequirements:
+      expectations.expectedRequiredPolicyProfile.releaseGateRequirements,
+    executorApps: attestation.policy.executorApps,
+    observerPrincipalSetDigest: observerPrincipalSetDigest(
+      attestation.policy.observerPrincipals,
+    ),
+    mergeMethodsRequired: expectations.expectedMergeMethods.filter((method) =>
+      attestation.policy.mergeMethodsConfigured.includes(method),
+    ),
+    branchControls: {
+      updatesRequirePullRequest: (pullRequests.length > 0) as true,
+      strictCurrentBase: (
+        checks.length > 0 && checks.every((rule) => rule.parameters.strict)
+      ) as true,
+      enforceAdministrators: (
+        administrators.length > 0 &&
+        administrators.every((rule) => rule.parameters.enabled)
+      ) as true,
+      forcePushAllowed: (
+        forcePush.length === 0 || forcePush.some((rule) => rule.parameters.allowed)
+      ) as false,
+      deletionAllowed: (
+        deletion.length === 0 || deletion.some((rule) => rule.parameters.allowed)
+      ) as false,
+      minimumApprovingReviewCount: pullRequests.reduce(
+        (maximum, rule) =>
+          Math.max(maximum, rule.parameters.requiredApprovingReviewCount),
+        0,
+      ),
+      dismissStaleReviews: (
+        pullRequests.length > 0 &&
+        pullRequests.every((rule) => rule.parameters.dismissStaleReviews)
+      ) as true,
+      requireCodeOwnerReview: (
+        pullRequests.length > 0 &&
+        pullRequests.every((rule) => rule.parameters.requireCodeOwnerReview)
+      ) as true,
+      requireLastPushApproval: (
+        pullRequests.length > 0 &&
+        pullRequests.every((rule) => rule.parameters.requireLastPushApproval)
+      ) as true,
+      requireConversationResolution: (
+        conversations.length > 0 &&
+        conversations.every((rule) => rule.parameters.required)
+      ) as true,
+      requireSignedCommits: (
+        signatures.length > 0 &&
+        signatures.every((rule) => rule.parameters.required)
+      ) as true,
+      linearHistoryRequired: linearHistory.some(
+        (rule) => rule.parameters.required,
+      ) as false,
+      effectiveBypassActors: (bypassActors.length === 0 ? 'none' : 'present') as 'none',
+    },
+  };
 }
 
 /**
@@ -524,12 +738,6 @@ export function normalizePolicyAttestation(
     return invalid('digest');
   }
   if (
-    attestation.effectivePolicyProfileDigest !==
-    expectations.requiredPolicyProfileDigest
-  ) {
-    return invalid('digest');
-  }
-  if (
     !isSha256Hex(attestation.canonicalPayloadDigest) ||
     attestationPayloadDigest(attestation) !== attestation.canonicalPayloadDigest
   ) {
@@ -537,16 +745,47 @@ export function normalizePolicyAttestation(
   }
 
   const policy = attestation.policy;
-  if (!isRecordObject(policy)) {
+  if (
+    !isRecordObject(policy) ||
+    !hasExactKeys(policy, [
+      'bypassActorsComplete',
+      'bypassActors',
+      'observerPrincipals',
+      'issuerStatus',
+      'paginationComplete',
+      'enumeration',
+      'requiredCheckSources',
+      'mergeMethodsConfigured',
+      'executorApps',
+      'observerPrincipalSetDigest',
+      'executorAppsAbsentFromBypassSets',
+      'unknownPayloadMembers',
+      'policySources',
+      'effectiveRules',
+    ])
+  ) {
     return invalid('completeness');
   }
-  if (policy.classicProtectionComplete !== true) {
-    return invalid('completeness');
-  }
-  if (policy.rulesetEnumerationComplete !== true) {
-    return invalid('completeness');
-  }
-  if (policy.effectiveControlEvaluationComplete !== true) {
+  if (
+    !isRecordObject(policy.enumeration) ||
+    !hasExactKeys(policy.enumeration, [
+      'classicProtectionSourceId',
+      'rulesetSourceLevels',
+      'parentRulesetsIncluded',
+      'permissionRedactions',
+      'unknownPolicyKinds',
+    ]) ||
+    typeof policy.enumeration.classicProtectionSourceId !== 'string' ||
+    policy.enumeration.classicProtectionSourceId.length === 0 ||
+    !Array.isArray(policy.enumeration.rulesetSourceLevels) ||
+    canonicalJson([...policy.enumeration.rulesetSourceLevels].sort()) !==
+      canonicalJson(['enterprise', 'organization', 'repository']) ||
+    policy.enumeration.parentRulesetsIncluded !== true ||
+    !Array.isArray(policy.enumeration.permissionRedactions) ||
+    policy.enumeration.permissionRedactions.length !== 0 ||
+    !Array.isArray(policy.enumeration.unknownPolicyKinds) ||
+    policy.enumeration.unknownPolicyKinds.length !== 0
+  ) {
     return invalid('completeness');
   }
   if (
@@ -567,6 +806,24 @@ export function normalizePolicyAttestation(
   for (const source of policy.policySources) {
     if (
       !isRecordObject(source) ||
+      !hasExactKeys(source, [
+        'sourceLevel',
+        'sourcePolicyId',
+        'parentPolicyId',
+        'enforcement',
+        'version',
+        'target',
+        'conditions',
+        'rules',
+        'bypassActors',
+        'bypassActorsComplete',
+        'permissionRedactedFields',
+        'unknownFields',
+        'page',
+        'pageCount',
+        'pages',
+        'responseDigest',
+      ]) ||
       !validLevels.has(source.sourceLevel) ||
       typeof source.sourcePolicyId !== 'string' ||
       source.sourcePolicyId === '' ||
@@ -580,12 +837,25 @@ export function normalizePolicyAttestation(
       typeof source.version !== 'string' ||
       source.version === '' ||
       hasControlCharacters(source.version) ||
+      source.target !== 'branch' ||
       !isRecordObject(source.conditions) ||
-      !Array.isArray(source.rules) ||
-      source.rules.some(
-        (rule) => typeof rule !== 'string' || hasControlCharacters(rule),
+      !hasExactKeys(source.conditions, ['refName', 'unknownConditions']) ||
+      !isRecordObject(source.conditions.refName) ||
+      !hasExactKeys(source.conditions.refName, ['include', 'exclude']) ||
+      !textArrayValid(source.conditions.refName.include) ||
+      !Array.isArray(source.conditions.refName.exclude) ||
+      !source.conditions.refName.exclude.every(
+        (pattern) => typeof pattern === 'string' && !hasControlCharacters(pattern),
       ) ||
+      !Array.isArray(source.conditions.unknownConditions) ||
+      source.conditions.unknownConditions.length !== 0 ||
+      !Array.isArray(source.rules) ||
+      source.rules.some((rule) => !policyRuleValid(rule)) ||
       !Array.isArray(source.bypassActors) ||
+      source.bypassActorsComplete !== true ||
+      !Array.isArray(source.permissionRedactedFields) ||
+      source.permissionRedactedFields.length !== 0 ||
+      !Array.isArray(source.unknownFields) || source.unknownFields.length !== 0 ||
       !Number.isSafeInteger(source.page) ||
       !Number.isSafeInteger(source.pageCount) ||
       source.page < 1 ||
@@ -595,6 +865,7 @@ export function normalizePolicyAttestation(
       source.pages.some(
         (page, index) =>
           !isRecordObject(page) ||
+          !hasExactKeys(page, ['page', 'responseDigest']) ||
           page.page !== index + 1 ||
           !isSha256Hex(page.responseDigest),
       ) ||
@@ -607,6 +878,13 @@ export function normalizePolicyAttestation(
     seenLevels.add(source.sourceLevel);
   }
   if ([...validLevels].some((level) => !seenLevels.has(level))) {
+    return invalid('completeness');
+  }
+  const classic = policy.policySources.find(
+    (source) => source.sourceLevel === 'classic' &&
+      source.sourcePolicyId === policy.enumeration.classicProtectionSourceId,
+  );
+  if (classic === undefined) {
     return invalid('completeness');
   }
   for (const source of policy.policySources) {
@@ -634,7 +912,18 @@ export function normalizePolicyAttestation(
   ) {
     return invalid('completeness');
   }
-  const derivedBypassActors = policy.policySources
+  const effectiveSources = policy.policySources.filter((source) =>
+    source.enforcement === 'active' &&
+    policySourceApplicability(source, expectations.protectedRef) === true,
+  );
+  if (
+    policy.policySources.some(
+      (source) => policySourceApplicability(source, expectations.protectedRef) === null,
+    )
+  ) {
+    return invalid('completeness');
+  }
+  const derivedBypassActors = effectiveSources
     .flatMap((source) => source.bypassActors)
     .sort((left, right) => canonicalJson(left).localeCompare(canonicalJson(right)));
   if (
@@ -723,6 +1012,19 @@ export function normalizePolicyAttestation(
     // The release pull request needs an ordinary merge commit; an executor cannot
     // change either the repository merge method or a linear-history rule.
     return invalid('completeness');
+  }
+  const derivedEffectiveProfile = deriveEffectivePolicyProfile(
+    attestation,
+    expectations,
+  );
+  if (
+    derivedEffectiveProfile === null ||
+    sha256Canonical(derivedEffectiveProfile) !==
+      expectations.requiredPolicyProfileDigest ||
+    sha256Canonical(derivedEffectiveProfile) !==
+      attestation.effectivePolicyProfileDigest
+  ) {
+    return invalid('digest');
   }
   const issuerStatus = expectations.authority.resolveIssuerStatus(
     issuer.authorityId,

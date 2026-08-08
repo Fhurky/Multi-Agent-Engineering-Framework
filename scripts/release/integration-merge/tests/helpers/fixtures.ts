@@ -49,6 +49,7 @@ import type {
   ControlPostPublicationEvidence,
   ExecutorAppIdentity,
   GitOid,
+  GitHubPolicyRuleRecord,
   ImmutableAggregateGateSnapshot,
   ImmutableArtifactRef,
   ImmutableHumanDecisionRef,
@@ -353,6 +354,21 @@ export function validRequiredPolicyProfile(): RequiredGitHubPolicyProfile {
     executorApps: EXECUTOR_APPS,
     observerPrincipalSetDigest: OBSERVER_PRINCIPAL_SET_DIGEST,
     mergeMethodsRequired: [RELEASE_MERGE_METHOD],
+    branchControls: {
+      updatesRequirePullRequest: true,
+      strictCurrentBase: true,
+      enforceAdministrators: true,
+      forcePushAllowed: false,
+      deletionAllowed: false,
+      minimumApprovingReviewCount: 1,
+      dismissStaleReviews: true,
+      requireCodeOwnerReview: true,
+      requireLastPushApproval: true,
+      requireConversationResolution: true,
+      requireSignedCommits: true,
+      linearHistoryRequired: false,
+      effectiveBypassActors: 'none',
+    },
   };
 }
 
@@ -1093,7 +1109,7 @@ export function buildAttestation(
     sourcePolicyId: string,
     parentPolicyId: string | null,
     enforcement: 'active' | 'evaluate' | 'disabled',
-    rules: readonly string[],
+    rules: readonly GitHubPolicyRuleRecord[],
   ) => {
     const withoutDigest = {
       sourceLevel,
@@ -1101,9 +1117,16 @@ export function buildAttestation(
       parentPolicyId,
       enforcement,
       version: 'fixture-v1',
-      conditions: { ref: RELEASE_BASE_REF },
+      target: 'branch' as const,
+      conditions: {
+        refName: { include: [RELEASE_BASE_REF], exclude: [] },
+        unknownConditions: [],
+      },
       rules,
       bypassActors: [],
+      bypassActorsComplete: true as const,
+      permissionRedactedFields: [],
+      unknownFields: [],
       page: 1,
       pageCount: 1,
       pages: [{ page: 1, responseDigest: digest(`${sourcePolicyId}-page-1`) }],
@@ -1111,10 +1134,50 @@ export function buildAttestation(
     return { ...withoutDigest, responseDigest: sha256Canonical(withoutDigest) };
   };
   const policySources = [
-    policySource('classic', 'classic-main', null, 'active', ['required_checks']),
+    policySource('classic', 'classic-main', null, 'active', []),
     policySource('enterprise', 'enterprise-parent', null, 'disabled', []),
-    policySource('organization', 'organization-parent', 'enterprise-parent', 'evaluate', ['signed_commits']),
-    policySource('repository', 'repository-main', 'organization-parent', 'active', ['pull_request', 'required_checks']),
+    policySource('organization', 'organization-parent', 'enterprise-parent', 'evaluate', []),
+    policySource('repository', 'repository-main', 'organization-parent', 'active', [
+      {
+        ruleType: 'pull_request',
+        parameters: {
+          requiredApprovingReviewCount: 1,
+          dismissStaleReviews: true,
+          requireCodeOwnerReview: true,
+          requireLastPushApproval: true,
+        },
+        unknownFields: [],
+      },
+      {
+        ruleType: 'required_status_checks',
+        parameters: {
+          strict: true,
+          contexts: REQUIRED_CHECK_CONTEXTS.map((context) => ({
+            name: context.name,
+            appId: context.expectedAppId,
+          })),
+        },
+        unknownFields: [],
+      },
+      { ruleType: 'enforce_admins', parameters: { enabled: true }, unknownFields: [] },
+      { ruleType: 'force_push', parameters: { allowed: false }, unknownFields: [] },
+      { ruleType: 'deletion', parameters: { allowed: false }, unknownFields: [] },
+      {
+        ruleType: 'required_conversation_resolution',
+        parameters: { required: true },
+        unknownFields: [],
+      },
+      {
+        ruleType: 'required_signatures',
+        parameters: { required: true },
+        unknownFields: [],
+      },
+      {
+        ruleType: 'linear_history',
+        parameters: { required: false },
+        unknownFields: [],
+      },
+    ]),
   ];
   const effectiveRules = policySources.flatMap((source) =>
     source.rules.map((rule) => ({
@@ -1138,8 +1201,13 @@ export function buildAttestation(
       observedAtUtc: isoAt(observedAt + 1_000),
     },
     paginationComplete: true,
-    rulesetEnumerationComplete: true,
-    classicProtectionComplete: true,
+    enumeration: {
+      classicProtectionSourceId: 'classic-main',
+      rulesetSourceLevels: ['repository', 'organization', 'enterprise'],
+      parentRulesetsIncluded: true,
+      permissionRedactions: [],
+      unknownPolicyKinds: [],
+    },
     requiredCheckSources: REQUIRED_CHECK_CONTEXTS.map((context) => ({
       name: context.name,
       appId: context.expectedAppId,
@@ -1149,7 +1217,6 @@ export function buildAttestation(
     observerPrincipalSetDigest: OBSERVER_PRINCIPAL_SET_DIGEST,
     executorAppsAbsentFromBypassSets: true,
     unknownPayloadMembers: [],
-    effectiveControlEvaluationComplete: true,
     policySources,
     effectiveRules,
   };

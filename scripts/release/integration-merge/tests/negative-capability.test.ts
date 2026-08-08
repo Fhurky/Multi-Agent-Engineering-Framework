@@ -93,12 +93,15 @@ const PROHIBITED: readonly Prohibition[] = [
   { capability: 'process spawn', pattern: /node:child_process\b|\bspawn(Sync)?\s*\(|\bexecFile\s*\(|\bexecSync\s*\(/ },
   { capability: 'git command invocation', pattern: /['"`]git['"`]|\bgit\s+(push|merge|commit|update-ref|checkout|reset)\b/ },
   { capability: 'gh CLI invocation', pattern: /['"`]gh['"`]|\bgh\s+(pr|api|repo)\b/ },
-  { capability: 'git push', pattern: /git\s*push|pushRef|forcePush|--force\b|\+refs\// },
+  // Passive signed policy fields such as `forcePushAllowed` are required evidence,
+  // not mutation capabilities. Match callable ref operations and command syntax.
+  { capability: 'git push', pattern: /git\s*push|\b(?:pushRef|forcePush)\s*\(|--force\b|\+refs\// },
   { capability: 'git ref update', pattern: /updateRef|createRef|deleteRef|refs\/heads\/\$\{/ },
   { capability: 'hook bypass', pattern: /--no-verify|noVerify|skipHooks|bypassHook/ },
   { capability: 'ALLOW_MAIN_PUSH', pattern: /ALLOW_MAIN_PUSH/ },
   { capability: 'environment access', pattern: /process\.env|node:process\b|getenv/ },
-  { capability: 'administrator override', pattern: /adminOverride|administratorOverride|enforce_admins|asAdministrator/ },
+  // `enforce_admins` is a required observed protection rule, not an override API.
+  { capability: 'administrator override', pattern: /\b(?:adminOverride|administratorOverride|asAdministrator)\s*\(/ },
   { capability: 'branch-protection mutation', pattern: /updateBranchProtection|setBranchProtection|deleteBranchProtection/ },
   { capability: 'ruleset mutation', pattern: /createRuleset|updateRuleset|deleteRuleset|setRuleset/ },
   { capability: 'bypass-actor mutation', pattern: /addBypassActor|setBypassActors|updateBypassActors/ },
