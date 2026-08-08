@@ -3123,6 +3123,12 @@ PRs 46, 44, 37, and 33 remain open and unmerged. ACT-036 performed, requested, a
 
 The ACT-036 effects commit is authored over exact Orchestrator binding head `9a6cbcbf50d14ebb0528e2c4f2ea59fc50b53eac` and changes only `tasks/**`. It carries ledger row 50, cursor advance, the TASK-063 lifecycle and atomic verdict, two new tasks, five new relation pairs, current graph revision, and handoffs atomically. The commit cannot contain its own identifier; one binding-only follow-up records the exact effects commit without adding an effect, row, cursor movement, verdict, transition, task, finding, or gate action.
 
+### Effects commit for ACT-036
+
+- Effects commit: `dc51b0583da6e8fbd8b11f8b63f57e955b61fb29`; this binding-only follow-up records the exact immutable ACT-036 effects commit.
+- Branch: `agent/gpt/orchestrator/task-013`; base binding head: `9a6cbcbf50d14ebb0528e2c4f2ea59fc50b53eac`.
+- Scope: only `tasks/**`; this binding commit carries no ledger row, cursor movement, verdict, lifecycle transition, task creation, finding disposition, or gate action.
+
 ## Activation ACT-035
 
 - **Role:** `orchestrator` / `gpt`
