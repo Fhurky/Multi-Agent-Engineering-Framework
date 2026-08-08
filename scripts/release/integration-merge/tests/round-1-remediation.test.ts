@@ -19,7 +19,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { admit, computeAdmissionContext } from '../admission.ts';
+import { admit, computeAdmissionContext } from './helpers/admission.ts';
 import { execute } from '../execute.ts';
 import { validateActivation } from '../activation.ts';
 import { validateReleaseLineage } from '../release-lineage.ts';
@@ -62,6 +62,7 @@ import {
   gateSnapshotOf,
   initialTreeFor,
   inventoryFor,
+  isoAt,
   irreversibleAuthorizationFor,
   oid,
   preMutationFacts,
@@ -616,7 +617,7 @@ test('F-054-03: a fabricated gate snapshot refuses even when its own digest is r
       gateSnapshotOf(relations).snapshotDigest,
     ),
   };
-  assert.equal(admitWithNoSideEffect(fabricated), 'PolicyAttestationInvalid');
+  assert.equal(admitWithNoSideEffect(fabricated), 'SourceRecordInvalid');
 });
 
 test('F-054-03: a gate snapshot whose declared digest is not over its own relations refuses', () => {
@@ -1213,6 +1214,12 @@ test('F-054-06: a store-issued terminal record naming another plan is rejected',
 test('F-053-06: the attempt count survives a fresh process', async () => {
   const first = buildHarness();
   // A previous process recorded the whole attempt budget and then died.
+  await first.store.recordRetrySequence(
+    first.plan.idempotencyKey,
+    sha256Canonical(first.plan),
+    isoAt(0),
+    isoAt(120_000),
+  );
   first.store.attempts.set(first.plan.idempotencyKey, 3);
 
   const second = buildHarness({ store: first.store });
@@ -1228,6 +1235,12 @@ test('F-053-06: the attempt count survives a fresh process', async () => {
 
 test('F-053-06: a partly consumed budget leaves only the remaining attempts', async () => {
   const first = buildHarness();
+  await first.store.recordRetrySequence(
+    first.plan.idempotencyKey,
+    sha256Canonical(first.plan),
+    isoAt(0),
+    isoAt(120_000),
+  );
   first.store.attempts.set(first.plan.idempotencyKey, 2);
 
   const second = buildHarness({
@@ -1303,6 +1316,8 @@ test('F-054-06: an unauthenticated policy-authorization receipt refuses', async 
       ...store,
       recordIntent: store.recordIntent.bind(store),
       verifyIntent: store.verifyIntent.bind(store),
+      recordRetrySequence: store.recordRetrySequence.bind(store),
+      verifyRetrySequence: store.verifyRetrySequence.bind(store),
       recordAttempt: store.recordAttempt.bind(store),
       recordPolicyAuthorization: async (key: string, attestation: never) => ({
         ...(await store.recordPolicyAuthorization(key, attestation)),

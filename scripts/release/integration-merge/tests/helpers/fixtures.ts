@@ -20,6 +20,8 @@ import {
 } from '../../admission.ts';
 import {
   canonicalBytes,
+  canonicalJson,
+  omitTopLevel,
   selfDigest,
   sha256Bytes,
   sha256Canonical,
@@ -56,6 +58,7 @@ import type {
   PolicyObserverPrincipal,
   PublishedHeadCommandEvidence,
   ReleaseAdmissionInput,
+  ReleaseAuthorityPort,
   ReleaseGateManifest,
   ReleaseGateRequirement,
   ReleaseIntegrationInventoryEntry,
@@ -181,7 +184,11 @@ export function artifactRef(label: string): ImmutableArtifactRef {
 export function provenancedRef(
   kind: string,
   label: string,
-  digestValue: Sha256Hex = digest(`artifact-${label}`),
+  digestValue: Sha256Hex = sha256Canonical({
+    schema: 'fixture-authority-artifact/v1',
+    kind,
+    label,
+  }),
 ): ImmutableProvenancedArtifactRef {
   return {
     kind,
@@ -207,14 +214,26 @@ export const EXECUTOR_APPS: readonly ExecutorAppIdentity[] = Object.freeze([
     installationId: 1111,
     nodeId: 'A_task_integration',
     slug: 'task-integration-executor',
-    permissions: { contents: 'write', pull_requests: 'read', checks: 'read' },
+    permissions: {
+      contents: 'write',
+      pull_requests: 'read',
+      checks: 'read',
+      commit_statuses: 'read',
+      metadata: 'read',
+    },
   },
   {
     appId: 222,
     installationId: 2222,
     nodeId: 'A_release_main',
     slug: 'release-merge-executor',
-    permissions: { contents: 'write', pull_requests: 'read', checks: 'read' },
+    permissions: {
+      contents: 'write',
+      pull_requests: 'read',
+      checks: 'read',
+      commit_statuses: 'read',
+      metadata: 'read',
+    },
   },
 ]);
 
@@ -296,6 +315,11 @@ export const MERGE_PORT_IDENTITY = Object.freeze({
   portIdentityDigest: digest('release-merge-port-identity'),
 });
 
+export const AUTHORITY_PORT_IDENTITY = Object.freeze({
+  resolverId: 'immutable-release-authority-resolver',
+  resolverIdentityDigest: digest('immutable-release-authority-resolver'),
+});
+
 /* ------------------------------------------------------------------------- *
  * Activation record
  * ------------------------------------------------------------------------- */
@@ -315,8 +339,8 @@ export function validActivationRecord(): MergeExecutorActivationRecord {
       lineage: 'LIN-INTEGRATION-AUTHORITY-REVIEW',
       lineageRound: 3,
       gate: 'review' as const,
-      targetCommit: oid('approved-architecture-source'),
-      verdictCommit: oid('architecture-review-verdict'),
+      targetCommit: 'f148567d716c00d7a24783318c8d6d7031492e7b',
+      verdictCommit: '78359ae2e3dc6e97fb3d60f0b847b84abed08fa6',
       verdictState: 'passing' as const,
       producedByExecutor: false,
       producer: {
@@ -328,7 +352,7 @@ export function validActivationRecord(): MergeExecutorActivationRecord {
     implementationReview: {
       member: 'implementationReview' as const,
       lineage: 'LIN-RELEASE-EXECUTOR-REVIEW',
-      lineageRound: 2,
+      lineageRound: 3,
       gate: 'review' as const,
       targetCommit: oid('release-executor-implementation'),
       verdictCommit: oid('implementation-review-verdict'),
@@ -343,7 +367,7 @@ export function validActivationRecord(): MergeExecutorActivationRecord {
     implementationSecurityReview: {
       member: 'implementationSecurityReview' as const,
       lineage: 'LIN-RELEASE-EXECUTOR-SECURITY',
-      lineageRound: 2,
+      lineageRound: 3,
       gate: 'security' as const,
       targetCommit: oid('release-executor-implementation'),
       verdictCommit: oid('implementation-security-verdict'),
@@ -358,6 +382,7 @@ export function validActivationRecord(): MergeExecutorActivationRecord {
     negativeCapabilityTestAttestation: {
       ...provenancedRef('negative-capability-test-attestation', 'negative-capability'),
       attestedMergePortIdentity: MERGE_PORT_IDENTITY,
+      attestedAuthorityPortIdentity: AUTHORITY_PORT_IDENTITY,
     },
     gateVocabularyCorrection: provenancedRef(
       'gate-vocabulary-correction',
@@ -988,6 +1013,72 @@ export function buildAttestation(
   const apps = options.executorApps ?? EXECUTOR_APPS;
   const label = options.signatureLabel ?? options.phase ?? 'pre_intent';
 
+  const policySource = (
+    sourceLevel: 'classic' | 'repository' | 'organization' | 'enterprise',
+    sourcePolicyId: string,
+    parentPolicyId: string | null,
+    enforcement: 'active' | 'evaluate' | 'disabled',
+    rules: readonly string[],
+  ) => {
+    const withoutDigest = {
+      sourceLevel,
+      sourcePolicyId,
+      parentPolicyId,
+      enforcement,
+      version: 'fixture-v1',
+      conditions: { ref: RELEASE_BASE_REF },
+      rules,
+      bypassActors: [],
+      page: 1,
+      pageCount: 1,
+      pages: [{ page: 1, responseDigest: digest(`${sourcePolicyId}-page-1`) }],
+    };
+    return { ...withoutDigest, responseDigest: sha256Canonical(withoutDigest) };
+  };
+  const policySources = [
+    policySource('classic', 'classic-main', null, 'active', ['required_checks']),
+    policySource('enterprise', 'enterprise-parent', null, 'disabled', []),
+    policySource('organization', 'organization-parent', 'enterprise-parent', 'evaluate', ['signed_commits']),
+    policySource('repository', 'repository-main', 'organization-parent', 'active', ['pull_request', 'required_checks']),
+  ];
+  const effectiveRules = policySources.flatMap((source) =>
+    source.rules.map((rule) => ({
+      rule,
+      sourcePolicyId: source.sourcePolicyId,
+      sourceLevel: source.sourceLevel,
+      effective: source.enforcement === 'active',
+    })),
+  );
+  const policy = {
+    bypassActorsComplete: true,
+    bypassActors: [],
+    observerPrincipals: OBSERVER_PRINCIPALS,
+    issuerStatus: {
+      channelId: 'revocation-channel-1',
+      authorityId: 'repository-policy-attestor',
+      keyId: 'key-1',
+      publicKeyDigest: ATTESTOR_PUBLIC_KEY_DIGEST,
+      state: options.issuerStatusState ?? ('active' as const),
+      policyGeneration,
+      observedAtUtc: isoAt(observedAt + 1_000),
+    },
+    paginationComplete: true,
+    rulesetEnumerationComplete: true,
+    classicProtectionComplete: true,
+    requiredCheckSources: REQUIRED_CHECK_CONTEXTS.map((context) => ({
+      name: context.name,
+      appId: context.expectedAppId,
+    })),
+    mergeMethodsConfigured: ['merge', 'squash'],
+    executorApps: apps,
+    observerPrincipalSetDigest: OBSERVER_PRINCIPAL_SET_DIGEST,
+    executorAppsAbsentFromBypassSets: true,
+    unknownPayloadMembers: [],
+    effectiveControlEvaluationComplete: true,
+    policySources,
+    effectiveRules,
+  };
+
   const withoutDigest = {
     schema: 'github-current-policy-attestation/v1' as const,
     issuer: {
@@ -1016,39 +1107,14 @@ export function buildAttestation(
       authorizationPhase: options.phase ?? ('pre_intent' as const),
       executorApps: apps,
     },
-    policy: {
-      bypassActorsComplete: true,
-      bypassActors: [],
-      observerPrincipals: OBSERVER_PRINCIPALS,
-      issuerStatus: {
-        channelId: 'revocation-channel-1',
-        authorityId: 'repository-policy-attestor',
-        keyId: 'key-1',
-        publicKeyDigest: ATTESTOR_PUBLIC_KEY_DIGEST,
-        state: options.issuerStatusState ?? ('active' as const),
-        policyGeneration,
-        observedAtUtc: isoAt(observedAt + 1_000),
-      },
-      paginationComplete: true,
-      rulesetEnumerationComplete: true,
-      classicProtectionComplete: true,
-      requiredCheckSources: REQUIRED_CHECK_CONTEXTS.map((context) => ({
-        name: context.name,
-        appId: context.expectedAppId,
-      })),
-      mergeMethodsConfigured: ['merge', 'squash'],
-      executorApps: apps,
-      observerPrincipalSetDigest: OBSERVER_PRINCIPAL_SET_DIGEST,
-      executorAppsAbsentFromBypassSets: true,
-      unknownPayloadMembers: [],
-      effectiveControlEvaluationComplete: true,
-    },
+    policy,
     observedAt: isoAt(observedAt),
     issuedAt: isoAt(observedAt + 1_000),
     notBefore: isoAt(observedAt),
     expiresAt: isoAt(observedAt + expiresAt),
-    sourceEvidenceDigest: digest(`policy-source-evidence:${label}`),
-    policyDigest: options.policyDigest ?? digest('policy'),
+    sourceEvidenceDigest: sha256Canonical(policySources),
+    sourceEvidence: policySources,
+    policyDigest: options.policyDigest ?? sha256Canonical(policy),
     effectivePolicyProfileDigest:
       options.effectivePolicyProfileDigest ?? REQUIRED_POLICY_PROFILE_DIGEST,
     canonicalPayloadDigest: '',
@@ -1081,10 +1147,16 @@ export function buildAttestation(
 export function resignAttestation(
   attestation: TrustedCurrentPolicyAttestation,
 ): TrustedCurrentPolicyAttestation {
-  const withDigest = {
+  const rebound = {
     ...attestation,
+    sourceEvidence: attestation.policy.policySources,
+    sourceEvidenceDigest: sha256Canonical(attestation.policy.policySources),
+    policyDigest: sha256Canonical(attestation.policy),
+  };
+  const withDigest = {
+    ...rebound,
     canonicalPayloadDigest: attestationPayloadDigest({
-      ...attestation,
+      ...rebound,
       canonicalPayloadDigest: '',
     }),
   };
@@ -1121,6 +1193,10 @@ export interface ScenarioOverrides {
   readonly orderKey?: string;
 }
 
+export type FixtureReleaseAdmissionInput = ReleaseAdmissionInput & {
+  readonly authority: ReleaseAuthorityPort | null;
+};
+
 export const ADMISSION_CONTEXT_NONCE = digest('admission-context-nonce');
 
 function sourceRefFor(
@@ -1131,13 +1207,330 @@ function sourceRefFor(
   return { ...provenancedRef(kind, label, digestValue) };
 }
 
+function integrationAuthorityValue(
+  units: readonly IntegrationUnitEvidence[],
+): unknown {
+  return [...units]
+    .sort((left, right) =>
+      left.orderKey < right.orderKey ? -1 : left.orderKey > right.orderKey ? 1 : 0,
+    )
+    .map((unit) => ({
+      unitKind: unit.unitKind,
+      unitId: unit.unitId,
+      orderKey: unit.orderKey,
+      proof: unit.proof,
+      sourceOid: unit.sourceOid,
+      mergeMethod: unit.mergeMethod,
+      gateSnapshotDigest: unit.gateSnapshotDigest,
+      previousResultTreeOid: unit.previousResultTreeOid,
+      resultTreeOid: unit.resultTreeOid,
+      subsumedBy: unit.subsumedBy,
+    }));
+}
+
+/**
+ * Offline read-only authority fixture. It models an already authenticated boundary;
+ * it provisions no Git object, identity, credential, policy, control plane, or store.
+ */
+class FixtureAuthorityPort implements ReleaseAuthorityPort {
+  readonly identity = AUTHORITY_PORT_IDENTITY;
+  readonly #input: ReleaseAdmissionInput;
+  readonly #artifacts = new Map<string, unknown>();
+
+  constructor(input: ReleaseAdmissionInput) {
+    this.#input = input;
+    const activation = input.activation;
+    if (activation !== null) {
+      this.#artifacts.set(
+        canonicalJson(activation.recordSource),
+        omitTopLevel(activation, 'recordSource'),
+      );
+      if (activation.negativeCapabilityTestAttestation !== undefined) {
+        this.#artifacts.set(
+          canonicalJson(activation.negativeCapabilityTestAttestation),
+          {
+            schema: 'fixture-authority-artifact/v1',
+            kind: 'negative-capability-test-attestation',
+            label: 'negative-capability',
+          },
+        );
+      }
+      if (activation.gateVocabularyCorrection !== undefined) {
+        this.#artifacts.set(
+          canonicalJson(activation.gateVocabularyCorrection),
+          {
+            schema: 'fixture-authority-artifact/v1',
+            kind: 'gate-vocabulary-correction',
+            label: 'gate-vocabulary-correction',
+          },
+        );
+      }
+    }
+    if (input.requiredPolicyProfile !== null && input.requiredPolicyProfileSource !== null) {
+      this.#artifacts.set(
+        canonicalJson(input.requiredPolicyProfileSource),
+        input.requiredPolicyProfile,
+      );
+    }
+    if (input.manifest !== null && input.manifestSource !== null) {
+      this.#artifacts.set(canonicalJson(input.manifestSource), input.manifest);
+    }
+    if (input.gateSnapshotSource !== null) {
+      this.#artifacts.set(canonicalJson(input.gateSnapshotSource), {
+        schema: 'aggregate-gate-snapshot/v1',
+        relations: [...input.gateSnapshot.relations]
+          .map((relation) => ({
+            lineage: relation.lineage,
+            lineageRound: relation.lineageRound,
+            gate: relation.gate,
+            gateClass: relation.gateClass,
+            ownerForm: relation.ownerForm,
+            verdictState: relation.verdictState,
+            verdictCommit: relation.verdictCommit,
+            relationSetComplete: relation.relationSetComplete,
+            acceptedRisks: relation.acceptedRisks,
+          }))
+          .sort((left, right) => {
+            const leftTuple = [left.lineage, left.gate, String(left.lineageRound), left.verdictCommit];
+            const rightTuple = [right.lineage, right.gate, String(right.lineageRound), right.verdictCommit];
+            return canonicalJson(leftTuple).localeCompare(canonicalJson(rightTuple));
+          }),
+      });
+    }
+    if (input.securitySnapshotSource !== null) {
+      this.#artifacts.set(canonicalJson(input.securitySnapshotSource), {
+        schema: 'release-security-snapshot/v1',
+        findings: [...input.securitySnapshot.findings]
+          .map((finding) => ({ ...finding }))
+          .sort((left, right) =>
+            canonicalJson([left.findingId, left.evidenceDigest]).localeCompare(
+              canonicalJson([right.findingId, right.evidenceDigest]),
+            ),
+          ),
+      });
+    }
+    if (input.integrationEvidenceSource !== null) {
+      this.#artifacts.set(
+        canonicalJson(input.integrationEvidenceSource),
+        integrationAuthorityValue(input.integrationEvidence),
+      );
+    }
+  }
+
+  resolveArtifact(ref: ImmutableArtifactRef) {
+    const value = this.#artifacts.get(canonicalJson(ref));
+    if (value === undefined || sha256Canonical(value) !== ref.digest) {
+      return null;
+    }
+    const provenanced = ref as ImmutableProvenancedArtifactRef;
+    const activation = this.#input.activation;
+    const producer =
+      provenanced.producer ??
+      (activation === null
+        ? null
+        : {
+            principalId: activation.issuer.principalId,
+            principalType: 'human' as const,
+            authorizationCommit: activation.issuer.authorizationCommit,
+          });
+    if (producer === null || producer === undefined) {
+      return null;
+    }
+    return {
+      ref,
+      canonicalValue: value,
+      producer,
+      producerAuthorized: true as const,
+      authorizationEvidenceCommit: producer.authorizationCommit,
+    };
+  }
+
+  resolvePassingGate(ref: MergeExecutorActivationRecord['architectureReview']) {
+    const activation = this.#input.activation;
+    if (activation === null) {
+      return null;
+    }
+    const expected = [
+      activation.architectureReview,
+      activation.implementationReview,
+      activation.implementationSecurityReview,
+    ].find((candidate) => canonicalJson(candidate) === canonicalJson(ref));
+    if (expected === undefined) {
+      return null;
+    }
+    const allowed =
+      (ref.member === 'architectureReview' &&
+        ref.producer.principalId === 'reviewer' &&
+        ref.producer.authorizationCommit === oid('reviewer-authorization')) ||
+      (ref.member === 'implementationReview' &&
+        ref.producer.principalId === 'reviewer' &&
+        ref.producer.authorizationCommit === oid('reviewer-authorization')) ||
+      (ref.member === 'implementationSecurityReview' &&
+        ref.producer.principalId === 'security' &&
+        ref.producer.authorizationCommit === oid('security-authorization'));
+    return allowed
+      ? {
+          verdict: ref,
+          producerAuthorized: true as const,
+          authorizationEvidenceCommit: ref.producer.authorizationCommit,
+        }
+      : null;
+  }
+
+  resolveTrustRoot(ref: MergeExecutorActivationRecord['policyAttestorTrustRoot']) {
+    return this.#input.activation !== null &&
+      canonicalJson(this.#input.activation.policyAttestorTrustRoot) === canonicalJson(ref)
+      ? ref
+      : null;
+  }
+
+  resolveAuthorizedHuman(principal: MergeExecutorActivationRecord['issuer']) {
+    return principal.principalId === 'repository-owner' &&
+      principal.authorizationCommit === oid('human-authorization')
+      ? principal
+      : null;
+  }
+
+  enumerateAdmissionUniverse(repositoryId: string, releaseHeadOid: GitOid) {
+    const input = this.#input;
+    if (
+      input.manifestSource === null ||
+      input.gateSnapshotSource === null ||
+      input.securitySnapshotSource === null ||
+      input.integrationEvidenceSource === null ||
+      input.requiredPolicyProfileSource === null ||
+      repositoryId !== input.repository.repositoryId ||
+      releaseHeadOid !== input.pullRequest.headOid
+    ) {
+      return null;
+    }
+    const commands = input.publishedHeadEvidence?.status === 'complete'
+      ? [
+          ...input.publishedHeadEvidence.author.commands,
+          ...input.publishedHeadEvidence.control.commands,
+        ]
+      : [];
+    const humanDecisions =
+      input.manifest?.irreversibleProductionCoupling.coupled === true &&
+      input.manifest.irreversibleProductionCoupling.authorization !== null
+        ? [input.manifest.irreversibleProductionCoupling.authorization]
+        : [];
+    const withoutDigest = {
+      repositoryId,
+      releaseHeadOid,
+      manifestSource: input.manifestSource,
+      gateSnapshotSource: input.gateSnapshotSource,
+      securitySnapshotSource: input.securitySnapshotSource,
+      integrationEvidenceSource: input.integrationEvidenceSource,
+      requiredPolicyProfileSource: input.requiredPolicyProfileSource,
+      gateRelations: input.gateSnapshot.relations,
+      securityFindings: input.securitySnapshot.findings,
+      integrationEvidence: input.integrationEvidence,
+      requiredChecks: input.requiredChecks,
+      publicationCommandEvidenceIds: commands.map((command_) => command_.evidenceId).sort(),
+      humanDecisions,
+      evidenceCommit: oid('authority-universe-evidence'),
+      universeDigest: '',
+    };
+    return {
+      ...withoutDigest,
+      universeDigest: selfDigest(withoutDigest, 'universeDigest'),
+    };
+  }
+
+  resolveIssuerStatus(authorityId: string, keyId: string, policyGeneration: number) {
+    const observation = this.#input.policyControlFacts.observation;
+    if (observation.state !== 'current_valid') {
+      return null;
+    }
+    const claimed = observation.attestation.policy.issuerStatus;
+    if (
+      claimed.authorityId !== authorityId ||
+      claimed.keyId !== keyId ||
+      claimed.policyGeneration !== policyGeneration
+    ) {
+      return null;
+    }
+    const withoutDigest = {
+      channelId: claimed.channelId,
+      statusAuthorityId: 'independent-key-status-authority',
+      authorityId,
+      keyId,
+      publicKeyDigest: claimed.publicKeyDigest,
+      state: claimed.state,
+      policyGeneration,
+      observedAtUtc: claimed.observedAtUtc,
+      evidenceCommit: oid('online-issuer-status-evidence'),
+    };
+    return { ...withoutDigest, evidenceDigest: sha256Canonical(withoutDigest) };
+  }
+
+  authenticateExecutionEvidence(evidenceId: Sha256Hex) {
+    const bundle = this.#input.publishedHeadEvidence;
+    if (bundle?.status !== 'complete') {
+      return null;
+    }
+    const command_ = [...bundle.author.commands, ...bundle.control.commands].find(
+      (candidate) => candidate.evidenceId === evidenceId,
+    );
+    if (command_ === undefined) {
+      return null;
+    }
+    const expected = command_.phase === 'author_pre_publication'
+      ? AUTHOR_PRODUCER
+      : CONTROL_PRODUCER;
+    if (canonicalJson(command_.producer) !== canonicalJson(expected)) {
+      return null;
+    }
+    return {
+      evidenceId,
+      phase: command_.phase,
+      principalId: command_.producer.role,
+      executionSessionId: command_.producer.executionSessionId,
+      executionInstanceId:
+        command_.phase === 'author_pre_publication'
+          ? 'independent-author-process'
+          : 'independent-control-process',
+      identityAuthorityId: 'execution-identity-authority',
+      evidenceCommit: oid(`execution-identity-${command_.phase}`),
+    };
+  }
+
+  resolveHumanDecision(decision: ImmutableHumanDecisionRef) {
+    const universe = this.enumerateAdmissionUniverse(
+      this.#input.repository.repositoryId,
+      this.#input.pullRequest.headOid,
+    );
+    return universe?.humanDecisions.some(
+      (candidate) => canonicalJson(candidate) === canonicalJson(decision),
+    ) === true
+      ? decision
+      : null;
+  }
+
+  resolveAcceptedRisk(record: AcceptedBlockingSecurityRiskRecord) {
+    const universe = this.enumerateAdmissionUniverse(
+      this.#input.repository.repositoryId,
+      this.#input.pullRequest.headOid,
+    );
+    const acceptedRisks = universe?.gateRelations.flatMap(
+      (relation) => relation.acceptedRisks,
+    ) ?? [];
+    return acceptedRisks.some(
+      (candidate) => canonicalJson(candidate) === canonicalJson(record),
+    )
+      ? record
+      : null;
+  }
+}
+
 /**
  * The success fixture: one release manifest covering all seven aggregate domains,
  * with every other admission input valid.
  */
 export function validScenario(
   overrides: ScenarioOverrides = {},
-): ReleaseAdmissionInput {
+): FixtureReleaseAdmissionInput {
   const activation =
     overrides.activation === undefined ? validActivationRecord() : overrides.activation;
   const manifest =
@@ -1147,7 +1540,7 @@ export function validScenario(
   const integrationEvidence =
     overrides.integrationEvidence ?? validIntegrationEvidence();
 
-  const skeleton: ReleaseAdmissionInput = {
+  const skeleton: FixtureReleaseAdmissionInput = {
     executor: RELEASE_EXECUTOR,
     evaluatedAtUtc: overrides.evaluatedAtUtc ?? isoAt(5_000),
     activation,
@@ -1209,10 +1602,12 @@ export function validScenario(
     },
     orderKey: overrides.orderKey ?? '0009',
     admissionContextNonce: ADMISSION_CONTEXT_NONCE,
+    authority: null,
   };
 
   if (overrides.policyControlFacts !== undefined) {
-    return { ...skeleton, policyControlFacts: overrides.policyControlFacts };
+    const completed = { ...skeleton, policyControlFacts: overrides.policyControlFacts };
+    return { ...completed, authority: new FixtureAuthorityPort(completed) };
   }
 
   const requiredPolicyProfileDigest =
@@ -1241,13 +1636,14 @@ export function validScenario(
     effectivePolicyProfileDigest: requiredPolicyProfileDigest,
   });
 
-  return {
+  const completed: FixtureReleaseAdmissionInput = {
     ...skeleton,
     policyControlFacts: {
       action: excludedControlAction(),
       observation: { state: 'current_valid', attestation },
     },
   };
+  return { ...completed, authority: new FixtureAuthorityPort(completed) };
 }
 
 /** The `pre_mutation` authorization for a scenario's admitted plan. */

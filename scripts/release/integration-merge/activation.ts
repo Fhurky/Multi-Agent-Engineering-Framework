@@ -36,14 +36,28 @@ import type {
   ImmutablePolicyAttestorTrustRootRef,
   ImmutableProvenancedArtifactRef,
   MergeExecutorActivationRecord,
+  ReleaseAuthorityPort,
 } from './contracts.ts';
 import {
+  canonicalJson,
   decodeBase64,
+  hasControlCharacters,
   isGitOid,
   isSha256Hex,
   selfDigest,
   sha256Bytes,
+  sha256Canonical,
+  omitTopLevel,
 } from './canonical-json.ts';
+
+export const APPROVED_ARCHITECTURE_SOURCE =
+  'f148567d716c00d7a24783318c8d6d7031492e7b';
+export const APPROVED_ARCHITECTURE_REVIEW =
+  '78359ae2e3dc6e97fb3d60f0b847b84abed08fa6';
+export const ARCHITECTURE_LINEAGE = 'LIN-INTEGRATION-AUTHORITY-REVIEW';
+export const IMPLEMENTATION_REVIEW_LINEAGE = 'LIN-RELEASE-EXECUTOR-REVIEW';
+export const IMPLEMENTATION_SECURITY_LINEAGE =
+  'LIN-RELEASE-EXECUTOR-SECURITY';
 
 export type ActivationDefectReason =
   | 'member_missing'
@@ -59,6 +73,10 @@ export type ActivationDefectReason =
   | 'member_digest_not_bound'
   | 'trust_root_key_unbound'
   | 'record_source_mismatch'
+  | 'authority_resolver_absent'
+  | 'authority_resolver_mismatch'
+  | 'member_unresolvable'
+  | 'producer_unauthenticated'
   | 'issuer_invalid'
   | 'executor_mismatch'
   | 'governance_decision_commit_mismatch';
@@ -120,7 +138,11 @@ function producerDefect(
     return 'member_provenance_absent';
   }
   const identity = producer as unknown as ImmutableArtifactProducer;
-  if (typeof identity.principalId !== 'string' || identity.principalId.length === 0) {
+  if (
+    typeof identity.principalId !== 'string' ||
+    identity.principalId.length === 0 ||
+    hasControlCharacters(identity.principalId)
+  ) {
     return 'member_provenance_absent';
   }
   if (identity.principalType === 'merge_executor') {
@@ -153,7 +175,11 @@ function validatePassingGateRef(
     defects.push({ member, reason: 'member_kind_mismatch' });
     return;
   }
-  if (typeof ref.lineage !== 'string' || ref.lineage.length === 0) {
+  if (
+    typeof ref.lineage !== 'string' ||
+    ref.lineage.length === 0 ||
+    hasControlCharacters(ref.lineage)
+  ) {
     defects.push({ member, reason: 'member_unpinned' });
     return;
   }
@@ -198,7 +224,12 @@ function validateArtifactRef(
 
   const ref = value as unknown as ImmutableProvenancedArtifactRef;
 
-  if (typeof ref.path !== 'string' || ref.path.length === 0) {
+  if (
+    typeof ref.path !== 'string' ||
+    ref.path.length === 0 ||
+    hasControlCharacters(ref.path) ||
+    hasControlCharacters(ref.kind)
+  ) {
     defects.push({ member, reason: 'member_unpinned' });
     return;
   }
@@ -236,7 +267,11 @@ function validateMergePortBinding(
     defects.push({ member, reason: 'member_unpinned' });
     return;
   }
-  if (typeof identity.brokerId !== 'string' || identity.brokerId.length === 0) {
+  if (
+    typeof identity.brokerId !== 'string' ||
+    identity.brokerId.length === 0 ||
+    hasControlCharacters(identity.brokerId)
+  ) {
     defects.push({ member, reason: 'member_unpinned' });
     return;
   }
@@ -255,11 +290,19 @@ function validateTrustRoot(value: unknown, defects: ActivationDefect[]): void {
 
   const root = value as unknown as ImmutablePolicyAttestorTrustRootRef;
 
-  if (typeof root.authorityId !== 'string' || root.authorityId.length === 0) {
+  if (
+    typeof root.authorityId !== 'string' ||
+    root.authorityId.length === 0 ||
+    hasControlCharacters(root.authorityId)
+  ) {
     defects.push({ member, reason: 'member_unpinned' });
     return;
   }
-  if (typeof root.keyId !== 'string' || root.keyId.length === 0) {
+  if (
+    typeof root.keyId !== 'string' ||
+    root.keyId.length === 0 ||
+    hasControlCharacters(root.keyId)
+  ) {
     defects.push({ member, reason: 'member_unpinned' });
     return;
   }
@@ -273,7 +316,8 @@ function validateTrustRoot(value: unknown, defects: ActivationDefect[]): void {
   }
   if (
     typeof root.revocationChannelId !== 'string' ||
-    root.revocationChannelId.length === 0
+    root.revocationChannelId.length === 0 ||
+    hasControlCharacters(root.revocationChannelId)
   ) {
     defects.push({ member, reason: 'member_unpinned' });
     return;
@@ -322,6 +366,7 @@ function validateIssuer(value: unknown, defects: ActivationDefect[]): void {
  */
 export function validateActivation(
   activation: MergeExecutorActivationRecord | null | undefined,
+  authority?: ReleaseAuthorityPort | null,
 ): ActivationValidation {
   const defects: ActivationDefect[] = [];
 
@@ -387,6 +432,26 @@ export function validateActivation(
 
   const complete = activation as MergeExecutorActivationRecord;
 
+  if (!isRecordObject(authority)) {
+    return {
+      status: 'not_activated',
+      defects: [{ member: 'recordSource', reason: 'authority_resolver_absent' }],
+    };
+  }
+
+  const attestedAuthority =
+    complete.negativeCapabilityTestAttestation.attestedAuthorityPortIdentity;
+  if (
+    !isRecordObject(attestedAuthority) ||
+    !isRecordObject(authority.identity) ||
+    canonicalJson(attestedAuthority) !== canonicalJson(authority.identity)
+  ) {
+    return {
+      status: 'not_activated',
+      defects: [{ member: 'recordSource', reason: 'authority_resolver_mismatch' }],
+    };
+  }
+
   /* --- Cross-member binding --------------------------------------------- */
 
   if (
@@ -420,6 +485,40 @@ export function validateActivation(
       member: 'implementationSecurityReview',
       reason: 'member_target_unpinned',
     });
+  }
+
+  if (
+    complete.architectureReview.lineage !== ARCHITECTURE_LINEAGE ||
+    complete.architectureReview.lineageRound !== 3 ||
+    complete.architectureReview.targetCommit !== APPROVED_ARCHITECTURE_SOURCE ||
+    complete.architectureReview.verdictCommit !== APPROVED_ARCHITECTURE_REVIEW
+  ) {
+    defects.push({ member: 'architectureReview', reason: 'member_target_unpinned' });
+  }
+  if (
+    complete.implementationReview.lineage !== IMPLEMENTATION_REVIEW_LINEAGE ||
+    complete.implementationSecurityReview.lineage !==
+      IMPLEMENTATION_SECURITY_LINEAGE ||
+    complete.implementationReview.lineageRound !== 3 ||
+    complete.implementationSecurityReview.lineageRound !== 3
+  ) {
+    defects.push({ member: 'implementationReview', reason: 'member_target_unpinned' });
+  }
+
+  for (const [member, gate] of [
+    ['architectureReview', complete.architectureReview],
+    ['implementationReview', complete.implementationReview],
+    ['implementationSecurityReview', complete.implementationSecurityReview],
+  ] as const) {
+    const resolved = authority.resolvePassingGate(gate);
+    if (
+      resolved === null ||
+      resolved.producerAuthorized !== true ||
+      !isGitOid(resolved.authorizationEvidenceCommit) ||
+      canonicalJson(resolved.verdict) !== canonicalJson(gate)
+    ) {
+      defects.push({ member, reason: 'member_unresolvable' });
+    }
   }
   if (
     complete.architectureReview.targetCommit ===
@@ -459,6 +558,58 @@ export function validateActivation(
     return {
       status: 'not_activated',
       defects: [{ member: 'recordSource', reason: 'record_source_mismatch' }],
+    };
+  }
+
+
+  const resolvedRecord = authority.resolveArtifact(source);
+  if (
+    resolvedRecord === null ||
+    resolvedRecord.producerAuthorized !== true ||
+    canonicalJson(resolvedRecord.ref) !== canonicalJson(source) ||
+    sha256Canonical(resolvedRecord.canonicalValue) !== source.digest ||
+    canonicalJson(resolvedRecord.canonicalValue) !==
+      canonicalJson(omitTopLevel(complete, 'recordSource')) ||
+    resolvedRecord.producer.principalType !== 'human' ||
+    resolvedRecord.producer.principalId !== complete.issuer.principalId ||
+    resolvedRecord.producer.authorizationCommit !==
+      complete.issuer.authorizationCommit ||
+    canonicalJson(authority.resolveAuthorizedHuman(complete.issuer)) !==
+      canonicalJson(complete.issuer)
+  ) {
+    return {
+      status: 'not_activated',
+      defects: [{ member: 'recordSource', reason: 'record_source_mismatch' }],
+    };
+  }
+
+  for (const [member, ref] of [
+    ['negativeCapabilityTestAttestation', complete.negativeCapabilityTestAttestation],
+    ['gateVocabularyCorrection', complete.gateVocabularyCorrection],
+    ['requiredGitHubPolicyProfile', complete.requiredGitHubPolicyProfile],
+  ] as const) {
+    const resolved = authority.resolveArtifact(ref);
+    if (
+      resolved === null ||
+      resolved.producerAuthorized !== true ||
+      canonicalJson(resolved.ref) !== canonicalJson(ref) ||
+      sha256Canonical(resolved.canonicalValue) !== ref.digest ||
+      canonicalJson(resolved.producer) !== canonicalJson(ref.producer)
+    ) {
+      return {
+        status: 'not_activated',
+        defects: [{ member, reason: 'member_unresolvable' }],
+      };
+    }
+  }
+
+  if (
+    canonicalJson(authority.resolveTrustRoot(complete.policyAttestorTrustRoot)) !==
+    canonicalJson(complete.policyAttestorTrustRoot)
+  ) {
+    return {
+      status: 'not_activated',
+      defects: [{ member: 'policyAttestorTrustRoot', reason: 'member_unresolvable' }],
     };
   }
 

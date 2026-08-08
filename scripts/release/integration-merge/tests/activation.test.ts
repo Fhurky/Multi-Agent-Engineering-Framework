@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { admit } from '../admission.ts';
+import { admit } from './helpers/admission.ts';
 import { validateActivation } from '../activation.ts';
 import { ACTIVATION_MEMBERS, GOVERNANCE_DECISION_COMMIT } from '../contracts.ts';
 import type { MergeExecutorActivationRecord } from '../contracts.ts';
@@ -27,7 +27,11 @@ function withoutMember(member: string): MergeExecutorActivationRecord {
 }
 
 test('the complete fixture activation record validates', () => {
-  assert.equal(validateActivation(validActivationRecord()).status, 'activated');
+  const scenario = validScenario();
+  assert.equal(
+    validateActivation(validActivationRecord(), scenario.authority).status,
+    'activated',
+  );
 });
 
 test('an absent activation record is not activated on every member', () => {

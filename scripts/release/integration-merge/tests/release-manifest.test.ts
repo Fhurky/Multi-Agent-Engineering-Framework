@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { admit } from '../admission.ts';
+import { admit } from './helpers/admission.ts';
 import { validateReleaseManifest } from '../release-manifest.ts';
 import { RELEASE_GATE_DOMAINS } from '../contracts.ts';
 import type { ReleaseGateManifest } from '../contracts.ts';

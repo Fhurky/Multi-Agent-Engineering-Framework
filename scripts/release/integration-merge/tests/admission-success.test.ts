@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { admit, computeIdempotencyKey } from '../admission.ts';
+import { admit, computeIdempotencyKey } from './helpers/admission.ts';
 import {
   RELEASE_BASE_BRANCH,
   RELEASE_EXECUTOR,

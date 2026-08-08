@@ -2,7 +2,7 @@
  * Shared harness for the execution, failure-injection, and idempotency fixtures.
  */
 
-import { admit } from '../../admission.ts';
+import { admit } from './admission.ts';
 import type {
   GitOid,
   PolicyControlFacts,
@@ -159,6 +159,9 @@ export function buildHarness(options: HarnessOptions = {}): Harness {
     observation,
     mergePort,
     mergePortIdentity: options.mergePortIdentity ?? MERGE_PORT_IDENTITY,
+    authority: (admissionInput as ReleaseAdmissionInput & {
+      authority: NonNullable<ReleaseExecutionDependencies['authority']>;
+    }).authority,
     attestor,
     leases,
   };

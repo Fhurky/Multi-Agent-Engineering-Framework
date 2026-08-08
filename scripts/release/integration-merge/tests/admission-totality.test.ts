@@ -13,7 +13,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { admit } from '../admission.ts';
+import { admit } from './helpers/admission.ts';
 import {
   HUMAN_EXCEPTION_KIND_ORDER,
   MERGE_REFUSAL_CODES,

@@ -161,6 +161,111 @@ export interface ImmutableMergePortIdentity {
 export interface ImmutableNegativeCapabilityAttestationRef
   extends ImmutableProvenancedArtifactRef {
   readonly attestedMergePortIdentity: ImmutableMergePortIdentity;
+  readonly attestedAuthorityPortIdentity: ImmutableAuthorityPortIdentity;
+}
+
+/** Opaque identity of the independently provisioned, read-only authority resolver. */
+export interface ImmutableAuthorityPortIdentity {
+  readonly resolverId: string;
+  readonly resolverIdentityDigest: Sha256Hex;
+}
+
+/** One immutable object resolved from its exact commit/path, including its bytes. */
+export interface AuthenticatedArtifactResolution {
+  readonly ref: ImmutableArtifactRef;
+  readonly canonicalValue: unknown;
+  readonly producer: ImmutableArtifactProducer;
+  readonly producerAuthorized: true;
+  readonly authorizationEvidenceCommit: GitOid;
+}
+
+/** One passing gate verdict resolved from its immutable verdict commit. */
+export interface AuthenticatedGateResolution {
+  readonly verdict: ImmutablePassingGateRef;
+  readonly producerAuthorized: true;
+  readonly authorizationEvidenceCommit: GitOid;
+}
+
+/** Independently authenticated issuer/key status. The signing key cannot issue it. */
+export interface AuthenticatedIssuerStatus {
+  readonly channelId: string;
+  readonly statusAuthorityId: string;
+  readonly authorityId: string;
+  readonly keyId: string;
+  readonly publicKeyDigest: Sha256Hex;
+  readonly state: 'active' | 'revoked' | 'unknown';
+  readonly policyGeneration: number;
+  readonly observedAtUtc: IsoTimestamp;
+  readonly evidenceCommit: GitOid;
+  readonly evidenceDigest: Sha256Hex;
+}
+
+/** Independent execution identity for one published-head command record. */
+export interface AuthenticatedExecutionIdentity {
+  readonly evidenceId: Sha256Hex;
+  readonly phase: 'author_pre_publication' | 'control_post_publication';
+  readonly principalId: string;
+  readonly executionSessionId: string;
+  readonly executionInstanceId: string;
+  readonly identityAuthorityId: string;
+  readonly evidenceCommit: GitOid;
+}
+
+/**
+ * Exact admission universe enumerated by the authority resolver. Equality with this
+ * value prevents a caller from narrowing any gate, finding, integration unit, check,
+ * publication command, or human-decision set.
+ */
+export interface AuthenticatedAdmissionUniverse {
+  readonly repositoryId: string;
+  readonly releaseHeadOid: GitOid;
+  readonly manifestSource: ImmutableProvenancedArtifactRef;
+  readonly gateSnapshotSource: ImmutableProvenancedArtifactRef;
+  readonly securitySnapshotSource: ImmutableProvenancedArtifactRef;
+  readonly integrationEvidenceSource: ImmutableProvenancedArtifactRef;
+  readonly requiredPolicyProfileSource: ImmutableProvenancedArtifactRef;
+  readonly gateRelations: readonly AggregateGateRelation[];
+  readonly securityFindings: readonly ReleaseSecurityFinding[];
+  readonly integrationEvidence: readonly IntegrationUnitEvidence[];
+  readonly requiredChecks: ReleaseRequiredCheckObservation;
+  readonly publicationCommandEvidenceIds: readonly Sha256Hex[];
+  readonly humanDecisions: readonly ImmutableHumanDecisionRef[];
+  readonly evidenceCommit: GitOid;
+  readonly universeDigest: Sha256Hex;
+}
+
+/**
+ * Narrow read-only trust boundary. It cannot observe or mutate repository policy and
+ * exposes no generic Git, HTTP, ref, credential, gate, task, or lock operation.
+ */
+export interface ReleaseAuthorityPort {
+  readonly identity: ImmutableAuthorityPortIdentity;
+  resolveArtifact(ref: ImmutableArtifactRef): AuthenticatedArtifactResolution | null;
+  resolvePassingGate(ref: ImmutablePassingGateRef): AuthenticatedGateResolution | null;
+  resolveTrustRoot(
+    ref: ImmutablePolicyAttestorTrustRootRef,
+  ): ImmutablePolicyAttestorTrustRootRef | null;
+  resolveAuthorizedHuman(
+    principal: ImmutableAuthorizedHumanPrincipal,
+  ): ImmutableAuthorizedHumanPrincipal | null;
+  enumerateAdmissionUniverse(
+    repositoryId: string,
+    releaseHeadOid: GitOid,
+  ): AuthenticatedAdmissionUniverse | null;
+  resolveIssuerStatus(
+    authorityId: string,
+    keyId: string,
+    policyGeneration: number,
+  ): AuthenticatedIssuerStatus | null;
+  authenticateExecutionEvidence(
+    evidenceId: Sha256Hex,
+  ): AuthenticatedExecutionIdentity | null;
+  resolveHumanDecision(
+    decision: ImmutableHumanDecisionRef,
+  ): ImmutableHumanDecisionRef | null;
+  resolveAcceptedRisk(
+    record: AcceptedBlockingSecurityRiskRecord,
+  ): AcceptedBlockingSecurityRiskRecord | null;
 }
 
 /* ------------------------------------------------------------------------- *
@@ -608,6 +713,34 @@ export interface CompleteGitHubPolicyPayload {
   /** Unknown, redacted, or unrecognized response members make the payload incomplete. */
   readonly unknownPayloadMembers: readonly string[];
   readonly effectiveControlEvaluationComplete: boolean;
+  /** Enumerated classic protection and every applicable ruleset and effective rule. */
+  readonly policySources: readonly GitHubPolicySourceRecord[];
+  readonly effectiveRules: readonly GitHubEffectiveRuleRecord[];
+}
+
+export interface GitHubPolicySourceRecord {
+  readonly sourceLevel: 'classic' | 'repository' | 'organization' | 'enterprise';
+  readonly sourcePolicyId: string;
+  readonly parentPolicyId: string | null;
+  readonly enforcement: 'active' | 'evaluate' | 'disabled';
+  readonly version: string;
+  readonly conditions: Readonly<Record<string, string>>;
+  readonly rules: readonly string[];
+  readonly bypassActors: readonly PolicyBypassActor[];
+  readonly page: number;
+  readonly pageCount: number;
+  readonly pages: readonly {
+    readonly page: number;
+    readonly responseDigest: Sha256Hex;
+  }[];
+  readonly responseDigest: Sha256Hex;
+}
+
+export interface GitHubEffectiveRuleRecord {
+  readonly rule: string;
+  readonly sourcePolicyId: string;
+  readonly sourceLevel: 'classic' | 'repository' | 'organization' | 'enterprise';
+  readonly effective: boolean;
 }
 
 export interface TrustedCurrentPolicyAttestation {
@@ -646,6 +779,7 @@ export interface TrustedCurrentPolicyAttestation {
   readonly notBefore: IsoTimestamp;
   readonly expiresAt: IsoTimestamp;
   readonly sourceEvidenceDigest: Sha256Hex;
+  readonly sourceEvidence: readonly GitHubPolicySourceRecord[];
   readonly policyDigest: Sha256Hex;
   readonly effectivePolicyProfileDigest: Sha256Hex;
   readonly canonicalPayloadDigest: Sha256Hex;
@@ -1100,6 +1234,15 @@ export interface DurableAttemptReceipt {
   readonly token: string;
 }
 
+export interface DurableRetrySequenceReceipt {
+  readonly store: 'merge-evidence/v1';
+  readonly key: Sha256Hex;
+  readonly planDigest: Sha256Hex;
+  readonly startedAtUtc: IsoTimestamp;
+  readonly deadlineUtc: IsoTimestamp;
+  readonly token: string;
+}
+
 export interface MergeOutcomeRecord {
   readonly schema: 'merge-outcome/v1';
   readonly executor: ExecutorKind;
@@ -1131,12 +1274,20 @@ export interface MergeEvidenceHistory {
   readonly intent: { readonly planDigest: Sha256Hex } | null;
   readonly terminalOutcome: MergeOutcomeRecord | null;
   readonly attempts: number;
+  readonly retrySequence: Omit<DurableRetrySequenceReceipt, 'token' | 'store'> | null;
   readonly authenticity: DurableHistoryAuthenticity;
 }
 
 export interface MergeEvidenceStore {
   recordIntent(plan: ReleaseMergePlan): Promise<DurableMergeIntentResult>;
   verifyIntent(receipt: unknown, plan: ReleaseMergePlan): Promise<boolean>;
+  recordRetrySequence(
+    idempotencyKey: Sha256Hex,
+    planDigest: Sha256Hex,
+    startedAtUtc: IsoTimestamp,
+    deadlineUtc: IsoTimestamp,
+  ): Promise<DurableRetrySequenceReceipt | null>;
+  verifyRetrySequence(receipt: unknown): Promise<boolean>;
   recordAttempt(
     idempotencyKey: Sha256Hex,
     attempt: number,
@@ -1289,6 +1440,7 @@ export interface ReleaseExecutionDependencies {
   readonly mergePort: ReleasePullRequestMergePort;
   /** Identity of the concrete broker and port; bound to the activation attestation. */
   readonly mergePortIdentity: ImmutableMergePortIdentity;
+  readonly authority: ReleaseAuthorityPort;
   readonly attestor: ReleaseAttestationRequestChannel;
   readonly leases: ReleaseExecutorLeaseManager;
 }

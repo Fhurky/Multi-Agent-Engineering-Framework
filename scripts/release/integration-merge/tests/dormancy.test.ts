@@ -13,7 +13,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { admit } from '../admission.ts';
+import { admit } from './helpers/admission.ts';
 import { validateActivation } from '../activation.ts';
 import { ACTIVATION_MEMBERS } from '../contracts.ts';
 import type { MergeExecutorActivationRecord } from '../contracts.ts';

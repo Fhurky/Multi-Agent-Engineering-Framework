@@ -17,7 +17,7 @@ import {
   admit,
   computeAdmissionContext,
   releaseAttestationExpectations,
-} from '../admission.ts';
+} from './helpers/admission.ts';
 import {
   POLICY_EXECUTION_MARGIN_MS,
   classifyPolicyControl,
@@ -349,6 +349,7 @@ function expectationsFor(
     validRequiredPolicyProfile(),
     phase,
     null,
+    input.authority!,
   );
 }
 
@@ -641,7 +642,7 @@ test('a 60-second freshness window is enforced on the payload itself', () => {
   assert.equal(observation.reason, 'completeness');
 });
 
-test('an attestation observed in the future is present_valid_but_stale/not_yet_valid', () => {
+test('a future attestation without matching independent status is invalid', () => {
   const input = validScenario();
   const expectations = expectationsFor(input);
   const attestation = buildAttestation({
@@ -654,11 +655,11 @@ test('an attestation observed in the future is present_valid_but_stale/not_yet_v
     expectations,
     isoAt(5_000),
   );
-  assert.equal(observation.state, 'present_valid_but_stale');
-  if (observation.state !== 'present_valid_but_stale') {
+  assert.equal(observation.state, 'present_invalid');
+  if (observation.state !== 'present_invalid') {
     return;
   }
-  assert.equal(observation.reason, 'not_yet_valid');
+  assert.equal(observation.reason, 'signature');
 });
 
 test('an expired attestation is present_valid_but_stale/expired', () => {

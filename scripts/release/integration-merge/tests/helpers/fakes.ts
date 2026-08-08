@@ -194,6 +194,10 @@ export class InMemoryEvidenceStore implements MergeEvidenceStore {
   readonly outcomes = new Map<Sha256Hex, MergeOutcomeRecord>();
   readonly authorizations = new Map<Sha256Hex, Sha256Hex>();
   readonly attempts = new Map<Sha256Hex, number>();
+  readonly retrySequences = new Map<
+    Sha256Hex,
+    { planDigest: Sha256Hex; startedAtUtc: string; deadlineUtc: string; token: string }
+  >();
   unavailable = false;
 
   /** Digests of every record this store itself appended. */
@@ -259,6 +263,56 @@ export class InMemoryEvidenceStore implements MergeEvidenceStore {
     return (
       candidate.token === stored.token &&
       candidate.planDigest === stored.planDigest
+    );
+  }
+
+  async recordRetrySequence(
+    idempotencyKey: Sha256Hex,
+    planDigest: Sha256Hex,
+    startedAtUtc: string,
+    deadlineUtc: string,
+  ) {
+    const existing = this.retrySequences.get(idempotencyKey);
+    if (existing !== undefined) {
+      return {
+        store: 'merge-evidence/v1' as const,
+        key: idempotencyKey,
+        ...existing,
+      };
+    }
+    const token = this.#token({
+      retrySequence: { idempotencyKey, planDigest, startedAtUtc, deadlineUtc },
+    });
+    const recorded = { planDigest, startedAtUtc, deadlineUtc, token };
+    this.retrySequences.set(idempotencyKey, recorded);
+    return {
+      store: 'merge-evidence/v1' as const,
+      key: idempotencyKey,
+      ...recorded,
+    };
+  }
+
+  async verifyRetrySequence(receipt: unknown): Promise<boolean> {
+    if (typeof receipt !== 'object' || receipt === null) {
+      return false;
+    }
+    const candidate = receipt as {
+      key?: unknown;
+      planDigest?: unknown;
+      startedAtUtc?: unknown;
+      deadlineUtc?: unknown;
+      token?: unknown;
+    };
+    if (typeof candidate.key !== 'string') {
+      return false;
+    }
+    const stored = this.retrySequences.get(candidate.key);
+    return (
+      stored !== undefined &&
+      candidate.planDigest === stored.planDigest &&
+      candidate.startedAtUtc === stored.startedAtUtc &&
+      candidate.deadlineUtc === stored.deadlineUtc &&
+      candidate.token === stored.token
     );
   }
 
@@ -334,6 +388,17 @@ export class InMemoryEvidenceStore implements MergeEvidenceStore {
       intent: intent === undefined ? null : { planDigest: intent.planDigest },
       terminalOutcome,
       attempts: this.attempts.get(idempotencyKey) ?? 0,
+      retrySequence: (() => {
+        const sequence = this.retrySequences.get(idempotencyKey);
+        return sequence === undefined
+          ? null
+          : {
+              key: idempotencyKey,
+              planDigest: sequence.planDigest,
+              startedAtUtc: sequence.startedAtUtc,
+              deadlineUtc: sequence.deadlineUtc,
+            };
+      })(),
     };
 
     const storeIssued =
@@ -372,6 +437,7 @@ export class InMemoryEvidenceStore implements MergeEvidenceStore {
       intent: candidate.intent,
       terminalOutcome: candidate.terminalOutcome,
       attempts: candidate.attempts,
+      retrySequence: candidate.retrySequence,
     };
     const historyDigest = sha256Canonical(body);
     return (

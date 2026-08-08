@@ -1,8 +1,8 @@
 # Integration release merge executor — module note
 
-DevOps-owned release control-plane module. Authored under TASK-049 and remediated under
-TASK-056 against the sixteen findings recorded by `LIN-RELEASE-EXECUTOR-REVIEW` round 1
-and `LIN-RELEASE-EXECUTOR-SECURITY` round 1. Its normative contract is
+DevOps-owned release control-plane module. Authored under TASK-049, remediated under
+TASK-056 against the round-1 findings, and hardened under TASK-059 against the eight
+round-2 findings. Its normative contract is
 `docs/architecture/runtime/POST-GATE-MERGE-EXECUTORS.md`,
 `docs/architecture/runtime/COMPONENT-BOUNDARIES.md`,
 `docs/architecture/runtime/INTEGRATION-STRATEGY.md`, and ADR-0042/0043/0044, read at
@@ -16,19 +16,19 @@ verdict.
 **This module is dormant and cannot act.** It ships under the
 `dormant-before-durable-merge-ingress` contract. The activation record is invalid,
 `admit` returns `AuthorityNotActivated`, and no merge side effect may occur. Landing
-this source activates nothing: the `MergeExecutorActivationRecord` is an externally
-issued immutable input, and this module exposes no function that can construct,
-complete, or sign one. **TASK-056 resolves no finding and satisfies no activation
-prerequisite**; only `LIN-RELEASE-EXECUTOR-REVIEW` round 2 and
-`LIN-RELEASE-EXECUTOR-SECURITY` round 2, each in its own execution context, may
-disposition any of the sixteen findings.
+this source activates nothing: the `MergeExecutorActivationRecord` and every member
+must resolve through the separately injected read-only `ReleaseAuthorityPort`, and this
+module exposes no function that can construct, complete, sign, publish, or mutate one.
+**TASK-059 resolves no finding and satisfies no activation prerequisite**; only the
+separate TASK-060 Reviewer and TASK-061 Security execution contexts may disposition the
+round-2 findings.
 
 ## Layout
 
 | File | Responsibility |
 |---|---|
 | `index.ts` | Published entry point; the only surface a caller may import |
-| `contracts.ts` | Executor-local types, transcribed from the approved contract |
+| `contracts.ts` | Executor-local types, including the read-only authenticated authority boundary |
 | `canonical-json.ts` | Canonical JSON, SHA-256, strict base64, and the one-property digest projection |
 | `activation.ts` | Immutable activation-record validation and member binding |
 | `gate-admissibility.ts` | `ExecutorGateAdmissibility`, the authoritative-round rule, and snapshot digests |
@@ -45,6 +45,7 @@ disposition any of the sixteen findings.
 | `execute.ts` | Durable intent, the sole mutation, recovery, and verification |
 | `run-tests.ps1` | PowerShell entry point for the test suite |
 | `tests/` | Nested fixtures, including `round-1-remediation.test.ts` |
+| `TASK-059-EVIDENCE.md` | Owner counterexample and regression evidence; not a gate verdict |
 
 ## Round-1 finding verification matrix
 
@@ -123,9 +124,10 @@ is the one convention to revisit.
   `ALLOW_MAIN_PUSH`, environment access, administrator override, branch-protection,
   ruleset, bypass, required-check, gate, task-record, lock-release, filesystem-write, or
   deployment capability anywhere in the module source.
-- No policy-observation port. Complete policy observation belongs to the separate
-  human-controlled `RepositoryPolicyAttestor`; the executor consumes signed attestations
-  as input facts only. The attestor request channel added for the per-attempt
+- No policy-mutation or generic policy-observation port. Complete policy observation
+  belongs to the separate human-controlled `RepositoryPolicyAttestor`; the executor
+  consumes a signed attestation plus independently resolved authenticated source and
+  revocation evidence. The attestor request channel added for the per-attempt
   `pre_mutation` authorization carries exactly one operation, supplies a closed subject,
   and can neither observe nor mutate policy.
 - No import of a runtime implementation module or either runtime contract root, and no
@@ -142,9 +144,10 @@ and attestor-boundary fixtures the approved list requires. They are reported as 
 and are deliberately unsatisfiable: the human-controlled control plane is absent, and
 provisioning it is a HUMAN-004 third-exception action outside this role. They must never
 be stubbed or provisioned to make them pass. TASK-055 owns their validation. The count
-remains **eleven**: this remediation added no new live obligation, because the issuer and
-key status it now verifies is carried inside the attestor's own signed canonical payload
-rather than through a new live channel of its own.
+remains **eleven**: this remediation added no new live obligation. The read-only
+authority boundary must independently authenticate issuer/key status and enumerated
+policy sources; the offline fixture models that contract without provisioning or
+simulating the absent live control plane.
 
 ## Fixture material
 

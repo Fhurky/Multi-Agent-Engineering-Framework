@@ -9,7 +9,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { execute, planStoreKey } from '../execute.ts';
-import { evidenceStoreKey } from '../admission.ts';
+import { evidenceStoreKey } from './helpers/admission.ts';
 import { buildHarness, MERGED_COMMIT_OID, mergedPullRequest } from './helpers/execution.ts';
 import { oid, validPullRequest } from './helpers/fixtures.ts';
 

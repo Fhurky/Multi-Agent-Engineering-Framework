@@ -203,3 +203,34 @@ export function isIsoTimestamp(value: unknown): boolean {
 export function isoToEpochMs(value: string): number {
   return Date.parse(value);
 }
+
+/**
+ * External identifiers are line-oriented review material as well as protocol data.
+ * C0 controls and DEL are never admissible in them: accepting those bytes makes logs,
+ * diffs, and composite identities ambiguous even when JSON escaping is available.
+ */
+export function hasControlCharacters(value: unknown): boolean {
+  return typeof value === 'string' && /[\u0000-\u001f\u007f]/u.test(value);
+}
+
+/**
+ * Component-wise tuple order. No delimiter is introduced, so two different tuples
+ * cannot collapse to one sort key through delimiter injection.
+ */
+export function compareStringTuples(
+  left: readonly string[],
+  right: readonly string[],
+): number {
+  const length = Math.min(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const leftMember = left[index] as string;
+    const rightMember = right[index] as string;
+    if (leftMember < rightMember) {
+      return -1;
+    }
+    if (leftMember > rightMember) {
+      return 1;
+    }
+  }
+  return left.length - right.length;
+}

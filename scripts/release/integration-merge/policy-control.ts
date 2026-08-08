@@ -30,12 +30,15 @@ import type {
   PolicyControlClassification,
   PolicyControlFacts,
   PolicyObserverPrincipal,
+  ReleaseAuthorityPort,
   Sha256Hex,
   TrustedCurrentPolicyAttestation,
 } from './contracts.ts';
 import {
   canonicalBytes,
+  canonicalJson,
   decodeBase64,
+  hasControlCharacters,
   isIsoTimestamp,
   isGitOid,
   isSha256Hex,
@@ -290,6 +293,48 @@ export interface PolicyAttestationExpectations {
     readonly appId: number;
   }[];
   readonly expectedMergeMethods: readonly string[];
+  readonly authority: ReleaseAuthorityPort;
+}
+
+export const EXECUTOR_PERMISSION_ALLOWLIST = Object.freeze({
+  contents: 'write',
+  pull_requests: 'read',
+  checks: 'read',
+  commit_statuses: 'read',
+  metadata: 'read',
+} as const);
+
+export const FORBIDDEN_EXECUTOR_PERMISSIONS = Object.freeze([
+  'administration',
+  'actions',
+  'environments',
+  'deployments',
+  'secrets',
+  'issues',
+  'repository_rulesets',
+  'branch_protection',
+  'checks_write',
+  'commit_statuses_write',
+  'bypass',
+] as const);
+
+export function executorPermissionMapIsConfined(
+  permissions: Readonly<Record<string, unknown>>,
+): boolean {
+  const actual = Object.keys(permissions).sort();
+  const expected = Object.keys(EXECUTOR_PERMISSION_ALLOWLIST).sort();
+  return (
+    actual.length === expected.length &&
+    actual.every((name, index) => name === expected[index]) &&
+    FORBIDDEN_EXECUTOR_PERMISSIONS.every((name) => !(name in permissions)) &&
+    expected.every(
+      (name) =>
+        permissions[name] ===
+        EXECUTOR_PERMISSION_ALLOWLIST[
+          name as keyof typeof EXECUTOR_PERMISSION_ALLOWLIST
+        ],
+    )
+  );
 }
 
 function invalid(
@@ -451,11 +496,28 @@ export function normalizePolicyAttestation(
     // An augmented permission map is a different set and is rejected here.
     return invalid('subject');
   }
+  if (
+    !(subject.executorApps as readonly ExecutorAppIdentity[]).every((app) =>
+      executorPermissionMapIsConfined(app.permissions),
+    ) ||
+    !expectations.expectedExecutorApps.every((app) =>
+      executorPermissionMapIsConfined(app.permissions),
+    )
+  ) {
+    return invalid('subject');
+  }
 
   if (!isSha256Hex(attestation.policyDigest)) {
     return invalid('digest');
   }
   if (!isSha256Hex(attestation.sourceEvidenceDigest)) {
+    return invalid('digest');
+  }
+  if (
+    !Array.isArray(attestation.sourceEvidence) ||
+    sha256Canonical(attestation.sourceEvidence) !== attestation.sourceEvidenceDigest ||
+    sha256Canonical(attestation.policy) !== attestation.policyDigest
+  ) {
     return invalid('digest');
   }
   if (!isSha256Hex(attestation.effectivePolicyProfileDigest)) {
@@ -485,6 +547,105 @@ export function normalizePolicyAttestation(
     return invalid('completeness');
   }
   if (policy.effectiveControlEvaluationComplete !== true) {
+    return invalid('completeness');
+  }
+  if (
+    !Array.isArray(policy.policySources) ||
+    !Array.isArray(policy.effectiveRules) ||
+    canonicalJson(policy.policySources) !== canonicalJson(attestation.sourceEvidence)
+  ) {
+    return invalid('completeness');
+  }
+  const validLevels = new Set([
+    'classic',
+    'repository',
+    'organization',
+    'enterprise',
+  ]);
+  const seenLevels = new Set<string>();
+  const sourceIds = new Set<string>();
+  for (const source of policy.policySources) {
+    if (
+      !isRecordObject(source) ||
+      !validLevels.has(source.sourceLevel) ||
+      typeof source.sourcePolicyId !== 'string' ||
+      source.sourcePolicyId === '' ||
+      hasControlCharacters(source.sourcePolicyId) ||
+      (source.parentPolicyId !== null &&
+        hasControlCharacters(source.parentPolicyId)) ||
+      sourceIds.has(source.sourcePolicyId) ||
+      (source.enforcement !== 'active' &&
+        source.enforcement !== 'evaluate' &&
+        source.enforcement !== 'disabled') ||
+      typeof source.version !== 'string' ||
+      source.version === '' ||
+      hasControlCharacters(source.version) ||
+      !isRecordObject(source.conditions) ||
+      !Array.isArray(source.rules) ||
+      source.rules.some(
+        (rule) => typeof rule !== 'string' || hasControlCharacters(rule),
+      ) ||
+      !Array.isArray(source.bypassActors) ||
+      !Number.isSafeInteger(source.page) ||
+      !Number.isSafeInteger(source.pageCount) ||
+      source.page < 1 ||
+      source.pageCount < source.page ||
+      !Array.isArray(source.pages) ||
+      source.pages.length !== source.pageCount ||
+      source.pages.some(
+        (page, index) =>
+          !isRecordObject(page) ||
+          page.page !== index + 1 ||
+          !isSha256Hex(page.responseDigest),
+      ) ||
+      !isSha256Hex(source.responseDigest) ||
+      sha256Canonical(omitTopLevel(source, 'responseDigest')) !== source.responseDigest
+    ) {
+      return invalid('completeness');
+    }
+    sourceIds.add(source.sourcePolicyId);
+    seenLevels.add(source.sourceLevel);
+  }
+  if ([...validLevels].some((level) => !seenLevels.has(level))) {
+    return invalid('completeness');
+  }
+  for (const source of policy.policySources) {
+    if (source.parentPolicyId !== null && !sourceIds.has(source.parentPolicyId)) {
+      return invalid('completeness');
+    }
+  }
+  const derivedEffectiveRules = policy.policySources
+    .flatMap((source) =>
+      source.rules.map((rule) => ({
+        rule,
+        sourcePolicyId: source.sourcePolicyId,
+        sourceLevel: source.sourceLevel,
+        effective: source.enforcement === 'active',
+      })),
+    )
+    .sort((left, right) => canonicalJson(left).localeCompare(canonicalJson(right)));
+  if (
+    canonicalJson(derivedEffectiveRules) !==
+    canonicalJson(
+      [...policy.effectiveRules].sort((left, right) =>
+        canonicalJson(left).localeCompare(canonicalJson(right)),
+      ),
+    )
+  ) {
+    return invalid('completeness');
+  }
+  const derivedBypassActors = policy.policySources
+    .flatMap((source) => source.bypassActors)
+    .sort((left, right) => canonicalJson(left).localeCompare(canonicalJson(right)));
+  if (
+    !Array.isArray(policy.bypassActors) ||
+    canonicalJson(derivedBypassActors) !==
+    canonicalJson(
+      [...policy.bypassActors].sort((left, right) =>
+        canonicalJson(left).localeCompare(canonicalJson(right)),
+      ),
+    )
+  ) {
     return invalid('completeness');
   }
   // A missing or permission-redacted bypass actor list is never an empty set.
@@ -525,6 +686,13 @@ export function normalizePolicyAttestation(
     // cannot name a confined identity while the other observes a privileged one.
     return invalid('completeness');
   }
+  if (
+    !(policy.executorApps as readonly ExecutorAppIdentity[]).every((app) =>
+      executorPermissionMapIsConfined(app.permissions),
+    )
+  ) {
+    return invalid('completeness');
+  }
   if (!appsAbsentFromBypass(policy.executorApps, attestation)) {
     return invalid('completeness');
   }
@@ -556,12 +724,30 @@ export function normalizePolicyAttestation(
     // change either the repository merge method or a linear-history rule.
     return invalid('completeness');
   }
-  const issuerStatus = policy.issuerStatus;
+  const issuerStatus = expectations.authority.resolveIssuerStatus(
+    issuer.authorityId,
+    issuer.keyId,
+    issuer.policyGeneration,
+  );
   if (!isRecordObject(issuerStatus)) {
     return invalid('completeness');
   }
+  const claimedIssuerStatus = policy.issuerStatus;
+  if (
+    !isRecordObject(claimedIssuerStatus) ||
+    claimedIssuerStatus.channelId !== issuerStatus.channelId ||
+    claimedIssuerStatus.authorityId !== issuerStatus.authorityId ||
+    claimedIssuerStatus.keyId !== issuerStatus.keyId ||
+    claimedIssuerStatus.publicKeyDigest !== issuerStatus.publicKeyDigest ||
+    claimedIssuerStatus.policyGeneration !== issuerStatus.policyGeneration ||
+    claimedIssuerStatus.state !== issuerStatus.state ||
+    claimedIssuerStatus.observedAtUtc !== issuerStatus.observedAtUtc
+  ) {
+    return invalid('signature');
+  }
   if (
     issuerStatus.channelId !== expectations.trustRoot.revocationChannelId ||
+    issuerStatus.statusAuthorityId === issuer.authorityId ||
     issuerStatus.authorityId !== expectations.trustRoot.authorityId ||
     issuerStatus.keyId !== expectations.trustRoot.keyId ||
     issuerStatus.publicKeyDigest !== expectations.trustRoot.publicKeyDigest
@@ -574,6 +760,14 @@ export function normalizePolicyAttestation(
   if (issuerStatus.state !== 'active') {
     // A revoked or indeterminate issuer or key is never usable, and a caller cannot
     // classify it away: this status is inside the signed canonical payload.
+    return invalid('signature');
+  }
+  if (
+    !isGitOid(issuerStatus.evidenceCommit) ||
+    !isSha256Hex(issuerStatus.evidenceDigest) ||
+    sha256Canonical(omitTopLevel(issuerStatus, 'evidenceDigest')) !==
+      issuerStatus.evidenceDigest
+  ) {
     return invalid('signature');
   }
   if (policy.paginationComplete !== true) {

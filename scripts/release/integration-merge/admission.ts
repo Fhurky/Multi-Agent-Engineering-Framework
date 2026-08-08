@@ -56,16 +56,25 @@ import type {
   PolicyControlFacts,
   ReleaseAdmissionInput,
   ReleaseAdmissionResult,
+  ReleaseAuthorityPort,
   ReleaseGateManifest,
   ReleaseMergePlan,
   RequiredGitHubPolicyProfile,
   Sha256Hex,
   TrustedCurrentPolicyAttestation,
 } from './contracts.ts';
-import { isGitOid, isSha256Hex, sha256Canonical } from './canonical-json.ts';
+import {
+  canonicalJson,
+  hasControlCharacters,
+  isGitOid,
+  isSha256Hex,
+  selfDigest,
+  sha256Canonical,
+} from './canonical-json.ts';
 import { validateActivation } from './activation.ts';
 import {
   classifyPolicyControl,
+  executorPermissionMapIsConfined,
   normalizePolicyAttestation,
 } from './policy-control.ts';
 import type { PolicyAttestationExpectations } from './policy-control.ts';
@@ -76,6 +85,7 @@ import {
 import {
   aggregateGateSnapshotDigest,
   matchingBlockingFindings,
+  releaseSecurityFindingDefect,
   releaseSecuritySnapshotDigest,
 } from './gate-admissibility.ts';
 import {
@@ -122,6 +132,21 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
 }
 
+function artifactAuthentic(
+  authority: ReleaseAuthorityPort,
+  ref: ImmutableProvenancedArtifactRef,
+): boolean {
+  const resolved = authority.resolveArtifact(ref);
+  return (
+    resolved !== null &&
+    resolved.producerAuthorized === true &&
+    isGitOid(resolved.authorizationEvidenceCommit) &&
+    canonicalJson(resolved.ref) === canonicalJson(ref) &&
+    sha256Canonical(resolved.canonicalValue) === ref.digest &&
+    canonicalJson(resolved.producer) === canonicalJson(ref.producer)
+  );
+}
+
 /* ------------------------------------------------------------------------- *
  * Immutable artifact provenance
  * ------------------------------------------------------------------------- */
@@ -143,10 +168,13 @@ export function provenancedArtifactDefect(
   if (ref.kind !== expectedKind) {
     return 'artifact_kind_mismatch';
   }
+  if (hasControlCharacters(ref.kind)) {
+    return 'artifact_kind_control_character';
+  }
   if (!isGitOid(ref.commit)) {
     return 'artifact_commit_not_immutable';
   }
-  if (!isNonEmptyString(ref.path)) {
+  if (!isNonEmptyString(ref.path) || hasControlCharacters(ref.path)) {
     return 'artifact_path_missing';
   }
   if (!isSha256Hex(ref.digest)) {
@@ -160,7 +188,10 @@ export function provenancedArtifactDefect(
   if (!isRecordObject(ref.producer)) {
     return 'artifact_provenance_absent';
   }
-  if (!isNonEmptyString(ref.producer.principalId)) {
+  if (
+    !isNonEmptyString(ref.producer.principalId) ||
+    hasControlCharacters(ref.producer.principalId)
+  ) {
     return 'artifact_provenance_absent';
   }
   if (ref.producer.principalType === 'merge_executor') {
@@ -312,9 +343,17 @@ function exception(record: HumanExceptionRecord): ReleaseAdmissionResult {
 /**
  * Pure, total release admission. Never throws and never performs input or output.
  */
-export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
+export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult;
+export function admit(
+  input: ReleaseAdmissionInput,
+  authority: ReleaseAuthorityPort | null,
+): ReleaseAdmissionResult;
+export function admit(
+  input: ReleaseAdmissionInput,
+  authority: ReleaseAuthorityPort | null = null,
+): ReleaseAdmissionResult {
   try {
-    return admitOrdered(input);
+    return admitOrdered(input, authority);
   }
   catch {
     // Backstop for a value no canonical encoder can represent, such as a symbol or a
@@ -331,7 +370,10 @@ export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
   }
 }
 
-function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
+function admitOrdered(
+  input: ReleaseAdmissionInput,
+  authorityDependency: ReleaseAuthorityPort | null,
+): ReleaseAdmissionResult {
   /* --- Step 0: complete runtime input shape ----------------------------- */
 
   if (!isRecordObject(input)) {
@@ -421,7 +463,7 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
 
   /* --- Step 2: activation and the pinned required-policy profile -------- */
 
-  const activation = validateActivation(input.activation);
+  const activation = validateActivation(input.activation, authorityDependency);
   if (activation.status === 'not_activated') {
     return refusal(
       'AuthorityNotActivated',
@@ -435,6 +477,7 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
     );
   }
   const activationRecord = activation.record;
+  const authority = authorityDependency as ReleaseAuthorityPort;
 
   const profileSourceDefect = provenancedArtifactDefect(
     input.requiredPolicyProfileSource,
@@ -480,6 +523,19 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
       subjects,
       null,
       'required_policy_profile_not_the_activation_pinned_artifact',
+    );
+  }
+  if (
+    !artifactAuthentic(authority, manifestSource) ||
+    !artifactAuthentic(authority, profileSource)
+  ) {
+    return refusal(
+      'AuthorityNotActivated',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'activation_pinned_source_unresolvable',
     );
   }
   if (profile.repositoryId !== manifest.repositoryId) {
@@ -538,6 +594,73 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
     );
   }
 
+  for (const finding of input.securitySnapshot.findings) {
+    const findingDefect = releaseSecurityFindingDefect(finding);
+    if (findingDefect !== null) {
+      return refusal(
+        'SecurityEvidenceMissing', repositoryId, keyMaterial, subjects, null,
+        findingDefect,
+      );
+    }
+  }
+
+  const authorityUniverse = authority.enumerateAdmissionUniverse(
+    repositoryId,
+    input.pullRequest.headOid,
+  );
+  const publicationIds =
+    input.publishedHeadEvidence?.status === 'complete'
+      ? [
+          ...input.publishedHeadEvidence.author.commands,
+          ...input.publishedHeadEvidence.control.commands,
+        ].map((command) => command.evidenceId).sort()
+      : [];
+  if (
+    authorityUniverse === null ||
+    !isGitOid(authorityUniverse.evidenceCommit) ||
+    selfDigest(authorityUniverse, 'universeDigest') !==
+      authorityUniverse.universeDigest ||
+    canonicalJson(authorityUniverse.manifestSource) !==
+      canonicalJson(input.manifestSource) ||
+    canonicalJson(authorityUniverse.gateSnapshotSource) !==
+      canonicalJson(input.gateSnapshotSource) ||
+    canonicalJson(authorityUniverse.securitySnapshotSource) !==
+      canonicalJson(input.securitySnapshotSource) ||
+    canonicalJson(authorityUniverse.integrationEvidenceSource) !==
+      canonicalJson(input.integrationEvidenceSource) ||
+    canonicalJson(authorityUniverse.requiredPolicyProfileSource) !==
+      canonicalJson(input.requiredPolicyProfileSource) ||
+    canonicalJson(authorityUniverse.gateRelations) !==
+      canonicalJson(input.gateSnapshot.relations) ||
+    canonicalJson(authorityUniverse.securityFindings) !==
+      canonicalJson(input.securitySnapshot.findings) ||
+    canonicalJson(authorityUniverse.integrationEvidence) !==
+      canonicalJson(input.integrationEvidence) ||
+    canonicalJson(authorityUniverse.requiredChecks) !==
+      canonicalJson(input.requiredChecks) ||
+    canonicalJson([...authorityUniverse.publicationCommandEvidenceIds].sort()) !==
+      canonicalJson(publicationIds)
+  ) {
+    const universeCode: MergeRefusalCode =
+      authorityUniverse !== null &&
+      canonicalJson(authorityUniverse.securityFindings) !==
+        canonicalJson(input.securitySnapshot.findings)
+        ? 'SecurityEvidenceMissing'
+        : authorityUniverse !== null &&
+            canonicalJson(authorityUniverse.integrationEvidence) !==
+              canonicalJson(input.integrationEvidence)
+          ? 'IntegrationEvidenceIncomplete'
+          : 'SourceRecordInvalid';
+    return refusal(
+      universeCode,
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'authenticated_authority_universe_mismatch',
+    );
+  }
+
   /* --- Step 2c: snapshot digests bound to canonical bytes --------------- */
 
   const gateSourceDefect = provenancedArtifactDefect(
@@ -569,6 +692,12 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
       subjects,
       null,
       'gate_snapshot_digest_not_over_its_own_relations',
+    );
+  }
+  if (!artifactAuthentic(authority, input.gateSnapshotSource)) {
+    return refusal(
+      'SourceRecordInvalid', repositoryId, keyMaterial, subjects, null,
+      'gate_snapshot_source_unresolvable',
     );
   }
 
@@ -603,6 +732,12 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
       'security_snapshot_digest_not_over_its_own_findings',
     );
   }
+  if (!artifactAuthentic(authority, input.securitySnapshotSource)) {
+    return refusal(
+      'SecurityEvidenceMissing', repositoryId, keyMaterial, subjects, null,
+      'security_snapshot_source_unresolvable',
+    );
+  }
 
   const integrationSourceDefect = provenancedArtifactDefect(
     input.integrationEvidenceSource,
@@ -629,6 +764,12 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
       subjects,
       null,
       'integration_evidence_source_digest_does_not_contain_the_evidence_set',
+    );
+  }
+  if (!artifactAuthentic(authority, input.integrationEvidenceSource)) {
+    return refusal(
+      'IntegrationEvidenceIncomplete', repositoryId, keyMaterial, subjects, null,
+      'integration_evidence_source_unresolvable',
     );
   }
 
@@ -678,6 +819,7 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
     profile,
     'pre_intent',
     null,
+    authority,
   );
 
   const normalized = normalizePolicyAttestation(
@@ -733,6 +875,80 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
     );
   }
   const bundle = evidence.bundle;
+
+  const authenticatedPhaseIdentities = [
+    ...bundle.author.commands,
+    ...bundle.control.commands,
+  ].map((command) => authority.authenticateExecutionEvidence(command.evidenceId));
+  if (authenticatedPhaseIdentities.some((identity) => identity === null)) {
+    return refusal(
+      'PublishedHeadEvidenceMismatch',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'publication_execution_identity_unauthenticated',
+    );
+  }
+  const commands = [...bundle.author.commands, ...bundle.control.commands];
+  for (let index = 0; index < commands.length; index += 1) {
+    const command = commands[index]!;
+    const identity = authenticatedPhaseIdentities[index]!;
+    if (
+      identity === null ||
+      identity.evidenceId !== command.evidenceId ||
+      identity.phase !== command.phase ||
+      identity.principalId !== command.producer.role ||
+      identity.executionSessionId !== command.producer.executionSessionId ||
+      !isGitOid(identity.evidenceCommit)
+    ) {
+      return refusal(
+        'PublishedHeadEvidenceMismatch', repositoryId, keyMaterial, subjects, null,
+        'publication_identity_not_bound_to_command',
+      );
+    }
+  }
+  const authorIdentities = authenticatedPhaseIdentities.filter(
+    (identity) => identity?.phase === 'author_pre_publication',
+  );
+  const controlIdentities = authenticatedPhaseIdentities.filter(
+    (identity) => identity?.phase === 'control_post_publication',
+  );
+  const authorIdentity = authorIdentities[0];
+  const controlIdentity = controlIdentities[0];
+  if (
+    authorIdentity === undefined ||
+    controlIdentity === undefined ||
+    authorIdentities.some(
+      (identity) =>
+        identity?.principalId !== authorIdentity.principalId ||
+        identity.executionSessionId !== authorIdentity.executionSessionId ||
+        identity.executionInstanceId !== authorIdentity.executionInstanceId ||
+        identity.identityAuthorityId !== authorIdentity.identityAuthorityId ||
+        identity.evidenceCommit !== authorIdentity.evidenceCommit,
+    ) ||
+    controlIdentities.some(
+      (identity) =>
+        identity?.principalId !== controlIdentity.principalId ||
+        identity.executionSessionId !== controlIdentity.executionSessionId ||
+        identity.executionInstanceId !== controlIdentity.executionInstanceId ||
+        identity.identityAuthorityId !== controlIdentity.identityAuthorityId ||
+        identity.evidenceCommit !== controlIdentity.evidenceCommit,
+    ) ||
+    authorIdentity.principalId === controlIdentity.principalId ||
+    authorIdentity.executionSessionId === controlIdentity.executionSessionId ||
+    authorIdentity.executionInstanceId === controlIdentity.executionInstanceId ||
+    authorIdentity.evidenceCommit === controlIdentity.evidenceCommit
+  ) {
+    return refusal(
+      'PublishedHeadEvidenceMismatch',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'publication_phases_not_independent_authenticated_executions',
+    );
+  }
 
   if (bundle.targetCommit !== manifest.sourceOid) {
     return refusal(
@@ -804,6 +1020,22 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
     releaseTargetCommit,
   );
 
+  for (const relation of input.gateSnapshot.relations) {
+    for (const acceptedRisk of relation.acceptedRisks) {
+      if (
+        canonicalJson(authority.resolveAcceptedRisk(acceptedRisk)) !==
+          canonicalJson(acceptedRisk) ||
+        canonicalJson(authority.resolveAuthorizedHuman(acceptedRisk.acceptedBy)) !==
+        canonicalJson(acceptedRisk.acceptedBy)
+      ) {
+        return refusal(
+          'SecurityRiskAcceptanceInvalid', repositoryId, keyMaterial, subjects, null,
+          'accepted_risk_human_authority_unresolvable',
+        );
+      }
+    }
+  }
+
   const securityResult = gates.results.find(
     (entry) => entry.domain === 'security',
   );
@@ -862,6 +1094,25 @@ function admitOrdered(input: ReleaseAdmissionInput): ReleaseAdmissionResult {
       manifest,
       coupling.policyCommit,
     );
+    if (
+      authorizationDefect === null &&
+      canonicalJson(authority.resolveHumanDecision(coupling.authorization)) !==
+        canonicalJson(coupling.authorization)
+    ) {
+      return exception({
+        status: 'human_exception_required',
+        classification: 'unclassifiable',
+        kind: null,
+        candidateKinds: [
+          'authorize_policy_required_irreversible_production_action',
+        ],
+        executor: RELEASE_EXECUTOR,
+        immutableSubjects: subjects,
+        evidenceRecord: evidenceRef(repositoryId, keyMaterial, {
+          phase: 'irreversible_production_authority_unresolvable',
+        }),
+      });
+    }
     if (authorizationDefect !== null) {
       // An unclassifiable or unbound authorization is refused as a typed exception
       // record; it never turns the main merge itself into an implicit exception.
@@ -1107,6 +1358,7 @@ export function releaseAttestationExpectations(
   profile: RequiredGitHubPolicyProfile,
   phase: 'pre_intent' | 'pre_mutation',
   expectedPolicyGeneration: number | null,
+  authority: ReleaseAuthorityPort,
 ): PolicyAttestationExpectations {
   return {
     repositoryDatabaseId: input.repository.databaseId,
@@ -1130,6 +1382,7 @@ export function releaseAttestationExpectations(
       appId: context_.expectedAppId,
     })),
     expectedMergeMethods: profile.mergeMethodsRequired,
+    authority,
   };
 }
 
@@ -1148,11 +1401,19 @@ function executorAppDefect(value: unknown): string | null {
   if (!Number.isSafeInteger(app.installationId) || app.installationId < 1) {
     return 'executor_app_installation_invalid';
   }
-  if (!isNonEmptyString(app.nodeId) || !isNonEmptyString(app.slug)) {
+  if (
+    !isNonEmptyString(app.nodeId) ||
+    !isNonEmptyString(app.slug) ||
+    hasControlCharacters(app.nodeId) ||
+    hasControlCharacters(app.slug)
+  ) {
     return 'executor_app_identity_incomplete';
   }
   if (!isRecordObject(app.permissions)) {
     return 'executor_app_permissions_absent';
+  }
+  if (!executorPermissionMapIsConfined(app.permissions)) {
+    return 'executor_app_permissions_not_literal_allowlist';
   }
   for (const value_ of Object.values(app.permissions)) {
     if (value_ !== 'read' && value_ !== 'write' && value_ !== 'admin') {
@@ -1186,7 +1447,7 @@ function requiredPolicyProfileDefect(value: unknown): string | null {
     if (!isRecordObject(context)) {
       return 'profile_required_check_context_invalid';
     }
-    if (!isNonEmptyString(context.name)) {
+    if (!isNonEmptyString(context.name) || hasControlCharacters(context.name)) {
       return 'profile_required_check_name_missing';
     }
     if (!Number.isSafeInteger(context.expectedAppId)) {
@@ -1313,7 +1574,10 @@ function validateSourceShape(input: ReleaseAdmissionInput): ShapeDefect | null {
   if (!isRecordObject(input.repository)) {
     return sourceDefect('repository_identity_missing');
   }
-  if (!isNonEmptyString(input.repository.repositoryId)) {
+  if (
+    !isNonEmptyString(input.repository.repositoryId) ||
+    hasControlCharacters(input.repository.repositoryId)
+  ) {
     return sourceDefect('repository_id_missing');
   }
   if (!Number.isSafeInteger(input.repository.databaseId)) {
@@ -1322,7 +1586,10 @@ function validateSourceShape(input: ReleaseAdmissionInput): ShapeDefect | null {
   if (
     !isNonEmptyString(input.repository.nodeId) ||
     !isNonEmptyString(input.repository.owner) ||
-    !isNonEmptyString(input.repository.name)
+    !isNonEmptyString(input.repository.name) ||
+    hasControlCharacters(input.repository.nodeId) ||
+    hasControlCharacters(input.repository.owner) ||
+    hasControlCharacters(input.repository.name)
   ) {
     return sourceDefect('repository_identity_incomplete');
   }
@@ -1394,12 +1661,15 @@ function validateSourceShape(input: ReleaseAdmissionInput): ShapeDefect | null {
   if (!Array.isArray(input.changedPaths)) {
     return sourceDefect('changed_paths_missing');
   }
+  if (input.changedPaths.some((path) => hasControlCharacters(path))) {
+    return sourceDefect('changed_path_control_character');
+  }
   for (const path of input.changedPaths) {
     if (typeof path !== 'string') {
       return sourceDefect('changed_path_not_a_string');
     }
   }
-  if (!isNonEmptyString(input.orderKey)) {
+  if (!isNonEmptyString(input.orderKey) || hasControlCharacters(input.orderKey)) {
     return sourceDefect('order_key_missing');
   }
   if (!isSha256Hex(input.admissionContextNonce)) {

@@ -68,6 +68,7 @@ import { remediationFor } from './remediation.ts';
 import {
   isRetryableFailure,
   nextRetryDecision,
+  TOTAL_BUDGET_MS,
 } from './retry.ts';
 
 function evidenceRef(
@@ -399,6 +400,7 @@ async function revalidateAuthoritatively(
       dependencies.clock.nowIso(),
       preIntentPolicyFacts,
     ),
+    dependencies.authority,
   );
 
   if (revalidated.status === 'refused') {
@@ -577,6 +579,7 @@ async function authorizePreMutation(
     profile as RequiredGitHubPolicyProfile,
     'pre_mutation',
     plan.policyGeneration,
+    dependencies.authority,
   );
 
   const normalized = normalizePolicyAttestation(
@@ -1040,7 +1043,73 @@ export async function execute(
       }
     }
 
-    /* --- Step 4: the sole mutation, with bounded retry ------------------ */
+    /* --- Step 4: authenticated retry-sequence deadline ----------------- */
+
+    let retrySequence = history.retrySequence;
+    if (retrySequence === null || retrySequence === undefined) {
+      if (history.attempts > 0) {
+        return persistRefusal(
+          dependencies,
+          plan,
+          buildRefusal(
+            plan,
+            'IntentReceiptInvalid',
+            'recovered_attempts_without_authenticated_retry_sequence',
+            subjects,
+          ),
+          'refused',
+        );
+      }
+      const startedAtUtc = dependencies.clock.nowIso();
+      const startedAtMs = Date.parse(startedAtUtc);
+      const deadlineUtc = new Date(startedAtMs + TOTAL_BUDGET_MS).toISOString();
+      const sequenceReceipt = await dependencies.store.recordRetrySequence(
+        plan.idempotencyKey,
+        planDigestOf(plan),
+        startedAtUtc,
+        deadlineUtc,
+      );
+      if (
+        sequenceReceipt === null ||
+        !(await dependencies.store.verifyRetrySequence(sequenceReceipt))
+      ) {
+        return persistRefusal(
+          dependencies,
+          plan,
+          buildRefusal(
+            plan,
+            'IntentNotDurable',
+            'retry_sequence_deadline_not_durably_authenticated',
+            subjects,
+          ),
+          'refused',
+        );
+      }
+      retrySequence = {
+        key: sequenceReceipt.key,
+        planDigest: sequenceReceipt.planDigest,
+        startedAtUtc: sequenceReceipt.startedAtUtc,
+        deadlineUtc: sequenceReceipt.deadlineUtc,
+      };
+    }
+    if (
+      retrySequence.key !== plan.idempotencyKey ||
+      retrySequence.planDigest !== planDigestOf(plan) ||
+      !Number.isFinite(Date.parse(retrySequence.startedAtUtc)) ||
+      !Number.isFinite(Date.parse(retrySequence.deadlineUtc)) ||
+      Date.parse(retrySequence.deadlineUtc) -
+          Date.parse(retrySequence.startedAtUtc) !==
+        TOTAL_BUDGET_MS
+    ) {
+      return persistRefusal(
+        dependencies,
+        plan,
+        buildRefusal(plan, 'IntentReceiptInvalid', 'retry_sequence_invalid', subjects),
+        'refused',
+      );
+    }
+
+    /* --- Step 5: the sole mutation, with bounded retry ------------------ */
 
     return await performBoundedMerge(
       dependencies,
@@ -1048,6 +1117,8 @@ export async function execute(
       subjects,
       history.attempts,
       input.preIntentPolicyFacts,
+      retrySequence.startedAtUtc,
+      retrySequence.deadlineUtc,
     );
   }
   finally {
@@ -1061,9 +1132,12 @@ async function performBoundedMerge(
   subjects: readonly ImmutableArtifactRef[],
   priorAttempts: number,
   preIntentPolicyFacts: PolicyControlFacts,
+  retryStartedAtUtc: string,
+  retryDeadlineUtc: string,
 ): Promise<ReleaseExecutionResult> {
   const request = buildReleaseMergeRequest(plan);
-  const startedMs = dependencies.clock.monotonicMs();
+  const startedAtMs = Date.parse(retryStartedAtUtc);
+  const deadlineMs = Date.parse(retryDeadlineUtc);
 
   let attempts = Number.isSafeInteger(priorAttempts) && priorAttempts > 0
     ? priorAttempts
@@ -1084,6 +1158,15 @@ async function performBoundedMerge(
   }
 
   for (;;) {
+    const nowMs = Date.parse(dependencies.clock.nowIso());
+    if (nowMs >= deadlineMs) {
+      return persistRefusal(
+        dependencies,
+        plan,
+        buildRefusal(plan, 'RetryExhausted', 'wall_clock_budget_consumed', subjects),
+        'refused',
+      );
+    }
     const attemptNumber = attempts + 1;
 
     /* --- Durable attempt accounting, before the mutation --------------- */
@@ -1244,7 +1327,7 @@ async function performBoundedMerge(
       // a retry is permitted only if the failure class and budget allow it.
       const decision = nextRetryDecision(
         attempts,
-        dependencies.clock.monotonicMs() - startedMs,
+        Date.parse(dependencies.clock.nowIso()) - startedAtMs,
         null,
       );
       if (decision.status === 'exhausted') {
@@ -1276,7 +1359,7 @@ async function performBoundedMerge(
 
     const decision = nextRetryDecision(
       attempts,
-      dependencies.clock.monotonicMs() - startedMs,
+      Date.parse(dependencies.clock.nowIso()) - startedAtMs,
       result.retryAfterSeconds,
     );
 

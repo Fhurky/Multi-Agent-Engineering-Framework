@@ -18,6 +18,8 @@
  */
 
 import {
+  compareStringTuples,
+  hasControlCharacters,
   isGitOid,
   isIsoTimestamp,
   isSha256Hex,
@@ -136,8 +138,10 @@ function validateCommand(
   if (
     typeof command.producer.role !== 'string' ||
     command.producer.role === '' ||
+    hasControlCharacters(command.producer.role) ||
     typeof command.producer.executionSessionId !== 'string' ||
-    command.producer.executionSessionId === ''
+    command.producer.executionSessionId === '' ||
+    hasControlCharacters(command.producer.executionSessionId)
   ) {
     return refuse('PublishedHeadEvidenceIncomplete', 'command_producer_incomplete');
   }
@@ -147,10 +151,14 @@ function validateCommand(
   if (command.targetCommit !== targetCommit) {
     return refuse('PublishedHeadEvidenceMismatch', 'command_target_mismatch');
   }
-  if (command.branch !== branch) {
+  if (hasControlCharacters(command.branch) || command.branch !== branch) {
     return refuse('PublishedHeadEvidenceMismatch', 'command_branch_mismatch');
   }
-  if (typeof command.workingDirectory !== 'string' || command.workingDirectory === '') {
+  if (
+    typeof command.workingDirectory !== 'string' ||
+    command.workingDirectory === '' ||
+    hasControlCharacters(command.workingDirectory)
+  ) {
     return refuse(
       'PublishedHeadEvidenceIncomplete',
       'command_working_directory_missing',
@@ -162,10 +170,19 @@ function validateCommand(
   if (isoToEpochMs(command.endedAtUtc) < isoToEpochMs(command.startedAtUtc)) {
     return refuse('PublishedHeadEvidenceIncomplete', 'command_timing_inverted');
   }
-  if (typeof command.executable !== 'string' || command.executable === '') {
+  if (
+    typeof command.executable !== 'string' ||
+    command.executable === '' ||
+    hasControlCharacters(command.executable)
+  ) {
     return refuse('PublishedHeadEvidenceIncomplete', 'command_executable_missing');
   }
-  if (!Array.isArray(command.arguments)) {
+  if (
+    !Array.isArray(command.arguments) ||
+    command.arguments.some(
+      (argument) => typeof argument !== 'string' || hasControlCharacters(argument),
+    )
+  ) {
     return refuse('PublishedHeadEvidenceIncomplete', 'command_arguments_missing');
   }
   if (!isGitOid(command.headBefore) || !isGitOid(command.headAfter)) {
@@ -389,14 +406,22 @@ function validateProofKinds(
 
 function phaseProducerIdentities(
   commands: readonly PublishedHeadCommandEvidence[],
-): readonly string[] {
-  return [
-    ...new Set(
-      commands.map(
-        (command) => `${command.producer.role} ${command.producer.executionSessionId}`,
-      ),
-    ),
-  ];
+): readonly (readonly [string, string])[] {
+  const identities: [string, string][] = [];
+  for (const command of commands) {
+    const candidate: [string, string] = [
+      command.producer.role,
+      command.producer.executionSessionId,
+    ];
+    if (
+      !identities.some(
+        (identity) => compareStringTuples(identity, candidate) === 0,
+      )
+    ) {
+      identities.push(candidate);
+    }
+  }
+  return identities.sort(compareStringTuples);
 }
 
 /**
@@ -429,7 +454,12 @@ function validatePhaseProducers(
       );
     }
   }
-  if (authorIdentities[0] === controlIdentities[0]) {
+  if (
+    compareStringTuples(
+      authorIdentities[0] as readonly string[],
+      controlIdentities[0] as readonly string[],
+    ) === 0
+  ) {
     return refuse(
       'PublishedHeadEvidenceMismatch',
       'phase_producer_sessions_not_independent',
@@ -456,7 +486,11 @@ export function validatePublishedHeadEvidence(
   if (!isGitOid(bundle.targetCommit)) {
     return refuse('PublishedHeadEvidenceIncomplete', 'bundle_target_not_full_oid');
   }
-  if (typeof bundle.branch !== 'string' || bundle.branch === '') {
+  if (
+    typeof bundle.branch !== 'string' ||
+    bundle.branch === '' ||
+    hasControlCharacters(bundle.branch)
+  ) {
     return refuse('PublishedHeadEvidenceIncomplete', 'bundle_branch_missing');
   }
 
