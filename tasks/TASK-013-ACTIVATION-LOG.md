@@ -2,11 +2,13 @@
 
 Append-only activation log owned by TASK-013. It is the durable consumption ledger and the gate-closure register for the TASK-001 task graph. Event rows are never edited or deleted; a correction is recorded as a new entry.
 
-- Owner: `orchestrator` / `claude`
+- Owner: `orchestrator` / `gpt`
 - Cursor field: `activation.last_consumed_event_seq` in `tasks/blocked/TASK-013-task-record-lifecycle-and-gate-closure.md`
 - Dispatch condition: `ingress_seq > activation.last_consumed_event_seq`
 - Quiescent condition: `ingress_seq == activation.last_consumed_event_seq`
 - Ingress source set, observation rule, and observer ownership: `tasks/TASK-001-DEPENDENCY-GRAPH.md`, section "TASK-013 activation and event-ingress model"
+
+**Human-authorized provider reroute pending Orchestrator ingestion.** On 2026-08-08 the user-authorized control session rerouted TASK-013 from `claude` to `gpt` after a non-interactive Claude Code attempt returned the provider's weekly-limit refusal before any tracked edit or commit. The matching lock was released normally and the clean Claude branch/worktree remain preserved. This note changes execution identity only and is not an ingress entry, activation, verdict, or cursor movement. The next activation must ingest the durable human decision without rewriting any closed ledger row.
 
 ## What this log is, and what it is not
 

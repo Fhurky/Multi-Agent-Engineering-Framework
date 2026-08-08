@@ -72,7 +72,7 @@ assignments:
     title: Orchestrator
     role_path: .agents/orchestrator
     enabled: true
-    llm: claude
+    llm: gpt
     task_queue: tasks/ready
     write_scope:
       - tasks/**
