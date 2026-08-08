@@ -42,8 +42,9 @@ gate_tasks:
   - task: TASK-060
     gate: review
     round: 1
-    verdict: pending
-    relation_status: open
+    verdict: approved
+    verdict_recorded_at: fa766a2401bcafa663f1eee32f4363325d145c5c
+    relation_status: closed
     gate_class: point
     retrospective: false
     gate_lineage: LIN-RELEASE-EXECUTOR-REVIEW
@@ -51,14 +52,32 @@ gate_tasks:
   - task: TASK-061
     gate: security
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 17cdf4f040f7b0e89ad51f9db40d67f7ae11a615
+    remediated_by: TASK-062
+    revalidated_by: TASK-063
     relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 3
+  - task: TASK-063
+    gate: security
+    round: 2
+    verdict: pending
+    relation_status: open
+    gate_class: point
+    retrospective: false
+    gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
+    lineage_round: 4
 gate_status: >-
-  OPEN on both relations and pending on both at ACT-032. BOTH OWNERS ARE READY after this task's
+  ACT-033 closes the TASK-060 review relation at approved and records no Reviewer findings. The
+  TASK-061 Security relation records changes-required and remains OPEN, and TASK-063 Security round
+  4 is added OPEN and pending at this record's round 2. F-061-01, F-061-02, and F-061-03 are fresh
+  Critical devops-owned findings routed together to TASK-062, then to TASK-063 for independent
+  revalidation. No risk is accepted. This record remains NON-INTEGRABLE; PR 37 and ancestral PR 33
+  remain open and MUST NOT be merged. The superseded ACT-032 value read - OPEN on both relations and
+  pending on both at ACT-032. BOTH OWNERS ARE READY after this task's
   runtime-class publication independently satisfied each review_ready edge. TASK-060 and TASK-061
   remain separate roles and mandatory separate execution contexts; neither gate is satisfied by
   publication, CI, owner testing, the other gate, or this Orchestrator activation. This record joins the
@@ -282,8 +301,11 @@ cumulative_review_delta: >-
   d63864bcb25fc8897b21c09f8f687e390f85808d to the exact target; zero residue and zero deleted paths.
 integrable: false
 integrability_note: >-
-  Both required pre-merge gates remain open and pending. Publication, passing owner tests, controller
-  reproduction, and exact-head CI close neither relation. PR 37 and ancestral PR 33 remain unmerged.
+  Review is closed at approved by TASK-060 with no findings. Security is not: TASK-061 recorded
+  changes-required, its three Critical findings remain open and unaccepted, and TASK-063 round 4 is
+  pending after TASK-062. The required pre-merge gate set is therefore not satisfied. Publication,
+  owner tests, controller reproduction, exact-head CI, and the Review verdict cannot substitute for
+  Security. PR 37 and ancestral PR 33 remain unmerged and MUST NOT be merged.
 publication_evidence:
   activation: ACT-032
   ingress_seq: 44
@@ -425,3 +447,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - **Verification transcribed and independently reproduced.** Owner and controller both returned `537 declared / 526 passed / 0 failed / 0 skipped / 11 explicitly unexecuted`. Controller checks also passed assignment and 29-path scope, 13-role framework validation, orchestration, 82 check-run-evidence assertions, repository security, diff checks against both bases, the 42-file raw-byte scan, exact-head CI assertion, clean/equal refs and worktree, and unchanged live-fixture blob. No empty status rollup was treated as success.
 - **No authority effect.** Publication and passing CI resolve no finding, close no gate, approve no change, and activate no executor. No merge, external control-plane action, credential action, policy mutation, risk acceptance, activation, or simulation occurred. Pull requests 37 and 33 remain open and unmerged.
 - Next owners: **TASK-060**, `reviewer` / `gpt`, and **TASK-061**, `security` / `gpt`, now separately `ready`, each bound to target `126f2fa9939b8ac6db4764241952dafbda50e9f4` over review base `d63864bcb25fc8897b21c09f8f687e390f85808d`, each carrying its own atomic three-relation cohort. This task's owner execution is complete and both owner locks are free.
+- **ACT-033 gate routing.** TASK-060 recorded `approved` with no findings and closed this record's Review round-1 relation. TASK-061 recorded `changes-required`, left this record's Security round-1 relation open, and returned F-061-01 through F-061-03, all Critical, DevOps-owned, open, and unaccepted. Those findings route together to TASK-062, then independent Security round 4 at TASK-063, where this record carries relation round 2.
+- Next owners: **TASK-062** (`devops` / `claude`) and then **TASK-063** (`security` / `gpt`). Review remains closed and no Reviewer successor exists. This record stays `review` and `integrable: false`; PR 37 and PR 33 remain open, unmerged, and forbidden while Security is open.
