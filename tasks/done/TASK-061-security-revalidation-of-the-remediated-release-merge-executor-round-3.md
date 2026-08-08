@@ -1,7 +1,7 @@
 ---
 task_id: TASK-061
 title: Security revalidation of the remediated release merge executor, round 3
-status: ready
+status: done
 owner_role: security
 llm: gpt
 branch: agent/gpt/security/task-061
@@ -31,7 +31,10 @@ gate_for:
   - task: TASK-059
     gate: security
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 17cdf4f040f7b0e89ad51f9db40d67f7ae11a615
+    remediated_by: TASK-062
+    revalidated_by: TASK-063
     relation_status: open
     gate_class: point
     retrospective: false
@@ -40,7 +43,10 @@ gate_for:
   - task: TASK-056
     gate: security
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 17cdf4f040f7b0e89ad51f9db40d67f7ae11a615
+    remediated_by: TASK-062
+    revalidated_by: TASK-063
     relation_status: open
     gate_class: point
     retrospective: false
@@ -49,7 +55,10 @@ gate_for:
   - task: TASK-049
     gate: security
     round: 3
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 17cdf4f040f7b0e89ad51f9db40d67f7ae11a615
+    remediated_by: TASK-062
+    revalidated_by: TASK-063
     relation_status: open
     gate_class: point
     retrospective: false
@@ -58,6 +67,31 @@ gate_for:
 parent_task: TASK-001
 publication_class: bootstrap
 supersedes: TASK-058
+publication: published
+published_commit: 17cdf4f040f7b0e89ad51f9db40d67f7ae11a615
+published_branch: agent/gpt/security/task-061
+published_remote_ref: refs/heads/agent/gpt/security/task-061
+pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/41
+gate_result: changes-required
+gate_result_note: >-
+  ACT-033 consumed this task's immutable gate_verdict_recorded fact. One changes-required verdict
+  applies atomically to all three Security relations, which all remain open. F-061-01, F-061-02,
+  and F-061-03 are fresh Critical devops-owned findings. No risk acceptance exists or is recorded;
+  the executor may not be integrated and implementationSecurityReview may not be produced.
+publication_evidence:
+  activation: ACT-033
+  ingress_seq: 47
+  ingress_class: gate_verdict_recorded
+  fact_id: 782c2f591b6212f5fd4b808ca7526c66501ccc7ac66b769be69d253adb204b44
+  source_path: reports/security/TASK-059-RELEASE-MERGE-EXECUTOR-SECURITY-ROUND-3.md
+  source_bytes: 37198
+  content_hash: 31373565c76fa13659e195e085f39e79c95f264b1040f797eb7c3c46accde645
+  branch_point: d7994690b40a4a29218c46b9e0c7bd234a56ceff
+  pull_request_state: OPEN, non-draft, MERGEABLE / CLEAN, exact head, unmerged
+  exact_head_checks:
+    - validate, check-run 93102162384, success
+    - security, check-run 93102162375, success
+  lock_release: normal; no TASK-061 lock remains in the shared lock directory
 verdict_cardinality_note: >-
   ONE VERDICT, APPLIED ATOMICALLY TO ALL THREE RELATIONS, under gate-round rule 5. All three close
   together or all three stay open together, and A SPLIT OUTCOME IS NOT REPRESENTABLE. This round
@@ -135,18 +169,18 @@ review_target_applicability: >-
   is NOT 85f5d265, NOT 9fb2eb0c, NOT 754d66a0, NOT cf6333b1, NOT origin/main, and NOT this task's own
   branch point.
 branch_point_of: integration/autonomous-runtime
-scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_base: d7994690b40a4a29218c46b9e0c7bd234a56ceff
 scope_validation_applicability: >-
-  applicable, declared as a reproducible expression because this task's branch does not exist yet.
-  It is this task's own branch point and is unrelated to review_target_base above.
+  Applicable and RESOLVED at ACT-033 from the declared expression. The merge base of source commit
+  17cdf4f040f7b0e89ad51f9db40d67f7ae11a615 with integration/autonomous-runtime and that source
+  commit's literal single parent both resolve to d7994690b40a4a29218c46b9e0c7bd234a56ceff.
+  It is deliberately not review_target_base above. TASK-060 has the same branch point as a scheduling
+  coincidence; the two gate deltas and verdicts remain independent.
 scope_validation_note: >-
-  Branch from integration/autonomous-runtime, resolve the branch point inside the worktree with
-  git merge-base HEAD integration/autonomous-runtime, and pass that exact value to -BaseRef. RESOLVE
-  IT RATHER THAN ASSUME IT - the integration branch has moved between every recent activation, and at
-  TASK-058's round it resolved to 754d66a0f73b6405e3a81101e8c24302581c2ebc. Record the resolved value
-  in the report. DO NOT BRANCH FROM agent/gpt/devops/task-059 and DO NOT MERGE THE UNASSESSED
-  IMPLEMENTATION INTO THIS BRANCH; read the target through Git object access or a detached worktree,
-  as TASK-054 and TASK-058 each did.
+  DISCHARGED. The owner resolved and recorded the exact branch point, passed it to
+  validate-write-scope.ps1, and reported valid True with exactly one changed path: the declared
+  Security report. The owner did not merge the implementation into the gate branch and assessed the
+  immutable target through Git object access.
 ready_reason: >-
   review_ready(TASK-059) is satisfied at 126f2fa9939b8ac6db4764241952dafbda50e9f4. ACT-032 checked
   all three runtime-publication conditions independently and separately from TASK-060's identical
