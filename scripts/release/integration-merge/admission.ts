@@ -100,6 +100,7 @@ import {
 } from './published-head-evidence.ts';
 import { evaluateRequiredChecks } from './required-checks.ts';
 import { findProtectedPathChanges } from './protected-paths.ts';
+import { validateAuthenticatedImmutableDiff } from './immutable-diff.ts';
 import { remediationFor } from './remediation.ts';
 
 /* ------------------------------------------------------------------------- *
@@ -231,6 +232,7 @@ export function computeAdmissionContext(
   expectedTreeOid: GitOid,
   publishedHeadEvidenceDigest: Sha256Hex,
   requiredPolicyProfileDigest: Sha256Hex,
+  immutableDiffDigest: Sha256Hex,
 ): AdmissionContext {
   const digest = sha256Canonical({
     executor: RELEASE_EXECUTOR,
@@ -251,6 +253,7 @@ export function computeAdmissionContext(
     gateSnapshotDigest: input.gateSnapshot.snapshotDigest,
     securitySnapshotDigest: input.securitySnapshot.snapshotDigest,
     publishedHeadEvidenceDigest,
+    immutableDiffDigest,
     requiredPolicyProfileDigest,
     admissionContextNonce: input.admissionContextNonce,
   });
@@ -276,6 +279,7 @@ export function computeIdempotencyKey(
     gateSnapshotDigest: plan.gateSnapshotDigest,
     securitySnapshotDigest: plan.securitySnapshotDigest,
     publishedHeadEvidenceDigest: plan.publishedHeadEvidenceDigest,
+    immutableDiffDigest: plan.immutableDiffDigest,
     requiredPolicyProfileDigest: plan.requiredPolicyProfileDigest,
     policyDigest: plan.policyDigest,
     effectivePolicyProfileDigest: plan.effectivePolicyProfileDigest,
@@ -534,6 +538,7 @@ function admitOrdered(
       'required_policy_profile_not_the_activation_pinned_artifact',
     );
   }
+
   if (!artifactAuthentic(authority, profileSource)) {
     return refusal(
       'AuthorityNotActivated',
@@ -677,6 +682,32 @@ function admitOrdered(
     );
   }
 
+  const diffValidation = validateAuthenticatedImmutableDiff(
+    authorityUniverse.immutableDiff,
+    {
+      repositoryId,
+      baseOid: input.base.oid,
+      headOid: input.pullRequest.headOid,
+    },
+  );
+  if (diffValidation.status === 'invalid') {
+    return refusal(
+      'SourceRecordInvalid', repositoryId, keyMaterial, subjects, null,
+      diffValidation.reason,
+    );
+  }
+  const suppliedChangedPaths = [...input.changedPaths].sort();
+  if (
+    new Set(suppliedChangedPaths).size !== suppliedChangedPaths.length ||
+    canonicalJson(suppliedChangedPaths) !== canonicalJson(diffValidation.changedPaths)
+  ) {
+    return refusal(
+      'SourceRecordInvalid', repositoryId, keyMaterial, subjects, null,
+      'caller_changed_paths_do_not_equal_authenticated_immutable_diff',
+    );
+  }
+  const authenticatedChangedPaths = diffValidation.changedPaths;
+
   /* --- Step 2c: snapshot digests bound to canonical bytes --------------- */
 
   const gateSourceDefect = provenancedArtifactDefect(
@@ -797,6 +828,7 @@ function admitOrdered(
     expectedTreeOid,
     manifest.publishedHeadEvidenceDigest,
     activationRecord.requiredGitHubPolicyProfileDigest,
+    diffValidation.diff.evidenceDigest,
   );
 
   const policyEvidenceRecord = evidenceRef(repositoryId, keyMaterial, {
@@ -1288,7 +1320,7 @@ function admitOrdered(
 
   /* --- Step 5g: protected paths ---------------------------------------- */
 
-  const protectedChanges = findProtectedPathChanges(input.changedPaths);
+  const protectedChanges = findProtectedPathChanges(authenticatedChangedPaths);
   if (protectedChanges.length > 0) {
     return refusal(
       'ProtectedPathChange',
@@ -1330,6 +1362,7 @@ function admitOrdered(
     gateSnapshotDigest: input.gateSnapshot.snapshotDigest,
     securitySnapshotDigest: input.securitySnapshot.snapshotDigest,
     publishedHeadEvidenceDigest: evidence.bundleDigest,
+    immutableDiffDigest: diffValidation.diff.evidenceDigest,
     requiredPolicyProfileDigest:
       activationRecord.requiredGitHubPolicyProfileDigest,
     policyDigest: attestation.policyDigest,

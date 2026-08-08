@@ -336,6 +336,7 @@ function expectationsFor(
     input.pullRequest.headTreeOid,
     input.manifest?.publishedHeadEvidenceDigest ?? digest('none'),
     REQUIRED_POLICY_PROFILE_DIGEST,
+    (input as ReturnType<typeof validScenario>).authenticatedDiff.evidenceDigest,
   );
   return releaseAttestationExpectations(
     {

@@ -142,6 +142,7 @@ function contextOf(scenario: ReleaseAdmissionInput) {
     scenario.pullRequest.headTreeOid,
     scenario.manifest?.publishedHeadEvidenceDigest ?? digest('none'),
     REQUIRED_POLICY_PROFILE_DIGEST,
+    (scenario as ReturnType<typeof validScenario>).authenticatedDiff.evidenceDigest,
   );
 }
 
@@ -1067,6 +1068,7 @@ test('F-054-04: every plan field participates in the recomputed key', async () =
     'gateSnapshotDigest',
     'securitySnapshotDigest',
     'publishedHeadEvidenceDigest',
+    'immutableDiffDigest',
     'requiredPolicyProfileDigest',
     'policyDigest',
     'effectivePolicyProfileDigest',

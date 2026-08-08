@@ -188,6 +188,7 @@ test('the idempotency key changes when any pinned plan input changes', () => {
     'gateSnapshotDigest',
     'securitySnapshotDigest',
     'publishedHeadEvidenceDigest',
+    'immutableDiffDigest',
     'requiredPolicyProfileDigest',
     'policyDigest',
     'effectivePolicyProfileDigest',

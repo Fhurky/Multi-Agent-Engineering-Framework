@@ -235,6 +235,54 @@ export interface AuthenticatedExecutionIdentity {
   readonly evidenceCommit: GitOid;
 }
 
+export type ImmutableDiffChangeKind =
+  | 'added'
+  | 'modified'
+  | 'deleted'
+  | 'renamed';
+
+/** One unambiguous path transition in the exact immutable base-to-head diff. */
+export interface AuthenticatedImmutableDiffEntry {
+  readonly ordinal: number;
+  readonly changeKind: ImmutableDiffChangeKind;
+  readonly oldPath: string | null;
+  readonly newPath: string | null;
+  readonly oldBlobOid: GitOid | null;
+  readonly newBlobOid: GitOid | null;
+}
+
+/** Pagination proof over one contiguous slice of the canonical entry array. */
+export interface AuthenticatedImmutableDiffPage {
+  readonly page: number;
+  readonly pageCount: number;
+  readonly entryStart: number;
+  readonly entryCount: number;
+  readonly entriesDigest: Sha256Hex;
+  readonly responseDigest: Sha256Hex;
+}
+
+/**
+ * Independently authenticated complete diff for one exact `(baseOid, headOid)` pair.
+ * Canonical bytes and their digest are explicit so a path list cannot be narrowed,
+ * repaginated, or reinterpreted after authority enumeration.
+ */
+export interface AuthenticatedImmutableDiff {
+  readonly schema: 'authenticated-immutable-diff/v1';
+  readonly repositoryId: string;
+  readonly baseOid: GitOid;
+  readonly headOid: GitOid;
+  readonly comparison: 'base_to_head';
+  readonly complete: true;
+  readonly renameDetection: 'complete';
+  readonly deletionDetection: 'complete';
+  readonly entries: readonly AuthenticatedImmutableDiffEntry[];
+  readonly pages: readonly AuthenticatedImmutableDiffPage[];
+  readonly canonicalEntriesBytes: string;
+  readonly canonicalEntriesDigest: Sha256Hex;
+  readonly evidenceCommit: GitOid;
+  readonly evidenceDigest: Sha256Hex;
+}
+
 /**
  * Exact admission universe enumerated by the authority resolver. Equality with this
  * value prevents a caller from narrowing any gate, finding, integration unit, check,
@@ -252,6 +300,7 @@ export interface AuthenticatedAdmissionUniverse {
   readonly securityFindings: readonly ReleaseSecurityFinding[];
   readonly integrationEvidence: readonly IntegrationUnitEvidence[];
   readonly requiredChecks: ReleaseRequiredCheckObservation;
+  readonly immutableDiff: AuthenticatedImmutableDiff;
   readonly publicationCommandEvidenceIds: readonly Sha256Hex[];
   readonly humanDecisions: readonly ImmutableHumanDecisionRef[];
   readonly evidenceCommit: GitOid;
@@ -1100,6 +1149,7 @@ export interface ReleaseMergePlan {
   readonly gateSnapshotDigest: Sha256Hex;
   readonly securitySnapshotDigest: Sha256Hex;
   readonly publishedHeadEvidenceDigest: Sha256Hex;
+  readonly immutableDiffDigest: Sha256Hex;
   readonly requiredPolicyProfileDigest: Sha256Hex;
   readonly policyDigest: Sha256Hex;
   readonly effectivePolicyProfileDigest: Sha256Hex;

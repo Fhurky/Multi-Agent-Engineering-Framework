@@ -20,6 +20,9 @@ export type {
   AggregateGateRelation,
   ArtifactProducerType,
   AuthenticatedAdmissionUniverse,
+  AuthenticatedImmutableDiff,
+  AuthenticatedImmutableDiffEntry,
+  AuthenticatedImmutableDiffPage,
   AuthenticatedArtifactResolution,
   AuthenticatedExecutionIdentity,
   AuthenticatedGateResolution,
@@ -56,6 +59,7 @@ export type {
   GateName,
   GateVerdictState,
   GitOid,
+  ImmutableDiffChangeKind,
   GitHubEffectiveRuleRecord,
   GitHubPolicySourceRecord,
   HumanExceptionKind,
@@ -211,6 +215,15 @@ export type { PolicyAttestationExpectations } from './policy-control.ts';
 
 export { evaluateRequiredChecks } from './required-checks.ts';
 export type { PinnedRequiredCheckContext } from './required-checks.ts';
+export {
+  canonicalImmutableDiffEntriesBytes,
+  canonicalImmutableDiffEntriesDigest,
+  validateAuthenticatedImmutableDiff,
+} from './immutable-diff.ts';
+export type {
+  ImmutableDiffExpectation,
+  ImmutableDiffValidation,
+} from './immutable-diff.ts';
 export {
   findProtectedPathChanges,
   isProtectedPath,

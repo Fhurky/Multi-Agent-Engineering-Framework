@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { admit as productionAdmit } from '../admission.ts';
+import { admit } from './helpers/admission.ts';
+import { selfDigest } from '../canonical-json.ts';
 import {
   createReleaseExecutorCompositionRoot,
   resolveReleaseExecutorCapability,
@@ -14,6 +16,8 @@ import {
   AUTHORITY_PORT_IDENTITY,
   MERGE_PORT_IDENTITY,
   RELEASE_CAPABILITY_BINDING,
+  authenticatedDiffFor,
+  oid,
   validScenario,
 } from './helpers/fixtures.ts';
 
@@ -86,4 +90,136 @@ test('F-061-01: the sealed capability resolves to the exact callable objects', (
   assert.deepEqual(record.authorityIdentity, AUTHORITY_PORT_IDENTITY);
   assert.deepEqual(record.mergePortIdentity, MERGE_PORT_IDENTITY);
   assert.deepEqual(record.capabilityBinding, RELEASE_CAPABILITY_BINDING);
+});
+
+test('F-061-02: a caller list that omits a protected authenticated diff path is rejected', () => {
+  const authenticatedDiff = authenticatedDiffFor([
+    'src/backend/release.ts',
+    'AGENTS.md',
+  ]);
+  const result = admit(validScenario({
+    changedPaths: ['src/backend/release.ts'],
+    authenticatedDiff,
+  }));
+  assert.equal(result.status, 'refused');
+  if (result.status === 'refused') {
+    assert.equal(result.refusal.code, 'SourceRecordInvalid');
+  }
+});
+
+test('F-061-02: protected admission is evaluated from the authenticated diff universe', () => {
+  const paths = ['src/backend/release.ts', 'AGENTS.md'];
+  const result = admit(validScenario({
+    changedPaths: paths,
+    authenticatedDiff: authenticatedDiffFor(paths),
+  }));
+  assert.equal(result.status, 'refused');
+  if (result.status === 'refused') {
+    assert.equal(result.refusal.code, 'ProtectedPathChange');
+  }
+});
+
+test('F-061-02: incomplete pagination refuses even when the outer evidence is resealed', () => {
+  const complete = authenticatedDiffFor(
+    ['src/backend/a.ts', 'src/backend/b.ts'],
+    { pageSize: 1 },
+  );
+  const withoutEvidence = {
+    ...complete,
+    pages: complete.pages.slice(0, 1),
+    evidenceDigest: '',
+  };
+  const incomplete = {
+    ...withoutEvidence,
+    evidenceDigest: selfDigest(withoutEvidence, 'evidenceDigest'),
+  };
+  const result = admit(validScenario({
+    changedPaths: ['src/backend/a.ts', 'src/backend/b.ts'],
+    authenticatedDiff: incomplete,
+  }));
+  assert.equal(result.status, 'refused');
+  if (result.status === 'refused') {
+    assert.equal(result.refusal.code, 'SourceRecordInvalid');
+  }
+});
+
+test('F-061-02: base/head mismatch and canonical-byte substitution refuse', () => {
+  const paths = ['src/backend/release.ts'];
+  const wrongSubject = authenticatedDiffFor(paths, { headOid: oid('another-head') });
+  const subjectResult = admit(validScenario({
+    changedPaths: paths,
+    authenticatedDiff: wrongSubject,
+  }));
+  assert.equal(subjectResult.status, 'refused');
+
+  const complete = authenticatedDiffFor(paths);
+  const withoutEvidence = {
+    ...complete,
+    canonicalEntriesBytes: `${complete.canonicalEntriesBytes} `,
+    evidenceDigest: '',
+  };
+  const tampered = {
+    ...withoutEvidence,
+    evidenceDigest: selfDigest(withoutEvidence, 'evidenceDigest'),
+  };
+  const bytesResult = admit(validScenario({
+    changedPaths: paths,
+    authenticatedDiff: tampered,
+  }));
+  assert.equal(bytesResult.status, 'refused');
+});
+
+test('F-061-02: rename and deletion paths are complete and ambiguity fails closed', () => {
+  const renameAndDelete = authenticatedDiffFor([], {
+    entries: [
+      {
+        ordinal: 0,
+        changeKind: 'renamed',
+        oldPath: 'AGENTS.md',
+        newPath: 'docs/archive/AGENTS.md',
+        oldBlobOid: oid('agents-old'),
+        newBlobOid: oid('agents-new'),
+      },
+      {
+        ordinal: 1,
+        changeKind: 'deleted',
+        oldPath: '.githooks/pre-push',
+        newPath: null,
+        oldBlobOid: oid('hook-old'),
+        newBlobOid: null,
+      },
+    ],
+  });
+  const paths = [
+    'AGENTS.md',
+    'docs/archive/AGENTS.md',
+    '.githooks/pre-push',
+  ];
+  const protectedResult = admit(validScenario({
+    changedPaths: paths,
+    authenticatedDiff: renameAndDelete,
+  }));
+  assert.equal(protectedResult.status, 'refused');
+  if (protectedResult.status === 'refused') {
+    assert.equal(protectedResult.refusal.code, 'ProtectedPathChange');
+  }
+
+  const ambiguous = authenticatedDiffFor([], {
+    entries: [{
+      ordinal: 0,
+      changeKind: 'renamed',
+      oldPath: 'src/backend/old.ts',
+      newPath: null,
+      oldBlobOid: oid('old'),
+      newBlobOid: oid('new'),
+    }],
+  });
+  const ambiguousResult = admit(validScenario({
+    changedPaths: ['src/backend/old.ts'],
+    authenticatedDiff: ambiguous,
+  }));
+  assert.equal(ambiguousResult.status, 'refused');
+  if (ambiguousResult.status === 'refused') {
+    assert.equal(ambiguousResult.refusal.code, 'SourceRecordInvalid');
+  }
 });

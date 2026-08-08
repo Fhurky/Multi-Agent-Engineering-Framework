@@ -42,6 +42,8 @@ import {
 import type {
   AcceptedBlockingSecurityRiskRecord,
   AggregateGateRelation,
+  AuthenticatedImmutableDiff,
+  AuthenticatedImmutableDiffEntry,
   AuthorPrePublicationEvidence,
   CompletePublishedHeadEvidenceBundle,
   ControlPostPublicationEvidence,
@@ -84,6 +86,10 @@ import {
   observerPrincipalSetDigest,
 } from '../../policy-control.ts';
 import { integrationEvidenceSetDigest } from '../../release-lineage.ts';
+import {
+  canonicalImmutableDiffEntriesBytes,
+  canonicalImmutableDiffEntriesDigest,
+} from '../../immutable-diff.ts';
 
 /** Deterministic full 40-hex object id derived from a label. */
 export function oid(label: string): GitOid {
@@ -117,6 +123,65 @@ export const REPOSITORY: ReleaseRepositoryIdentity = Object.freeze({
   databaseId: 100200300,
   nodeId: 'R_kgDOFIXTURE',
 });
+
+export function authenticatedDiffFor(
+  paths: readonly string[],
+  options: {
+    readonly repositoryId?: string;
+    readonly baseOid?: GitOid;
+    readonly headOid?: GitOid;
+    readonly entries?: readonly AuthenticatedImmutableDiffEntry[];
+    readonly pageSize?: number;
+  } = {},
+): AuthenticatedImmutableDiff {
+  const entries = options.entries ?? paths.map((path, ordinal) => ({
+    ordinal,
+    changeKind: 'modified' as const,
+    oldPath: path,
+    newPath: path,
+    oldBlobOid: oid(`diff-old:${path}`),
+    newBlobOid: oid(`diff-new:${path}`),
+  }));
+  const pageSize = options.pageSize ?? Math.max(1, entries.length);
+  const pageCount = Math.max(1, Math.ceil(entries.length / pageSize));
+  const pages = Array.from({ length: pageCount }, (_, index) => {
+    const entryStart = index * pageSize;
+    const pageEntries = entries.slice(entryStart, entryStart + pageSize);
+    const withoutResponse = {
+      page: index + 1,
+      pageCount,
+      entryStart,
+      entryCount: pageEntries.length,
+      entriesDigest: sha256Canonical(pageEntries),
+      responseDigest: '',
+    };
+    return {
+      ...withoutResponse,
+      responseDigest: selfDigest(withoutResponse, 'responseDigest'),
+    };
+  });
+  const canonicalEntriesBytes = canonicalImmutableDiffEntriesBytes(entries);
+  const withoutEvidence = {
+    schema: 'authenticated-immutable-diff/v1' as const,
+    repositoryId: options.repositoryId ?? REPOSITORY_ID,
+    baseOid: options.baseOid ?? BASE_OID,
+    headOid: options.headOid ?? HEAD_OID,
+    comparison: 'base_to_head' as const,
+    complete: true as const,
+    renameDetection: 'complete' as const,
+    deletionDetection: 'complete' as const,
+    entries,
+    pages,
+    canonicalEntriesBytes,
+    canonicalEntriesDigest: canonicalImmutableDiffEntriesDigest(entries),
+    evidenceCommit: oid('authenticated-immutable-diff-evidence'),
+    evidenceDigest: '',
+  };
+  return {
+    ...withoutEvidence,
+    evidenceDigest: selfDigest(withoutEvidence, 'evidenceDigest'),
+  };
+}
 
 /* ------------------------------------------------------------------------- *
  * Deterministic Ed25519 fixture key material, derived at run time
@@ -1197,6 +1262,7 @@ export interface ScenarioOverrides {
   readonly requiredPolicyProfileSource?: ImmutableProvenancedArtifactRef | null;
   readonly requiredChecks?: ReleaseRequiredCheckObservation;
   readonly changedPaths?: readonly string[];
+  readonly authenticatedDiff?: AuthenticatedImmutableDiff;
   readonly publishedHeadEvidence?: ReleaseAdmissionInput['publishedHeadEvidence'];
   readonly policyControlFacts?: PolicyControlFacts;
   readonly evaluatedAtUtc?: string;
@@ -1209,6 +1275,7 @@ export type FixtureReleaseAdmissionInput = ReleaseAdmissionInput & {
   readonly authority: ReleaseAuthorityPort | null;
   readonly mergePort: ReleasePullRequestMergePort | null;
   readonly capability: ReleaseExecutorCapability | null;
+  readonly authenticatedDiff: AuthenticatedImmutableDiff;
 };
 
 export const ADMISSION_CONTEXT_NONCE = digest('admission-context-nonce');
@@ -1441,6 +1508,7 @@ class FixtureAuthorityPort implements ReleaseAuthorityPort {
       securityFindings: input.securitySnapshot.findings,
       integrationEvidence: input.integrationEvidence,
       requiredChecks: input.requiredChecks,
+      immutableDiff: (input as FixtureReleaseAdmissionInput).authenticatedDiff,
       publicationCommandEvidenceIds: commands.map((command_) => command_.evidenceId).sort(),
       humanDecisions,
       evidenceCommit: oid('authority-universe-evidence'),
@@ -1609,6 +1677,16 @@ export function validScenario(
   const securitySnapshot = overrides.securitySnapshot ?? emptySecuritySnapshot();
   const integrationEvidence =
     overrides.integrationEvidence ?? validIntegrationEvidence();
+  const changedPaths = overrides.changedPaths ?? [
+    'src/orchestrator/state/index.ts',
+    'docs/architecture/runtime/COMPONENT-BOUNDARIES.md',
+  ];
+  const authenticatedDiff =
+    overrides.authenticatedDiff ?? authenticatedDiffFor(changedPaths, {
+      repositoryId: REPOSITORY.repositoryId,
+      baseOid: (overrides.base ?? validBaseRef()).oid,
+      headOid: (overrides.pullRequest ?? validPullRequest()).headOid,
+    });
 
   const skeleton: FixtureReleaseAdmissionInput = {
     executor: RELEASE_EXECUTOR,
@@ -1658,10 +1736,7 @@ export function validScenario(
         ? requiredPolicyProfileRef()
         : overrides.requiredPolicyProfileSource,
     requiredChecks: overrides.requiredChecks ?? validRequiredChecks(),
-    changedPaths: overrides.changedPaths ?? [
-      'src/orchestrator/state/index.ts',
-      'docs/architecture/runtime/COMPONENT-BOUNDARIES.md',
-    ],
+    changedPaths,
     publishedHeadEvidence:
       overrides.publishedHeadEvidence === undefined
         ? validPublishedHeadBundle()
@@ -1675,6 +1750,7 @@ export function validScenario(
     authority: null,
     mergePort: null,
     capability: null,
+    authenticatedDiff,
   };
 
   if (overrides.policyControlFacts !== undefined) {
@@ -1703,6 +1779,7 @@ export function validScenario(
     skeleton.pullRequest.headTreeOid,
     publishedHeadEvidenceDigest,
     requiredPolicyProfileDigest,
+    authenticatedDiff.evidenceDigest,
   );
 
   const attestation = buildAttestation({
