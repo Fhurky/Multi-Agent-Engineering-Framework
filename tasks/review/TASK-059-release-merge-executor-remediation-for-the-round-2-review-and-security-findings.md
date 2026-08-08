@@ -71,9 +71,10 @@ gate_tasks:
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 4
 gate_status: >-
-  ACT-033 closes the TASK-060 review relation at approved and records no Reviewer findings. The
-  TASK-061 Security relation records changes-required and remains OPEN, and TASK-063 Security round
-  4 is added OPEN and pending at this record's round 2. F-061-01, F-061-02, and F-061-03 are fresh
+  ACT-035 binds TASK-063 Security round 4 to exact TASK-062 target 19e75e99 and makes its owner
+  ready; this record's round-2 relation remains OPEN and pending. ACT-033 closed the TASK-060 review
+  relation at approved with no findings and recorded TASK-061 Security as changes-required.
+  F-061-01, F-061-02, and F-061-03 are fresh
   Critical devops-owned findings routed together to TASK-062, then to TASK-063 for independent
   revalidation. No risk is accepted. This record remains NON-INTEGRABLE; PR 37 and ancestral PR 33
   remain open and MUST NOT be merged. The superseded ACT-032 value read - OPEN on both relations and
@@ -449,3 +450,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - Next owners: **TASK-060**, `reviewer` / `gpt`, and **TASK-061**, `security` / `gpt`, now separately `ready`, each bound to target `126f2fa9939b8ac6db4764241952dafbda50e9f4` over review base `d63864bcb25fc8897b21c09f8f687e390f85808d`, each carrying its own atomic three-relation cohort. This task's owner execution is complete and both owner locks are free.
 - **ACT-033 gate routing.** TASK-060 recorded `approved` with no findings and closed this record's Review round-1 relation. TASK-061 recorded `changes-required`, left this record's Security round-1 relation open, and returned F-061-01 through F-061-03, all Critical, DevOps-owned, open, and unaccepted. Those findings route together to TASK-062, then independent Security round 4 at TASK-063, where this record carries relation round 2.
 - Next owners: **TASK-062** (`devops` / `claude`) and then **TASK-063** (`security` / `gpt`). Review remains closed and no Reviewer successor exists. This record stays `review` and `integrable: false`; PR 37 and PR 33 remain open, unmerged, and forbidden while Security is open.
+- **ACT-035 publication routing.** TASK-062 published exact target `19e75e996e8e116f74b4f8feb363ef13438a42b9`; TASK-063 is now `ready` and carries this record's pending Security round-2 relation. No verdict or finding disposition changed. This record remains `review` and `integrable: false`; PRs 44, 37, and 33 remain open, unmerged, and forbidden.
+- Next owner: **TASK-063**, `security` / `gpt`, in a separate execution context. Review remains closed and no Reviewer successor exists.

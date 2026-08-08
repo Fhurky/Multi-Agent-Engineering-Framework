@@ -1,7 +1,7 @@
 ---
 task_id: TASK-062
 title: Release merge executor remediation for the round-3 Security findings
-status: ready
+status: review
 owner_role: devops
 llm: gpt
 branch: agent/gpt/devops/task-062
@@ -34,10 +34,12 @@ gate_tasks:
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 4
 gate_status: >-
-  OPEN on the TASK-063 Security relation. TASK-063 is blocked on review_ready(TASK-062) and will
-  record lineage round 4 atomically across TASK-062 r1, TASK-059 r2, TASK-056 r3, and TASK-049 r4.
-  The Reviewer lineage already closed at approved with no findings at round 3, so no review relation
-  or Reviewer successor is created. QA round 2 remains forbidden until TASK-055 records round 1.
+  OPEN on the TASK-063 Security relation. ACT-035 independently satisfied only
+  review_ready(TASK-062), so TASK-063 is ready to record lineage round 4 atomically across
+  TASK-062 r1, TASK-059 r2, TASK-056 r3, and TASK-049 r4. Publication, owner tests, passing CI,
+  and this routing activation are not a Security verdict. The Reviewer lineage already closed at
+  approved with no findings at round 3, so no review relation or Reviewer successor is created.
+  QA round 2 remains forbidden until TASK-055 records round 1.
 integrable: false
 parent_task: TASK-001
 publication_class: runtime
@@ -96,11 +98,50 @@ scope_validation_note: >-
   Resolve and verify the branch point inside the isolated worktree with git merge-base HEAD
   agent/gpt/devops/task-059, then pass 126f2fa9939b8ac6db4764241952dafbda50e9f4 to
   validate-write-scope.ps1 -BaseRef. Only scripts/release/integration-merge/** may change.
-ready_reason: >-
-  ACT-033 recorded TASK-061's immutable changes-required verdict and all three findings name this
-  owner. The release-merge-executor lock is free. This task may remediate the three findings and
-  publish a runtime-class artifact. It may not merge PR 37 or PR 33, activate or simulate the
-  executor, accept risk, mutate repository policy or credentials, or self-satisfy Security.
+published_commit: 19e75e996e8e116f74b4f8feb363ef13438a42b9
+published_branch: agent/gpt/devops/task-062
+published_remote_ref: refs/heads/agent/gpt/devops/task-062
+pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/44
+publication: published
+publication_note: >-
+  ACT-035 independently satisfied all runtime publication conditions: the immutable target equals
+  the local branch, origin tracking ref, git ls-remote result, and open non-draft PR 44 head against
+  integration/autonomous-runtime. PR 44 is unmerged and remains non-integrable pending TASK-063.
+review_target_commit: 19e75e996e8e116f74b4f8feb363ef13438a42b9
+review_target_commit_note: >-
+  Bound by ACT-035 to the exact four-commit owner publication over immutable ancestry base
+  126f2fa9939b8ac6db4764241952dafbda50e9f4. The binding is an immutable commit, never a moving ref.
+authored_delta: >-
+  21 paths, all under scripts/release/integration-merge/**, from
+  126f2fa9939b8ac6db4764241952dafbda50e9f4 to the exact target; zero residue and zero deleted paths.
+cumulative_review_delta: >-
+  46 paths, all under scripts/release/integration-merge/**, from immutable review base
+  d63864bcb25fc8897b21c09f8f687e390f85808d to the exact target; zero residue.
+publication_evidence:
+  activation: ACT-035
+  ingress_seq: 49
+  ingress_class: artifact_published
+  fact_id: 1c3b87f884a4b2bd04bef7e64ac21574390ec8d094ecf7b140ca0f1625184c71
+  source_path: scripts/release/integration-merge/index.ts
+  source_bytes: 7174
+  content_hash: a1f9ed319a92a790e466a5faf4c3ab4c5ada28af6e28b9f50f4c87c89da79b72
+  commits_over_ancestry_base: 4
+  target_commit: 19e75e996e8e116f74b4f8feb363ef13438a42b9
+  ancestry_base: 126f2fa9939b8ac6db4764241952dafbda50e9f4
+  review_base: d63864bcb25fc8897b21c09f8f687e390f85808d
+  pull_request: 44
+  pull_request_state: OPEN, non-draft, MERGEABLE / CLEAN, unmerged
+  exact_head_checks:
+    - CI / validate, check-run 93134943882, success
+    - Security / security, check-run 93134943987, success
+  authored_delta: 21 paths, all under scripts/release/integration-merge/**
+  cumulative_review_delta: 46 paths, all under scripts/release/integration-merge/**
+  module_suite: 548 declared, 537 passed, 0 failed, 0 skipped, 11 explicitly unexecuted live fixtures
+  lock_release: normal; TASK-062 and release-merge-executor locks absent, owner worktree clean and exact
+integrability_note: >-
+  TASK-063 has not recorded a verdict. F-061-01, F-061-02, and F-061-03 remain Critical, open,
+  blocking, and unaccepted. PRs 44, 37, and 33 remain open and MUST NOT be merged. Publication and
+  passing checks resolve no finding, close no gate, activate no executor, and accept no risk.
 ---
 
 # TASK-062: Release merge executor remediation for the round-3 Security findings
@@ -138,3 +179,14 @@ Remediate F-061-01, F-061-02, and F-061-03 in the dormant release merge executor
 - Verification: module suite, exact counterexamples, repository security check, diff check, remote/head/PR/check evidence, and write-scope validation.
 - Known risks: three Critical findings remain blocking until TASK-063 records a passing verdict; live control-plane fixtures remain unexecuted; the executor remains dormant.
 - Next owner: TASK-063, Security, in a separate execution context.
+- **ACT-035 publication routing.** This record moved `ready` to `review` on ingress `seq` 49,
+  class `artifact_published`, exact target `19e75e996e8e116f74b4f8feb363ef13438a42b9`, fact
+  `1c3b87f884a4b2bd04bef7e64ac21574390ec8d094ecf7b140ca0f1625184c71`. The runtime publication
+  conditions and the 21-path authored scope were independently verified. The exact-target archive
+  suite reproduced 548 declared / 537 passed / 0 failed / 11 explicitly unexecuted live fixtures.
+- **No gate effect.** Owner evidence claims remedies for F-061-01 through F-061-03; only TASK-063
+  may disposition them. Security remains open, the executor remains dormant, no risk is accepted,
+  and PRs 44, 37, and 33 remain unmerged and non-integrable.
+- Next owner: **TASK-063**, `security` / `gpt`, now `ready` in a separate execution context at fixed
+  branch point `d7994690b40a4a29218c46b9e0c7bd234a56ceff`, assessing exact target `19e75e99...`
+  over cumulative base `d63864bcb25fc8897b21c09f8f687e390f85808d` across its four-relation cohort.
