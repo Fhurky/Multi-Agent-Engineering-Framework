@@ -1,7 +1,7 @@
 ---
 task_id: TASK-056
 title: Release merge executor remediation for the round-1 review and security findings
-status: ready
+status: review
 owner_role: devops
 llm: claude
 branch: agent/claude/devops/task-056
@@ -57,8 +57,13 @@ gate_tasks:
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 2
 gate_status: >-
-  OPEN on both relations, pending on both, and neither owner is dispatchable until this task
-  publishes. This record joins the cohorts of LIN-RELEASE-EXECUTOR-REVIEW and
+  OPEN on both relations and pending on both at ACT-030, and BOTH OWNERS ARE NOW DISPATCHABLE because
+  this task published at 85f5d265c888f899332a99b15a7d9c8aa959be00. NOTHING ELSE CHANGED: no verdict
+  was recorded, no gate closed or opened, and none of the sixteen findings this task remediates is
+  resolved. TASK-057 and TASK-058 moved from blocked to ready on the satisfied review_ready(TASK-056)
+  edge and each is bound to this record's published head over the review-target base d63864bc. The
+  superseded ACT-029 value read - OPEN on both relations, pending on both, and neither owner is
+  dispatchable until this task publishes. This record joins the cohorts of LIN-RELEASE-EXECUTOR-REVIEW and
   LIN-RELEASE-EXECUTOR-SECURITY, each of which grows from one member to two with none removed, and
   each round 2 carries TWO relations - this record at its own round 1 and TASK-049 at its round 2.
   That is the shape LIN-INTEGRATION-AUTHORITY-REVIEW round 2 used and it is applied unchanged.
@@ -77,6 +82,10 @@ deferred_qa_gate: >-
   NOTHING HERE PERMITS ACTIVATION: negativeCapabilityTestAttestation remains an immutable member of
   the approved MergeExecutorActivationRecord and remains unvalidated, so admit returns
   AuthorityNotActivated whatever this record's review and security gates eventually record.
+  UNCHANGED AT ACT-030 AND NOT DISCHARGED BY THIS RECORD'S PUBLICATION. LIN-RELEASE-EXECUTOR-QA round
+  1 has still recorded no verdict, so invariant 8 still forbids a round 2, and no QA successor was
+  created at ACT-030. The eleven live control-plane and attestor fixtures remain registered and
+  unexecuted at this record's own published target; see unexecuted_fixtures.
 parent_task: TASK-001
 publication_class: runtime
 supersedes: none
@@ -146,12 +155,25 @@ review_target_applicability: >-
   TASK-049's first authored commit 012bdb8360a7a1b4e61b362d9302f731ad817078. It is NOT 1dd3b93e, NOT
   9fb2eb0c, NOT cf6333b1, NOT origin/main, and NOT this branch's own branch point. This is the same
   construction TASK-046 used with c95ce600.
+review_target_commit: 85f5d265c888f899332a99b15a7d9c8aa959be00
+review_target_commit_note: >-
+  BOUND AT ACT-030 to the branch head, which is this branch's ONLY authored commit. The head-binding
+  rule had exactly one candidate here - git rev-list --count 9fb2eb0c..85f5d265 returns 1, so unlike
+  TASK-032, TASK-036, TASK-038, and TASK-049 there is no authoring-ancestry commit to distinguish the
+  head from, and the binding is decided by the branch's shape rather than by a judgment. The literal
+  parent 9fb2eb0ca7c02101fd067452824e2612fda5cc0c is simultaneously the head of
+  agent/claude/devops/task-049, so this record reaches the artifact it remediates by TRUE ANCESTRY.
+  This target is IMMUTABLE and is never retargeted; TASK-057 and TASK-058 are bound to it.
 branch_point_of: agent/claude/devops/task-049
-scope_validation_base: git merge-base HEAD agent/claude/devops/task-049
+scope_validation_base: 9fb2eb0ca7c02101fd067452824e2612fda5cc0c
 scope_validation_applicability: >-
-  applicable, declared as a reproducible expression because this task's branch does not exist yet.
-  It is this task's own branch point and is unrelated to review_target_base above; findings F-403 and
-  A-209 require the two to stay separate fields, and here they will hold genuinely different values.
+  applicable and RESOLVED at ACT-030 from the declared expression. Read three independent ways and
+  the three agree: git merge-base 85f5d265 agent/claude/devops/task-049, the literal first parent of
+  85f5d265 from git rev-list --parents, and git rev-parse agent/claude/devops/task-049. IT IS
+  DELIBERATELY NOT review_target_base ABOVE, and this record is the FIRST IN THIS GRAPH WHERE THE TWO
+  FIELDS HOLD GENUINELY DIFFERENT RESOLVED VALUES - 9fb2eb0c against d63864bc - which is precisely
+  what findings F-403 and A-209 required the separation for. Every earlier record either held one
+  value in both fields or declared one of them not applicable.
 scope_validation_note: >-
   BRANCH FROM agent/claude/devops/task-049, NOT from integration/autonomous-runtime. TASK-049 is NOT
   integrated and MUST NOT BE - pull request 30 is open with both pre-merge gates non-passing - so the
@@ -164,30 +186,152 @@ scope_validation_note: >-
   resolved value in the handoff. Never pass d63864bc, 1dd3b93e, cf6333b1, origin/main, or a
   review-diff base to -BaseRef. DO NOT MERGE integration/autonomous-runtime OR ANY OTHER BRANCH INTO
   THIS ONE to assemble the work.
+published_commit: 85f5d265c888f899332a99b15a7d9c8aa959be00
+published_branch: agent/claude/devops/task-056
+published_remote_ref: refs/heads/agent/claude/devops/task-056
+pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/33
+publication: published
+publication_note: >-
+  All three runtime-class conditions hold INDEPENDENTLY, verified at ACT-030 rather than inferred.
+  Immutable published commit 85f5d265c888f899332a99b15a7d9c8aa959be00;
+  refs/heads/agent/claude/devops/task-056 on origin resolves to the same object under git ls-remote
+  and under the local remote-tracking ref; and pull request 33 is OPEN, not a draft, MERGEABLE with
+  mergeStateStatus CLEAN, base integration/autonomous-runtime, headRefOid 85f5d265, created
+  2026-08-08T06:49:43Z, changedFiles 39, additions 16764, deletions 0. Publication-classes rule 2
+  could have blocked review_ready(TASK-056) and again did not have to; this is the FOURTH
+  runtime-class publication in this graph, after TASK-018, TASK-043, and TASK-049. GitHub's
+  changedFiles, additions, and deletions agree with the cumulative diff against d63864bc, and THAT
+  AGREEMENT IS DERIVED RATHER THAN INDEPENDENT - GitHub computes a pull request's diff against the
+  merge base, which is that same commit.
+authored_delta: >-
+  26 paths, 5638 insertions, 641 deletions against the branch point 9fb2eb0c as Git's own summary
+  reports it, every path under scripts/release/integration-merge/**, residue empty by filtering the
+  changed-path list rather than by assertion, ZERO paths deleted, and git diff --check exit 0. ONE
+  FILE IS EXCLUDED FROM THOSE LINE COUNTS AND THAT IS RECORDED RATHER THAN SMOOTHED: Git classifies
+  scripts/release/integration-merge/gate-admissibility.ts as binary because it carries literal NUL
+  bytes inside the 8000-byte detection window, so --numstat reports - / - for it and --text does not
+  change that; a text-forced recomputation gives that file +146 / -4, which would make the full-line
+  view 5784 / 645. Both views describe the same 26 paths and the same tree. See
+  nul_byte_observation.
+cumulative_review_delta: >-
+  39 paths, 16764 insertions, 0 deletions against the review-target base
+  d63864bcb25fc8897b21c09f8f687e390f85808d, residue empty, git diff --check exit 0. git ls-tree -r
+  --name-only 85f5d265 -- scripts/release/integration-merge returns exactly 39 paths, so the
+  cumulative delta IS the whole module. This is the delta TASK-057 and TASK-058 each review, because
+  each round carries a relation for TASK-049 as well as for this record.
+check_run_evidence: >-
+  GitHub created TWO check runs at the exact head 85f5d265c888f899332a99b15a7d9c8aa959be00 and both
+  concluded success - validate id 93071521297 completed 2026-08-08T06:50:05Z, and security id
+  93071521383 completed 06:49:59Z, total_count 2, each with head_sha equal to the target. Read at the
+  commit identifier and not at a branch name. THE LEGACY COMBINED-STATUS SURFACE returns state
+  pending with total_count 0 and zero contexts; that empty rollup is recorded as an ABSENCE and is
+  never treated as a passing check. THIS IS EVIDENCE ABOUT THIS PUBLICATION AND ABOUT NOTHING ELSE -
+  a passing repository workflow is not a code review and not a threat model, which TASK-054's own
+  report states.
+published_head_evidence: >-
+  Complete two-phase published-head-evidence/v2 bundle at pull-request comment 5225006265, created
+  2026-08-08T06:52:56Z with updated_at equal to created_at, so unedited. ACT-030 RECOMPUTED IT RATHER
+  THAN TRANSCRIBING IT, from a canonical serializer re-implemented from the documented rules rather
+  than imported from the module under review, because importing the artifact's own code to verify the
+  artifact's own evidence would be circular. Every value matched - base64 payload 5480 characters;
+  deterministic gzip 4109 bytes SHA-256 3f99787fb1c7861532aa67e53fe0643249f76b5ca597db36eab6a601feadab6c;
+  canonical JSON 26334 bytes SHA-256 817bc4af743c12cfa64329e7e714fdf9133aa5222b779136fd02f53cf5d4ffb5,
+  with an independent re-serialization reproducing the decoded bytes BYTE-FOR-BYTE; canonicalBundleDigest
+  625270fe5c07e0408c76511ae59b760f11c4ffcb16b929ead2d008062dfbdd95 and
+  canonicalAuthorEvidenceDigest 31047b59bbb849fcdf0c3a9430b032e772bd786b1004814f0c2a3744f8ffb9bf,
+  each recomputed by omitting exactly its own named property; control.authorEvidenceDigest binding
+  that same author digest; and ALL FIFTEEN command records - 9 author, 6 control - reproducing their
+  own evidenceId with ZERO mismatches, every headBefore and headAfter equal to the target. The
+  bundle's own claims were then checked against the repository rather than accepted: its targetCommit,
+  branch, authoredParents, and both resolvedBases equal the values ACT-030 resolved independently,
+  and its three-ref no-later-content proof - local branch, remote branch, and pull-request head, each
+  85f5d265 with 0 commits after the target - was re-derived from git rev-parse, git ls-remote, and the
+  pull-request API. EVERYTHING REPRODUCED, AND THAT IS A STRUCTURAL RESULT RATHER THAN A VERDICT; the
+  bundle says so itself and this record repeats it.
+published_head_evidence_limitation: >-
+  THE OWNER'S OWN DISCLOSURE, CARRIED FORWARD TO BE JUDGED RATHER THAN ENDORSED OR DISCOUNTED. The
+  author phase carries producer role devops and session task-056-author-pre-publication, the control
+  phase devops-control and task-056-control-post-publication, and the two identities are disjoint and
+  temporally ordered around the push. The bundle nevertheless states in its own words that BOTH
+  PHASES WERE PRODUCED BY THE SAME devops AGENT EXECUTION, so their independence is temporal and
+  functional rather than a separate credentialed principal. F-053-07 and F-054-08 concern exactly
+  producer separation in this bundle format; whether this disclosure satisfies their required change
+  is TASK-057's and TASK-058's judgment and is not decided here.
+observed_test_result: >-
+  RECORDED AS AN OBSERVATION FOR ROUNDS 2 TO JUDGE, NOT AS A RESULT EITHER ROUND MAY INHERIT.
+  scripts/release/integration-merge/run-tests.ps1 at the exact target returns exit 0 with tests 522,
+  suites 0, pass 511, fail 0, cancelled 0, skipped 0, todo 11. The owner declared those figures and
+  ACT-030 reproduced them by re-running the suite READ-ONLY from an isolated git archive export of
+  the module at the target, outside every worktree and touching no tracked file. 511 + 11 = 522, so
+  every declared test is either executed and passing or registered as unexecuted, with nothing
+  unaccounted for. Against ACT-028's reproduction of 416 / 405 / 0 / 11 at 9fb2eb0c the delta is +106
+  tests and +106 passing WITH THE todo COUNT UNCHANGED. TWO CONCURRING REPRODUCTIONS OF A TEST RESULT
+  ARE STILL NOT A VERDICT.
+unexecuted_fixtures: >-
+  ELEVEN, UNCHANGED, NOT PASSING, AND NOT STUBBED. tests/live-control-plane.blocked.test.ts is blob
+  9f10172c6b8a7e458a44a6f807105e58ce057af5 at BOTH 9fb2eb0c and 85f5d265 - byte-identical, verified by
+  object identity rather than by diff - and the run reports the same eleven todo cases by name:
+  live-protected-branch/direct-push-fails, force-push-fails, no-bypass, failing-check-blocks,
+  release-scope, task-scope, and live-attestor/attestor-cannot-merge, credential-isolation,
+  no-administration-endpoint, no-policy-mutation, no-revocation-suppression. They are recorded as
+  UNEXECUTED and never as passing, no existing fixture was deleted or weakened to make a case pass,
+  and zero paths were deleted in the authored delta. THE QA OBLIGATION OVER THESE LIVE ITEMS BELONGS
+  TO LIN-RELEASE-EXECUTOR-QA AND THEREFORE TO TASK-055, whose control_plane_dependency names the same
+  items and whose round has recorded nothing. Whether this module may be judged with them outstanding
+  is TASK-057's and TASK-058's decision, each in its own lineage; the Orchestrator decided neither.
+nul_byte_observation: >-
+  RECORDED AT ACT-030 AS AN OBSERVATION FOR TASK-057 AND TASK-058 TO DECIDE. IT IS NOT A FINDING, and
+  the Orchestrator has no authority to make one. Two source files at this target contain literal NUL
+  bytes - scripts/release/integration-merge/gate-admissibility.ts, EIGHT of them at offsets 2610
+  through 3803, and published-head-evidence.ts, ONE at offset 13093. In every case the byte is a
+  deliberate separator inside a template-literal composite sort key, which is the standard idiom for
+  an unambiguous joined key and is plausibly a direct consequence of the permutation-independence the
+  round-1 findings required. THREE CHECKABLE CONSEQUENCES, none characterized as a defect. First,
+  gate-admissibility.ts's first NUL falls inside Git's 8000-byte binary-detection window, so Git
+  classifies the file as binary, --numstat reports - / - for it, --text does not change that, and the
+  authored-delta line summary therefore counts 25 of 26 paths; the omitted file's text-forced delta is
+  +146 / -4. published-head-evidence.ts's single NUL falls past the window and it is still diffed as
+  text at 239 / 0. Second, THIS PROPERTY IS NEW AT THIS TARGET: at 9fb2eb0c no file in this module
+  contained a NUL byte and none was binary-classified, so round 1 never saw it. Third, a
+  binary-classified file is not rendered as a line diff by Git or by the pull-request UI. Whether
+  embedded NUL bytes in a TypeScript source file are acceptable under the approved contract, whether a
+  printable sentinel should be used instead, and whether binary classification of a file in a
+  security-critical admission path impairs reviewability are REVIEW AND SECURITY JUDGMENTS.
 integrable: false
 integration_state: >-
-  Nothing to integrate yet. When this task publishes, its pull request targets
-  integration/autonomous-runtime and MUST NOT be merged until both pre_merge_gates entries close at a
-  passing verdict. Merging it would additionally land TASK-049's content by ancestry, whose own two
-  pre-merge relations are open - so the prohibition on merging pull request 30 extends to this
-  task's pull request for as long as either round 2 is unrecorded.
+  NOT INTEGRATED AND NOT INTEGRABLE. Pull request 33 is OPEN at exact head
+  85f5d265c888f899332a99b15a7d9c8aa959be00 against integration/autonomous-runtime, MERGEABLE / CLEAN
+  as GitHub computes it, and MUST NOT BE MERGED. Both pre_merge_gates entries, review and security,
+  are OPEN with no verdict at any round. Merging it would additionally land TASK-049's content by
+  ancestry, whose own two pre-merge relations both record changes-required, SO THE PROHIBITION ON
+  PULL REQUEST 33 IS DERIVED FROM PULL REQUEST 30'S AS WELL AS FROM ITS OWN. GitHub's
+  mergeStateStatus is a statement about Git conflicts and branch policy, NOT about this graph's
+  gates, and the two must never be conflated - the repository control plane is unprotected, so
+  nothing outside this record would stop a merge, and this record is what forbids it. SEVEN BLOCKING
+  SECURITY FINDINGS - five Critical and two High - ADDITIONALLY BLOCK DELIVERY UNTIL RESOLVED OR
+  FORMALLY ACCEPTED BY AN AUTHORIZED HUMAN, and no acceptance of any kind exists. ACT-030 merged
+  nothing, requested no merge, simulated none, and modified, closed, reopened, commented on, and
+  approved no pull request.
 blocked_reason: >-
-  NOT BLOCKED. Created ready at ACT-029. Both declared edges - gate_recorded(TASK-053) at
-  7e78f1405e40e29034673944949c3851e466cf3c and gate_recorded(TASK-054) at
+  NOT BLOCKED AND NOT DISPATCHABLE - this record is in review because its owner's execution is
+  COMPLETE. It published at ACT-030 and its lock was released before that activation ran. The
+  superseded ACT-029 value read - NOT BLOCKED. Created ready at ACT-029. Both declared edges -
+  gate_recorded(TASK-053) at 7e78f1405e40e29034673944949c3851e466cf3c and gate_recorded(TASK-054) at
   8b2da2f88d38872ded14bc18b739c6586ec47336 - were satisfied by the same activation that created this
   record, so it is dispatchable immediately. It declares NO integrated() edge and NO lineage-form
   gate_passed edge: TASK-049's approved-architecture prerequisite was discharged at ACT-026 and is a
   property of the module this task amends, not a fresh dependency of the amendment.
 exit_condition: >-
-  This task publishes an immutable commit on agent/claude/devops/task-056, pushes the branch to
-  origin, and opens a pull request against integration/autonomous-runtime - all three, because
-  publication_class is runtime and an unavailable remote is a blocked outcome rather than a
-  local-only success. That publication satisfies review_ready(TASK-056), which is the only scheduling
-  dependency TASK-057 and TASK-058 declare. IT SATISFIES NOTHING ELSE. It closes no gate, resolves no
-  finding, produces no activation-record member, clears no external blocker, and makes neither this
-  record nor TASK-049 integrable. A REMEDIATION IS NOT A RESOLUTION; only TASK-057 and TASK-058, each
-  in its own lineage and its own execution context, may record that any of the sixteen findings is
-  resolved.
+  BOTH pre_merge_gates entries close at a passing verdict - TASK-057 for review and TASK-058 for
+  security, each recording one verdict applied atomically to its two relations - AND the branch is
+  merged into integration/autonomous-runtime. Only then may this record reach done. THE PUBLICATION
+  EXIT CONDITION IS DISCHARGED and is retained here for provenance: this task published an immutable
+  commit on agent/claude/devops/task-056, pushed the branch to origin, and opened pull request 33
+  against integration/autonomous-runtime - all three independently, verified at ACT-030. THAT
+  SATISFIED review_ready(TASK-056) AND NOTHING ELSE. It closed no gate, resolved no finding, produced
+  no activation-record member, cleared no external blocker, and made neither this record nor TASK-049
+  integrable. A REMEDIATION IS NOT A RESOLUTION; only TASK-057 and TASK-058, each in its own lineage
+  and its own execution context, may record that any of the sixteen findings is resolved.
 ---
 
 # TASK-056: Release merge executor remediation for the round-1 review and security findings
@@ -285,9 +429,10 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 Maintained by the Orchestrator under TASK-013 from this owner's commit, pull request, and handoff.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
-- **Created `ready` at `ACT-029`**, on ingress entries `seq` 39 and `seq` 40, both class `gate_verdict_recorded`. It is **dispatchable on creation** — both of its `gate_recorded` edges were satisfied by the same activation that created it, which is the shape TASK-042 and TASK-043 had at `ACT-021`.
-- **What this record does not claim.** It resolves nothing yet. The sixteen findings are `open` and stay open until TASK-057 and TASK-058 each record a disposition in their own lineage. **Seven of them block delivery until resolved or formally accepted by an authorized human, and no acceptance exists.** TASK-049 stays non-integrable and pull request 30 stays unmergeable regardless of what this task publishes.
-- Next owner: **this task**, `devops` / `claude`, `ready` and dispatchable, sole write scope `scripts/release/integration-merge/**`, holding `release-merge-executor`, branching from `agent/claude/devops/task-049` with the branch point resolved inside its own worktree.
+- **Commit and pull request:** `85f5d265c888f899332a99b15a7d9c8aa959be00`, the head and only authored commit of `agent/claude/devops/task-056`, over its literal parent and resolved branch point `9fb2eb0ca7c02101fd067452824e2612fda5cc0c`. Pushed to `origin` and opened as **pull request 33**, `OPEN` / non-draft / `MERGEABLE` / `CLEAN` against `integration/autonomous-runtime`. Commit subject `fix(TASK-056): remediate the round-1 review and security findings`.
+- **Verification, transcribed as the owner's own claims from the `published-head-evidence/v2` bundle at comment `5225006265` and separately reproduced by `ACT-030` where reproducible.** Nine author-phase command records, all exit 0 against expected 0: the module suite at `522 / 511 / 0 / 11`; `validate-assignment` returning `devops` / `claude`; `validate-write-scope` returning `changed_files` 26; `validate-framework` passing for 13 roles; `test-orchestration` passing; `test-check-run-evidence` passing; `check-repository-security` passing; `diff-check-review-base` with no whitespace or conflict-marker findings; and `changed-paths-review-base` returning "39 changed paths against the review target base; 0 outside `scripts/release/integration-merge/`". Six control-phase records covering the three-ref no-later-content proof, the exact-head check runs, and the empty legacy rollup. **`ACT-030` independently reproduced the suite figures, the 26- and 39-path deltas and their empty residues, the exact-head check runs, and every digest in the bundle.**
+- **Known risks, as this record and the graph carry them.** Seven blocking security findings are `open` and unaccepted. The executor stays **dormant**. The owner's own producer-separation limitation is recorded in `published_head_evidence_limitation`. Eleven live fixtures remain unexecuted. Two source files carry literal NUL bytes and one is binary to Git — see `nul_byte_observation`.
+- **Created `ready` at `ACT-029`**, on ingress entries `seq` 39 and `seq` 40, both class `gate_verdict_recorded`. It was **dispatchable on creation** — both of its `gate_recorded` edges were satisfied by the same activation that created it, which is the shape TASK-042 and TASK-043 had at `ACT-021`.
+- **Moved `ready` → `review` at `ACT-030`**, on ingress entry `seq` 41, class `artifact_published`, `fact_id` `171a8416…`, `content_hash` `d0ab810d…`. The class was decided by `MC-016` rather than improvised: `remediation_completed` matches the definition read literally and outranks `artifact_published`, but this record already carried its `gate_tasks` relations and a declared `publication_class` when it published, so the round that will judge the fix already existed, the routing work was already done, and the only work the fact triggers is `artifact_published`'s. **This is the first time `MC-016` has been applied to a remediation of a routed finding in the narrowest sense**; the five earlier applications were architecture amendments and the rule decides it the same way.
+- **What this record does not claim, restated after publication because that is exactly when it becomes easy to mistake.** **It resolves nothing.** All sixteen findings are `open` and stay open until TASK-057 and TASK-058 each record a disposition in their own lineage, and **neither may disposition the other lineage's findings**. A remedy that satisfies one lens does not close the other's finding. **Seven findings block delivery until resolved or formally accepted by an authorized human, and no acceptance of any kind exists anywhere in this repository**; this owner may not create, request, simulate, or rely on one, and neither may the Orchestrator. **TASK-049 stays non-integrable, pull request 30 stays unmergeable, and pull request 33 is unmergeable too.** No activation prerequisite was satisfied: `negativeCapabilityTestAttestation`, `requiredGitHubPolicyProfile`, and `policyAttestorTrustRoot` do not exist, `implementationReview` and `implementationSecurityReview` are precisely what rounds 2 may or may not produce, the `AGENTS.md` amendment is unauthored, the control plane is unprovisioned, `admit` returns `AuthorityNotActivated`, and **no merge side effect may occur**.
+- **Next owners: TASK-057 (`reviewer` / `gpt`) and TASK-058 (`security` / `gpt`), both `ready` at `ACT-030`**, in two separate execution contexts, each bound to this record's published head `85f5d265` over the review-target base `d63864bc`, each recording one verdict applied atomically to two relations. **This task's own execution is complete and its `release-merge-executor` lock is free.**

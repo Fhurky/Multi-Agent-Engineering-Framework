@@ -70,6 +70,25 @@ review_target_applicability: >-
   the owner's evidence bundle declare. THE TARGET AND THE BASE ARE BOUND TOGETHER AND NEITHER IS
   EVER RETARGETED, under findings F-403 and A-209. The delta is 38 paths, 12034 insertions, 0
   deletions, every path under scripts/release/integration-merge/**.
+newer_artifact_note: >-
+  RECORDED AT ACT-030 AS AN ADDITIVE FACT. IT CHANGES NOTHING ABOUT THIS RECORD. TASK-056 published
+  the remediation of the sixteen round-1 review and security findings at
+  85f5d265c888f899332a99b15a7d9c8aa959be00, whose literal parent is this record's own target
+  9fb2eb0ca7c02101fd067452824e2612fda5cc0c. THIS ROUND IS NOT RETARGETED. Its review_target_commit
+  stays 9fb2eb0c and its review_target_base stays d63864bc, bound together and never separately,
+  under findings F-403 and A-209 - LIN-RELEASE-EXECUTOR-QA round 1 judges the artifact it was created
+  to judge, and a target is never moved because a newer one exists. NO QA SUCCESSOR WAS CREATED:
+  invariant 8 permits a lineage round greater than 1 only after the preceding round records a
+  verdict, and this round has recorded none, so creating a round 2 for TASK-056 would break a stated
+  invariant to satisfy a routing preference. TASK-056 therefore carries a stated deferred_qa_gate
+  rather than a qa relation, and the activation that consumes THIS round's verdict decides whether
+  the LIN-RELEASE-EXECUTOR-QA cohort grows to include it. NOTHING ABOUT AUTHENTICATION CHANGED OR WAS
+  INFERRED: ACT-030 configured, requested, and assumed no provider credential, and this record's
+  dispatch_observation stands exactly as ACT-029 wrote it. This record stays ready, its relation stays
+  pending, and it is marked neither passed nor failed. The eleven live control-plane and attestor
+  fixtures this round's control_plane_dependency names are still registered and unexecuted at
+  TASK-056's newer target too - tests/live-control-plane.blocked.test.ts is byte-identical at both
+  commits - so the external blocker that makes this gate retrospective is unchanged.
 review_target_ancestry_note: >-
   012bdb8360a7a1b4e61b362d9302f731ad817078 is this branch's first authored commit and is AUTHORING
   ANCESTRY, not the target. The two commits differ only in published-head-evidence.ts and its test.
