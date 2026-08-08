@@ -1,7 +1,7 @@
 ---
 task_id: TASK-060
 title: Independent review of the remediated release merge executor, round 3
-status: blocked
+status: ready
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-060
@@ -12,11 +12,13 @@ resource_lock: null
 dependencies:
   - task: TASK-059
     edge: review_ready
-    satisfied: false
+    satisfied: true
+    satisfied_at: 126f2fa9939b8ac6db4764241952dafbda50e9f4
+    satisfied_by: ACT-032 consuming ingress entry seq 44, class artifact_published
     satisfied_under: >-
       TASK-059 declares publication_class runtime, so ALL THREE of that class's conditions must hold
       and each must be checked INDEPENDENTLY by the Orchestrator rather than inferred from the others
-      - an immutable published commit, the branch agent/claude/devops/task-059 present on origin, and
+      - an immutable published commit, the branch agent/gpt/devops/task-059 present on origin, and
       an open or updated non-draft pull request against integration/autonomous-runtime whose
       headRefOid equals that commit. The bootstrap allowance of publication-classes rule 1 is NOT
       available to a runtime-class task. THIS IS THIS TASK'S ONLY SCHEDULING DEPENDENCY, and TASK-061's
@@ -102,11 +104,11 @@ findings_carried: >-
   ARE ALREADY resolved - F-053-01, F-053-02, F-053-03, F-053-05, F-053-07, and F-053-08 - AND A
   REMEDY THAT REOPENS ANY OF THEM IS A REGRESSION WHATEVER IT REPAIRS. Re-derive each rather than
   inherit it. DO NOT DISPOSITION ANY F-054-* OR F-058-* FINDING; those belong to TASK-061.
-review_target_commit: PENDING_TASK_059_PUBLICATION
+review_target_commit: 126f2fa9939b8ac6db4764241952dafbda50e9f4
 review_target_commit_note: >-
-  UNBOUND until TASK-059 publishes. The Orchestrator binds it under the head-binding rule when it
-  consumes that publication and pins the exact 40-hex value here. Do not begin against a branch name
-  and do not review agent/claude/devops/task-059 as a moving ref.
+  BOUND by ACT-032 after the Orchestrator independently verified the immutable target, exact origin
+  branch agent/gpt/devops/task-059, and open non-draft pull request 37 with an identical head. Review
+  this exact 40-hex target through Git object access; never review a moving branch ref.
 review_target_base: d63864bcb25fc8897b21c09f8f687e390f85808d
 review_target_applicability: >-
   applicable and RESOLVED, and DELIBERATELY NOT TASK-059'S OWN BRANCH POINT. This round carries
@@ -131,23 +133,17 @@ scope_validation_note: >-
   IT RATHER THAN ASSUME IT: the integration branch has moved between every recent activation, and
   TASK-053's and TASK-057's records each carried the same instruction for exactly this reason - at
   TASK-057's round it had moved again, to 754d66a0f73b6405e3a81101e8c24302581c2ebc. Record the
-  resolved value in the report. DO NOT BRANCH FROM agent/claude/devops/task-059 and DO NOT MERGE THE
+  resolved value in the report. DO NOT BRANCH FROM agent/gpt/devops/task-059 and DO NOT MERGE THE
   UNREVIEWED IMPLEMENTATION INTO THIS BRANCH; read the target through Git object access or a detached
   worktree.
-blocked_reason: >-
-  review_ready(TASK-059) is unsatisfied. TASK-059 is ready and dispatchable but has published nothing,
-  so there is no immutable target to review and no delta to diff. This is a genuine scheduling
-  dependency and the only one this record declares.
-exit_condition: >-
-  TASK-059 publishes an immutable commit on agent/claude/devops/task-059, pushes the branch to origin,
-  and opens a non-draft pull request against integration/autonomous-runtime - ALL THREE
-  INDEPENDENTLY, since publication_class runtime does not admit the bootstrap allowance - and the
-  Orchestrator verifies each separately, binds this record's review_target_commit to the resolved
-  head, and moves this record to ready. This task then records ONE verdict on
+ready_reason: >-
+  review_ready(TASK-059) is satisfied at 126f2fa9939b8ac6db4764241952dafbda50e9f4. ACT-032 checked
+  all three runtime-publication conditions independently and separately from TASK-061's identical
+  edge. This author may now record ONE verdict on
   LIN-RELEASE-EXECUTOR-REVIEW round 3, applied ATOMICALLY to (TASK-059, review, round 1), (TASK-056,
   review, round 2), and (TASK-049, review, round 3), publishes the report at its declared path, and
-  publishes the commit as the environment permits. REACHING READY WILL AUTHORIZE AN INDEPENDENT REVIEW
-  AND NOTHING ELSE.
+  publishes the commit as the environment permits. READY AUTHORIZES AN INDEPENDENT REVIEW AND NOTHING
+  ELSE: no approval is implied, no finding is dispositioned, and neither PR 37 nor PR 33 may be merged.
 verdict_authority_note: >-
   THIS TASK ALONE may produce the implementationReview member of the approved
   MergeExecutorActivationRecord for the release executor, superseding TASK-053's and TASK-057's
@@ -231,7 +227,7 @@ This task's single file is path-disjoint from TASK-053's `TASK-049-RELEASE-MERGE
 
 This task performs round 3 of `LIN-RELEASE-EXECUTOR-REVIEW`. TASK-049, TASK-056, and TASK-059 become integrable only when **both** of their pre-merge gates — this one and TASK-061's security gate — are closed at a passing verdict. Findings return to the Orchestrator under TASK-013; the reviewer never implements the fix. Publishing this report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
-**Independence.** The author is `devops` / `claude` and this reviewer is `reviewer` / `gpt`: different roles, different execution contexts, and different LLM families. **This task must not run in TASK-059's, TASK-056's, TASK-049's, TASK-053's, TASK-054's, TASK-055's, TASK-057's, TASK-058's, or TASK-061's execution context**, nor in TASK-048's, TASK-050's, TASK-051's, or TASK-052's — it supersedes TASK-057's round, carries relations for TASK-049 and TASK-056, and the two executors implement one shared normative protocol.
+**Independence.** The author is `devops` / `gpt` and this reviewer is `reviewer` / `gpt`: different roles and mandatory separate execution contexts, although the preferred cross-family separation does not hold. **This task must not run in TASK-059's, TASK-056's, TASK-049's, TASK-053's, TASK-054's, TASK-055's, TASK-057's, TASK-058's, or TASK-061's execution context**, nor in TASK-048's, TASK-050's, TASK-051's, or TASK-052's — it supersedes TASK-057's round, carries relations for TASK-049 and TASK-056, and the two executors implement one shared normative protocol.
 
 ## Task-record lifecycle
 
@@ -254,4 +250,5 @@ Maintained by the Orchestrator under TASK-013 from the reviewer's report and pul
 - Known risks:
 - **Created `blocked` at `ACT-031`**, on the unsatisfied `review_ready(TASK-059)` edge, as the successor round to TASK-057's `changes-required` verdict at `df3dafa5203ad02ebba89419c77b6a44efafd91a`. **A superseding round is a new task, never a re-entrant one**, and TASK-053's and TASK-057's verdicts both stay durable and unrewritten.
 - **Three fresh findings and two carried round-1 residues travel to this round unresolved.** F-057-01 and F-057-02 are High and block integration; F-057-03 is Medium. **None of the three has a formal-acceptance path of any kind** — they are `review` findings, and only a passing verdict of this lineage closes them.
-- Next owner: **TASK-059**, `devops` / `claude`, which must publish before this record can move. This record is not dispatchable and must not be started.
+- **Moved `blocked` → `ready` at ACT-032** on the independently satisfied `review_ready(TASK-059)` edge. The exact review target is `126f2fa9939b8ac6db4764241952dafbda50e9f4`; the immutable cumulative review base remains `d63864bcb25fc8897b21c09f8f687e390f85808d`. The atomic cohort is exactly `(TASK-059, review, round 1)`, `(TASK-056, review, round 2)`, and `(TASK-049, review, round 3)` under lineage round 3.
+- Next owner: **this task**, `reviewer` / `gpt`, in a new execution context separate from TASK-059 and TASK-061. It alone may author `reports/code-review/TASK-059-RELEASE-MERGE-EXECUTOR-REVIEW-ROUND-3.md`; it must not implement a fix, author security evidence, approve or merge a pull request, or inherit the owner's claims as dispositions.

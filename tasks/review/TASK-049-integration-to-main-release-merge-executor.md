@@ -118,7 +118,7 @@ gate_tasks:
     gate_lineage: LIN-RELEASE-EXECUTOR-QA
     lineage_round: 1
 gate_status: >-
-  OPEN on all SEVEN relations at ACT-031 and NOT ONE OF THEM IS CLOSED. FOUR ROUNDS HAVE NOW RECORDED
+  OPEN on all SEVEN relations at ACT-032 and NOT ONE OF THEM IS CLOSED. FOUR ROUNDS HAVE NOW RECORDED
   A VERDICT AND ALL FOUR ARE changes-required - TASK-053 over (review, round 1) at
   7e78f1405e40e29034673944949c3851e466cf3c, TASK-054 over (security, round 1) at
   8b2da2f88d38872ded14bc18b739c6586ec47336, TASK-057 over (review, round 2) at
@@ -130,7 +130,9 @@ gate_status: >-
   applied ATOMICALLY to two relations - this record's and TASK-056's - and both relations of each pair
   stay open together. All four verdicts are DURABLE and are superseded by round 3 rather than
   rewritten, which is rule 4. Two new pending round-3 relations were added, TASK-060 for review and
-  TASK-061 for security, and both are OPEN and blocked on review_ready(TASK-059). NINE of the sixteen
+  TASK-061 for security, and both are OPEN and separately READY at the same immutable target
+  126f2fa9939b8ac6db4764241952dafbda50e9f4 over the unchanged base
+  d63864bcb25fc8897b21c09f8f687e390f85808d. NINE of the sixteen
   round-1 findings are now RESOLVED and SEVEN are partially resolved with their residues carried by
   eight fresh findings; F-054-04 and F-054-05 Critical and F-054-06 High are the first findings ever
   to leave this graph's blocking set. SEVEN FINDINGS STILL BLOCK DELIVERY AND NONE IS ACCEPTED. The qa
@@ -138,7 +140,7 @@ gate_status: >-
   9fb2eb0c; it is NOT retargeted and no QA successor was created, because invariant 8 forbids a
   LIN-RELEASE-EXECUTOR-QA round 2 before round 1 records a verdict. review and security are pre-merge
   gates and block integration; qa is retrospective and blocks activation rather than integration.
-  integrable is FALSE and NO GATE WAS CLOSED AT ACT-031. The superseded ACT-030 value read - OPEN on
+  integrable is FALSE and NO GATE WAS CLOSED AT ACT-032. The superseded ACT-031 value read - OPEN on
   all five relations at ACT-030 and NOT ONE OF THEM IS CLOSED, unchanged in substance from
   ACT-029. WHAT CHANGED IS ONLY THAT BOTH ROUND-2 OWNERS BECAME DISPATCHABLE: TASK-056 published its
   remediation at 85f5d265c888f899332a99b15a7d9c8aa959be00, so TASK-057 and TASK-058 moved from
@@ -618,3 +620,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - **`ACT-031` authored neither verdict and weakened neither.** It transcribed both from their own report artifacts read at their own source commits through Git object access, preserved every finding ID, severity, owner, evidence pointer, required change, residue assignment, and blocking semantic, dispositioned nothing itself, and collapsed no cross-lens pair — because neither gate owner declared any pair an inherited view of the other, and in the NUL-byte case the two rounds reached genuinely different findings from the same bytes.
 - **PULL REQUEST 30 IS NOW CLOSED UNMERGED, and that is a state change rather than a discharge.** The user-authorized control session closed it at `2026-08-08T08:45:59Z` with `mergedAt` `null`, along with seven others, **preserving every source branch and exact commit** — verified independently at `ACT-031` rather than accepted. This record's gates are still open, its branch is still unintegrated, and its content is still not in `main` or in `integration/autonomous-runtime`. **The prohibition it carried is moot for pull request 30 and fully in force for pull request 33**, which would land this record's content by ancestry and whose own two gates now both record `changes-required`. **A pull-request state change is not an ingress fact of any class**, so nothing was appended and `ingress_seq` is unaffected; see `publication_correction` above and the `ACT-031` section of the activation log.
 - Next owner: **TASK-059**, `devops` / `claude`, `ready` and dispatchable, remediating all eight fresh findings under `scripts/release/integration-merge/**` with the `release-merge-executor` lock, branching from `agent/claude/devops/task-056` — so the second remediation also reaches this record's artifact by **true ancestry**. **TASK-060** (`reviewer` / `gpt`) and **TASK-061** (`security` / `gpt`) are created `blocked` on `review_ready(TASK-059)`, each carrying **three** relations applied atomically, including this record's round 3, against the unchanged review base `d63864bc`. **No QA successor was created and TASK-055's round is not retargeted.**
+- **ACT-032 publication routing.** TASK-059 published at `126f2fa9939b8ac6db4764241952dafbda50e9f4`; TASK-060 and TASK-061 are now separately `ready`, each over the immutable review base `d63864bcb25fc8897b21c09f8f687e390f85808d`, and each still carries this record's round-3 relation inside its own atomic three-relation cohort. This record remains in `review`, `integrable: false`, with every historical verdict and disposition unchanged. Pull requests 37 and 33 remain unmerged, and TASK-055 remains pinned to the older QA target `9fb2eb0ca7c02101fd067452824e2612fda5cc0c`.
+- Next owners: **TASK-060** (`reviewer` / `gpt`) and **TASK-061** (`security` / `gpt`) in distinct execution contexts. Neither gate can satisfy the other, neither may reuse TASK-059's author context, and neither may merge or approve a pull request.

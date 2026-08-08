@@ -1,11 +1,11 @@
 ---
 task_id: TASK-059
 title: Release merge executor remediation for the round-2 review and security findings
-status: ready
+status: review
 owner_role: devops
-llm: claude
-branch: agent/claude/devops/task-059
-worktree: C:/Users/furko/Desktop/multi-agent-worktrees/claude-devops-task-059
+llm: gpt
+branch: agent/gpt/devops/task-059
+worktree: C:/Users/furko/Desktop/multi-agent-worktrees/gpt-devops-task-059
 write_scope:
   - scripts/release/integration-merge/**
 resource_lock: release-merge-executor
@@ -58,8 +58,10 @@ gate_tasks:
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 3
 gate_status: >-
-  OPEN on both relations and pending on both at ACT-031. NEITHER OWNER IS DISPATCHABLE until this task
-  publishes: TASK-060 and TASK-061 are each blocked on review_ready(TASK-059). This record joins the
+  OPEN on both relations and pending on both at ACT-032. BOTH OWNERS ARE READY after this task's
+  runtime-class publication independently satisfied each review_ready edge. TASK-060 and TASK-061
+  remain separate roles and mandatory separate execution contexts; neither gate is satisfied by
+  publication, CI, owner testing, the other gate, or this Orchestrator activation. This record joins the
   cohorts of LIN-RELEASE-EXECUTOR-REVIEW and LIN-RELEASE-EXECUTOR-SECURITY, each of which grows from
   two members to THREE with none removed, and each round 3 carries THREE relations - this record at
   its own round 1, TASK-056 at its round 2, and TASK-049 at its round 3. That is the shape
@@ -225,19 +227,19 @@ review_target_applicability: >-
   statement and negative-capability comparison commensurable with the last. It is NOT 85f5d265, NOT
   9fb2eb0c, NOT 754d66a0, NOT cf6333b1, NOT origin/main, and NOT this branch's own branch point. This
   is the same construction TASK-046 used with c95ce600 and TASK-056 reused.
-review_target_commit: PENDING_PUBLICATION
+review_target_commit: 126f2fa9939b8ac6db4764241952dafbda50e9f4
 review_target_commit_note: >-
-  UNBOUND until this task publishes. The Orchestrator binds it under the head-binding rule when it
-  consumes the publication, from the branch head, and never from a branch name. Do not assume the
-  binding will have exactly one candidate: TASK-056's did and TASK-049's did not, and the count is
-  decided by git rev-list --count <branch point>..<head> at publication time rather than in advance.
+  BOUND by ACT-032 to the immutable final owner target after independently proving that the local
+  branch, origin tracking ref, git ls-remote result, pull-request head, and clean final worktree all
+  equal this exact 40-hex commit. The two-commit authored range contains
+  0d1e87c85e74e233db39b35547a4a8cb1092340c and this target; the head is the owner-published final
+  content and pull-request head, never a moving ref.
 branch_point_of: agent/claude/devops/task-056
-scope_validation_base: git merge-base HEAD agent/claude/devops/task-056
+scope_validation_base: 85f5d265c888f899332a99b15a7d9c8aa959be00
 scope_validation_applicability: >-
-  applicable, declared as a reproducible expression because this task's branch does not exist yet. It
-  is this task's own branch point and is UNRELATED to review_target_base above. It is expected to
-  resolve to 85f5d265c888f899332a99b15a7d9c8aa959be00, TASK-056's published head, but RESOLVE IT
-  RATHER THAN ASSUME IT and record the resolved value in the handoff.
+  applicable and RESOLVED at publication. This task's branch point is
+  85f5d265c888f899332a99b15a7d9c8aa959be00, independently reproduced by merge-base and literal
+  parentage. It is unrelated to review_target_base above; the two values differ by design.
 scope_validation_note: >-
   BRANCH FROM agent/claude/devops/task-056, NOT from integration/autonomous-runtime and NOT from
   agent/claude/devops/task-049. TASK-056 is NOT integrated and MUST NOT BE - pull request 33 is open
@@ -263,9 +265,56 @@ observed_test_baseline: >-
   REMAIN REGISTERED AND UNEXECUTED. Do not stub, fake, weaken, delete, or provision them, and do not
   record an unexecuted case as passing. A GROWING PASSING COUNT IS NOT A GATE OUTCOME: the suite grew
   from 416 to 522 between rounds 1 and 2 and the verdict was changes-required both times.
+published_commit: 126f2fa9939b8ac6db4764241952dafbda50e9f4
+published_branch: agent/gpt/devops/task-059
+published_remote_ref: refs/heads/agent/gpt/devops/task-059
+pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/37
+publication: published
+publication_note: >-
+  Runtime-class publication independently satisfied all three required conditions at ACT-032: the
+  immutable commit, exact branch on origin, and open non-draft pull request against
+  integration/autonomous-runtime with headRefOid equal to the commit. PR 37 remains unmerged.
+authored_delta: >-
+  29 paths, all under scripts/release/integration-merge/**, from
+  85f5d265c888f899332a99b15a7d9c8aa959be00 to the exact target; zero residue and zero deleted paths.
+cumulative_review_delta: >-
+  42 paths, all under scripts/release/integration-merge/**, from immutable review base
+  d63864bcb25fc8897b21c09f8f687e390f85808d to the exact target; zero residue and zero deleted paths.
+integrable: false
+integrability_note: >-
+  Both required pre-merge gates remain open and pending. Publication, passing owner tests, controller
+  reproduction, and exact-head CI close neither relation. PR 37 and ancestral PR 33 remain unmerged.
+publication_evidence:
+  activation: ACT-032
+  ingress_seq: 44
+  ingress_class: artifact_published
+  fact_id: 26750b1ba67c22937a52a4a3629e729967e82e4cda057a01e4bfbfb365924e59
+  source_path: scripts/release/integration-merge/index.ts
+  source_bytes: 6639
+  content_hash: 016b3ac277b514da53583336359142e6e2695009d69ac2446053b2eac309ad8f
+  first_implementation_commit: 0d1e87c85e74e233db39b35547a4a8cb1092340c
+  target_commit: 126f2fa9939b8ac6db4764241952dafbda50e9f4
+  ancestry_base: 85f5d265c888f899332a99b15a7d9c8aa959be00
+  review_base: d63864bcb25fc8897b21c09f8f687e390f85808d
+  pull_request: 37
+  pull_request_state: OPEN, non-draft, MERGEABLE / CLEAN, unmerged
+  exact_head_checks:
+    - CI / validate, check-run 93094494830, success
+    - Security / security, check-run 93094494756, success
+  check_assertion: pass / OK; total 2, required 2, matched 2, unmatched 0
+  authored_delta: 29 paths, all under scripts/release/integration-merge/**
+  cumulative_review_delta: 42 paths, all under scripts/release/integration-merge/**
+  raw_byte_scan: 42 files scanned; 0 NUL-bearing files
+  live_fixture_blob: 9f10172c6b8a7e458a44a6f807105e58ce057af5, unchanged from the ancestry base
+  module_suite: 537 declared, 526 passed, 0 failed, 0 skipped, 11 explicitly unexecuted live fixtures
+  lock_release: normal, matching owner session 7197b80da19e4ef98b322cfbb771b3b3; TASK-059 and release-merge-executor locks free
 ---
 
 # TASK-059: Release merge executor remediation for the round-2 review and security findings
+
+## Human-authorized execution-provider reroute
+
+The durable human decision at `dbac01ea4f7ec9adf85768e607f4ed894befe669`, merged at `29b12ccc0e7a27edb0d5b5a1fe804e4386373724`, rerouted this execution from `claude` to `gpt` after two provider-limit refusals stopped before tracked edits. ACT-032 records it as `HUMAN-005` without changing scope, dependencies, findings, gates, lineages, authority, or dormancy. The GPT author retained true ancestry from the unchanged TASK-056 head.
 
 ## Objective
 
@@ -347,7 +396,7 @@ This task's scope is identical to TASK-049's and TASK-056's by design, because i
 
 This task's fix is judged by `LIN-RELEASE-EXECUTOR-REVIEW` round 3 at **TASK-060** and `LIN-RELEASE-EXECUTOR-SECURITY` round 3 at **TASK-061**, each carrying **three** relations applied atomically — this record at its round 1, TASK-056 at its round 2, and TASK-049 at its round 3. **Both cohorts grow from two members to three with none removed.** TASK-049, TASK-056, and this record become integrable only when **both** lineages close at a passing verdict.
 
-**Independence.** This author is `devops` / `claude`; both gate owners are `gpt` in separate roles — different roles, different execution contexts, and different LLM families. **This task must not run in TASK-057's, TASK-058's, TASK-060's, TASK-061's, TASK-055's, TASK-049's, TASK-053's, or TASK-054's execution context.** Publishing this module is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
+**Independence.** This author is `devops` / `gpt`; both gate owners are also assigned to `gpt`, but remain different roles in mandatory separate execution contexts. **This task must not run in TASK-057's, TASK-058's, TASK-060's, TASK-061's, TASK-055's, TASK-049's, TASK-053's, or TASK-054's execution context, and TASK-060 and TASK-061 may not reuse each other's context.** Publishing this module is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
 ## Task-record lifecycle
 
@@ -355,20 +404,24 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 ## Operational steps
 
-1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-059 -Role devops -Llm claude`.
-2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-059 -Role devops -Llm claude` before editing. This claims the `release-merge-executor` lock.
+1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-059 -Role devops -Llm gpt -BaseRef agent/claude/devops/task-056`.
+2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-059 -Role devops -Llm gpt` before editing. This claims the `release-merge-executor` lock.
 3. Branch from `agent/claude/devops/task-056` and resolve the branch point with `git merge-base HEAD agent/claude/devops/task-056`. **Do not merge any other branch into this one.**
 4. Read both round-2 reports at their own source commits through Git object access, and read the approved architecture at `f148567d716c00d7a24783318c8d6d7031492e7b`.
 5. Before handoff, run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef <resolved branch point>`.
-6. Commit, push the branch, open a pull request against `integration/autonomous-runtime`, and run `scripts/orchestration/release-task.ps1 -TaskId TASK-059 -Role devops -Llm claude`. **Never push `main`, never merge anything, and never merge pull request 33.**
+6. Commit, push the branch, open a pull request against `integration/autonomous-runtime`, and run `scripts/orchestration/release-task.ps1 -TaskId TASK-059 -Role devops -Llm gpt`. **Never push `main`, never merge anything, and never merge pull request 33.**
 
 ## Handoff
 
 Maintained by the Orchestrator under TASK-013 from this owner's commit, pull request, and recorded verification.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
+- Commit and pull request: `126f2fa9939b8ac6db4764241952dafbda50e9f4`, pull request 37.
+- Verification: see `publication_evidence`; all recorded owner and controller checks passed, with 11 live fixtures explicitly unexecuted.
+- Known risks: all round-3 findings await independent disposition; both gates remain open, PRs 37 and 33 remain unmerged, and the executor remains dormant.
 - **Created `ready` at `ACT-031`**, on the two satisfied `gate_recorded` edges at `df3dafa5203ad02ebba89419c77b6a44efafd91a` and `0a44bb0f6a1405bf49fa536d1149f122f52e4bbb`, as the single `devops`-owned remediation of all eight fresh findings recorded by `LIN-RELEASE-EXECUTOR-REVIEW` round 2 and `LIN-RELEASE-EXECUTOR-SECURITY` round 2.
 - **What creating this record does NOT mean.** It resolves no finding, closes no gate, and produces no activation-record member. **Fifteen findings are open across the two lineages** — the eight fresh ones this record carries and the seven partial round-1 ones whose residues the fresh findings carry — **and seven of them block delivery until resolved or formally accepted by an authorized human, with none accepted.** The Orchestrator recorded no acceptance, sought none, and has no authority to record one.
-- Next owner: **this task**, `devops` / `claude`, `ready` and dispatchable, sole write scope `scripts/release/integration-merge/**`, holding `release-merge-executor`, branching from `agent/claude/devops/task-056` with the branch point resolved inside its own worktree. **It is the only dispatchable record in this graph that holds a lock, and no other dispatchable record contends for it.**
+- **Moved `ready` → `review` at ACT-032** on ingress `seq` 44, class `artifact_published`, exact target `126f2fa9939b8ac6db4764241952dafbda50e9f4`, fact `26750b1ba67c22937a52a4a3629e729967e82e4cda057a01e4bfbfb365924e59`. The runtime publication conditions were checked independently: immutable commit, exact origin branch, and open non-draft pull request 37 with an exact matching head. PR 37 remains unmerged.
+- **Owner claims, not dispositions.** `scripts/release/integration-merge/TASK-059-EVIDENCE.md` claims remedies and counterexample refusals for F-057-01 through F-057-03 and F-058-01 through F-058-05 and no regression in the nine previously resolved round-1 findings. Only TASK-060 and TASK-061 may judge those claims. The owner added `ReleaseAuthorityPort` for authenticated immutable artifacts, complete universes, issuer/revocation status, human decisions, accepted risks, and publication identities; bound its identity with the sole merge port in the negative-capability attestation; and added authenticated persistent retry-sequence start / absolute-deadline state. The executor remains dormant with one typed merge port.
+- **Verification transcribed and independently reproduced.** Owner and controller both returned `537 declared / 526 passed / 0 failed / 0 skipped / 11 explicitly unexecuted`. Controller checks also passed assignment and 29-path scope, 13-role framework validation, orchestration, 82 check-run-evidence assertions, repository security, diff checks against both bases, the 42-file raw-byte scan, exact-head CI assertion, clean/equal refs and worktree, and unchanged live-fixture blob. No empty status rollup was treated as success.
+- **No authority effect.** Publication and passing CI resolve no finding, close no gate, approve no change, and activate no executor. No merge, external control-plane action, credential action, policy mutation, risk acceptance, activation, or simulation occurred. Pull requests 37 and 33 remain open and unmerged.
+- Next owners: **TASK-060**, `reviewer` / `gpt`, and **TASK-061**, `security` / `gpt`, now separately `ready`, each bound to target `126f2fa9939b8ac6db4764241952dafbda50e9f4` over review base `d63864bcb25fc8897b21c09f8f687e390f85808d`, each carrying its own atomic three-relation cohort. This task's owner execution is complete and both owner locks are free.

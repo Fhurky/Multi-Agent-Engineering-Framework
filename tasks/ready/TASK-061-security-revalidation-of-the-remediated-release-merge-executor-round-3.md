@@ -1,7 +1,7 @@
 ---
 task_id: TASK-061
 title: Security revalidation of the remediated release merge executor, round 3
-status: blocked
+status: ready
 owner_role: security
 llm: gpt
 branch: agent/gpt/security/task-061
@@ -12,11 +12,13 @@ resource_lock: null
 dependencies:
   - task: TASK-059
     edge: review_ready
-    satisfied: false
+    satisfied: true
+    satisfied_at: 126f2fa9939b8ac6db4764241952dafbda50e9f4
+    satisfied_by: ACT-032 consuming ingress entry seq 44, class artifact_published
     satisfied_under: >-
       TASK-059 declares publication_class runtime, so ALL THREE of that class's conditions must hold
       and each must be checked INDEPENDENTLY by the Orchestrator rather than inferred from the others
-      - an immutable published commit, the branch agent/claude/devops/task-059 present on origin, and
+      - an immutable published commit, the branch agent/gpt/devops/task-059 present on origin, and
       an open or updated non-draft pull request against integration/autonomous-runtime whose
       headRefOid equals that commit. The bootstrap allowance of publication-classes rule 1 is NOT
       available to a runtime-class task. THIS IS THIS TASK'S ONLY SCHEDULING DEPENDENCY, and it must
@@ -115,12 +117,12 @@ recurring_defect_shape: >-
   caller-computed self-digests, and NINE nonexistent OID-shaped commits produced activated and then
   admitted. WHETHER THAT SHAPE PERSISTS, HAS MOVED, OR IS CLOSED IS THIS ROUND'S JUDGMENT, and it must
   be established by an executed probe rather than by reading the remediation diff.
-review_target_commit: PENDING_TASK_059_PUBLICATION
+review_target_commit: 126f2fa9939b8ac6db4764241952dafbda50e9f4
 review_target_commit_note: >-
-  UNBOUND until TASK-059 publishes. The Orchestrator binds it under the head-binding rule when it
-  consumes that publication and pins the exact 40-hex value here. TASK-060 will be bound to the same
-  commit and neither binding derives from the other; the two rounds are separate gates in separate
-  lineages and separate execution contexts.
+  BOUND by ACT-032 after the Orchestrator independently verified the immutable target, exact origin
+  branch agent/gpt/devops/task-059, and open non-draft pull request 37 with an identical head.
+  TASK-060 is bound to the same commit, but neither binding derives from the other; the rounds remain
+  separate gates in separate lineages and mandatory separate execution contexts.
 review_target_base: d63864bcb25fc8897b21c09f8f687e390f85808d
 review_target_applicability: >-
   applicable and RESOLVED, and DELIBERATELY NOT TASK-059'S OWN BRANCH POINT. This round carries
@@ -142,23 +144,18 @@ scope_validation_note: >-
   git merge-base HEAD integration/autonomous-runtime, and pass that exact value to -BaseRef. RESOLVE
   IT RATHER THAN ASSUME IT - the integration branch has moved between every recent activation, and at
   TASK-058's round it resolved to 754d66a0f73b6405e3a81101e8c24302581c2ebc. Record the resolved value
-  in the report. DO NOT BRANCH FROM agent/claude/devops/task-059 and DO NOT MERGE THE UNASSESSED
+  in the report. DO NOT BRANCH FROM agent/gpt/devops/task-059 and DO NOT MERGE THE UNASSESSED
   IMPLEMENTATION INTO THIS BRANCH; read the target through Git object access or a detached worktree,
   as TASK-054 and TASK-058 each did.
-blocked_reason: >-
-  review_ready(TASK-059) is unsatisfied. TASK-059 is ready and dispatchable but has published nothing,
-  so there is no immutable target to assess. This is a genuine scheduling dependency and the only one
-  this record declares.
-exit_condition: >-
-  TASK-059 publishes an immutable commit on agent/claude/devops/task-059, pushes the branch to origin,
-  and opens a non-draft pull request against integration/autonomous-runtime - ALL THREE
-  INDEPENDENTLY - and the Orchestrator verifies each separately, binds this record's
-  review_target_commit to the resolved head, and moves this record to ready. This task then records
-  ONE verdict on LIN-RELEASE-EXECUTOR-SECURITY round 3, applied ATOMICALLY to (TASK-059, security,
+ready_reason: >-
+  review_ready(TASK-059) is satisfied at 126f2fa9939b8ac6db4764241952dafbda50e9f4. ACT-032 checked
+  all three runtime-publication conditions independently and separately from TASK-060's identical
+  edge. This author may now record ONE verdict on LIN-RELEASE-EXECUTOR-SECURITY round 3, applied
+  ATOMICALLY to (TASK-059, security,
   round 1), (TASK-056, security, round 2), and (TASK-049, security, round 3), publishes the report at
-  its declared path, and publishes the commit as the environment permits. REACHING READY WILL
-  AUTHORIZE AN INDEPENDENT SECURITY ASSESSMENT AND NOTHING ELSE - no approval, no merge, no
-  integration, no activation-record member, and NO RISK ACCEPTANCE.
+  its declared path, and publishes the commit as the environment permits. READY AUTHORIZES AN
+  INDEPENDENT SECURITY ASSESSMENT AND NOTHING ELSE - no approval, merge, integration,
+  activation-record member, or risk acceptance; neither PR 37 nor PR 33 may be merged.
 verdict_authority_note: >-
   THIS TASK ALONE may produce the implementationSecurityReview member of the approved
   MergeExecutorActivationRecord for the release executor, superseding TASK-054's and TASK-058's
@@ -248,7 +245,7 @@ This path is disjoint from `reports/security/SECURITY_REPORT.md`, from TASK-010'
 
 This task performs round 3 of `LIN-RELEASE-EXECUTOR-SECURITY`. TASK-049, TASK-056, and TASK-059 become integrable only when **both** of their pre-merge gates — TASK-060's review gate and this one — are closed at a passing verdict. Findings return to the Orchestrator under TASK-013, which routes remediation to the responsible implementation owner; the security role reports remediation requirements and never writes the remediation. Publishing this report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
-**Independence.** The author is `devops` / `claude` and this owner is `security` / `gpt`: different roles, different execution contexts, and different LLM families. **This task must not run in TASK-059's, TASK-056's, TASK-049's, TASK-053's, TASK-054's, TASK-055's, TASK-057's, TASK-058's, or TASK-060's execution context**, nor in TASK-051's — it supersedes TASK-058's round, carries relations for TASK-049 and TASK-056, and the two executors implement one shared normative protocol.
+**Independence.** The author is `devops` / `gpt` and this owner is `security` / `gpt`: different roles and mandatory separate execution contexts, although the preferred cross-family separation does not hold. **This task must not run in TASK-059's, TASK-056's, TASK-049's, TASK-053's, TASK-054's, TASK-055's, TASK-057's, TASK-058's, or TASK-060's execution context**, nor in TASK-051's — it supersedes TASK-058's round, carries relations for TASK-049 and TASK-056, and the two executors implement one shared normative protocol.
 
 ## Task-record lifecycle
 
@@ -271,4 +268,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's report and pull 
 - Known risks:
 - **Created `blocked` at `ACT-031`**, on the unsatisfied `review_ready(TASK-059)` edge, as the successor round to TASK-058's `changes-required` verdict at `0a44bb0f6a1405bf49fa536d1149f122f52e4bbb`. **A superseding round is a new task, never a re-entrant one**, and TASK-054's and TASK-058's verdicts — including all eight Critical findings recorded across the two — stay durable and unrewritten.
 - **Seven blocking findings travel to this round unresolved and unaccepted**, three of them fresh Critical and four carried partials. They block delivery until this round records that they are resolved, or until an authorized human formally accepts them. **The Orchestrator recorded no acceptance and this task may not record one.**
-- Next owner: **TASK-059**, `devops` / `claude`, which must publish before this record can move. This record is not dispatchable and must not be started.
+- **Moved `blocked` → `ready` at ACT-032** on the independently satisfied `review_ready(TASK-059)` edge. The exact security target is `126f2fa9939b8ac6db4764241952dafbda50e9f4`; the immutable cumulative review base remains `d63864bcb25fc8897b21c09f8f687e390f85808d`. The atomic cohort is exactly `(TASK-059, security, round 1)`, `(TASK-056, security, round 2)`, and `(TASK-049, security, round 3)` under lineage round 3.
+- Next owner: **this task**, `security` / `gpt`, in a new execution context separate from TASK-059 and TASK-060. It alone may author `reports/security/TASK-059-RELEASE-MERGE-EXECUTOR-SECURITY-ROUND-3.md`; it must not implement a fix, author review evidence, approve or merge a pull request, record risk acceptance, or inherit the owner's claims as dispositions.
