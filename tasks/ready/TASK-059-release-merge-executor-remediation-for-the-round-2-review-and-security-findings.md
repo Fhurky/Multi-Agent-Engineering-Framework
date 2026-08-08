@@ -3,9 +3,9 @@ task_id: TASK-059
 title: Release merge executor remediation for the round-2 review and security findings
 status: ready
 owner_role: devops
-llm: claude
-branch: agent/claude/devops/task-059
-worktree: C:/Users/furko/Desktop/multi-agent-worktrees/claude-devops-task-059
+llm: gpt
+branch: agent/gpt/devops/task-059
+worktree: C:/Users/furko/Desktop/multi-agent-worktrees/gpt-devops-task-059
 write_scope:
   - scripts/release/integration-merge/**
 resource_lock: release-merge-executor
@@ -267,6 +267,10 @@ observed_test_baseline: >-
 
 # TASK-059: Release merge executor remediation for the round-2 review and security findings
 
+## Human-authorized execution-provider reroute
+
+On 2026-08-08 the user-authorized control session rerouted this task from `claude` to `gpt` after two non-interactive Claude Code attempts returned the provider's weekly-limit refusal. Both attempts stopped before modifying any tracked file or creating any commit. The process trees were verified stopped, the TASK-059 lock and `release-merge-executor` resource lock were released normally with the matching session token, and the clean Claude worktree and branch remain preserved as provenance. GPT is the user's declared next provider priority after Claude and now owns the complete implementation delta on `agent/gpt/devops/task-059` from the unchanged TASK-056 head. This reroute changes execution identity and provenance only; it changes no owner role, scope, dependency, acceptance criterion, gate, lineage, finding, authority, or dormancy requirement.
+
 ## Objective
 
 Remediate all eight findings recorded by `LIN-RELEASE-EXECUTOR-REVIEW` round 2 and `LIN-RELEASE-EXECUTOR-SECURITY` round 2 against the release merge executor, inside `scripts/release/integration-merge/**` and nowhere else, without weakening the approved architecture, without regressing any of the nine findings rounds 2 resolved, and without changing the module's dormancy.
@@ -347,7 +351,7 @@ This task's scope is identical to TASK-049's and TASK-056's by design, because i
 
 This task's fix is judged by `LIN-RELEASE-EXECUTOR-REVIEW` round 3 at **TASK-060** and `LIN-RELEASE-EXECUTOR-SECURITY` round 3 at **TASK-061**, each carrying **three** relations applied atomically — this record at its round 1, TASK-056 at its round 2, and TASK-049 at its round 3. **Both cohorts grow from two members to three with none removed.** TASK-049, TASK-056, and this record become integrable only when **both** lineages close at a passing verdict.
 
-**Independence.** This author is `devops` / `claude`; both gate owners are `gpt` in separate roles — different roles, different execution contexts, and different LLM families. **This task must not run in TASK-057's, TASK-058's, TASK-060's, TASK-061's, TASK-055's, TASK-049's, TASK-053's, or TASK-054's execution context.** Publishing this module is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
+**Independence.** After the human-authorized provider reroute, this author and both gate owners are assigned to the `gpt` family, but they remain different roles and must run in separate execution contexts. The TASK-059 author context may not execute TASK-060 or TASK-061, and those two gate contexts may not be reused for each other. **This task must not run in TASK-057's, TASK-058's, TASK-060's, TASK-061's, TASK-055's, TASK-049's, TASK-053's, or TASK-054's execution context.** The repository's cross-family reviewer preference is not a substitute for, and does not weaken, mandatory execution-context separation. Publishing this module is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
 ## Task-record lifecycle
 
@@ -355,12 +359,12 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 ## Operational steps
 
-1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-059 -Role devops -Llm claude`.
-2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-059 -Role devops -Llm claude` before editing. This claims the `release-merge-executor` lock.
+1. From the primary checkout, run `scripts/orchestration/create-worktree.ps1 -TaskId TASK-059 -Role devops -Llm gpt -BaseRef agent/claude/devops/task-056`.
+2. Start the assigned CLI inside the returned worktree path and run `scripts/orchestration/claim-task.ps1 -TaskId TASK-059 -Role devops -Llm gpt` before editing. This claims the `release-merge-executor` lock.
 3. Branch from `agent/claude/devops/task-056` and resolve the branch point with `git merge-base HEAD agent/claude/devops/task-056`. **Do not merge any other branch into this one.**
 4. Read both round-2 reports at their own source commits through Git object access, and read the approved architecture at `f148567d716c00d7a24783318c8d6d7031492e7b`.
 5. Before handoff, run `scripts/orchestration/validate-write-scope.ps1 -IncludeWorkingTree -BaseRef <resolved branch point>`.
-6. Commit, push the branch, open a pull request against `integration/autonomous-runtime`, and run `scripts/orchestration/release-task.ps1 -TaskId TASK-059 -Role devops -Llm claude`. **Never push `main`, never merge anything, and never merge pull request 33.**
+6. Commit, push the branch, open a pull request against `integration/autonomous-runtime`, and run `scripts/orchestration/release-task.ps1 -TaskId TASK-059 -Role devops -Llm gpt`. **Never push `main`, never merge anything, and never merge pull request 33.**
 
 ## Handoff
 
@@ -371,4 +375,4 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - Known risks:
 - **Created `ready` at `ACT-031`**, on the two satisfied `gate_recorded` edges at `df3dafa5203ad02ebba89419c77b6a44efafd91a` and `0a44bb0f6a1405bf49fa536d1149f122f52e4bbb`, as the single `devops`-owned remediation of all eight fresh findings recorded by `LIN-RELEASE-EXECUTOR-REVIEW` round 2 and `LIN-RELEASE-EXECUTOR-SECURITY` round 2.
 - **What creating this record does NOT mean.** It resolves no finding, closes no gate, and produces no activation-record member. **Fifteen findings are open across the two lineages** — the eight fresh ones this record carries and the seven partial round-1 ones whose residues the fresh findings carry — **and seven of them block delivery until resolved or formally accepted by an authorized human, with none accepted.** The Orchestrator recorded no acceptance, sought none, and has no authority to record one.
-- Next owner: **this task**, `devops` / `claude`, `ready` and dispatchable, sole write scope `scripts/release/integration-merge/**`, holding `release-merge-executor`, branching from `agent/claude/devops/task-056` with the branch point resolved inside its own worktree. **It is the only dispatchable record in this graph that holds a lock, and no other dispatchable record contends for it.**
+- Next owner: **this task**, `devops` / `gpt`, `ready` and dispatchable after the human-authorized provider reroute, sole write scope `scripts/release/integration-merge/**`, holding `release-merge-executor`, branching from `agent/claude/devops/task-056` with the branch point resolved inside its own worktree. **It is the only dispatchable record in this graph that holds a lock, and no other dispatchable record contends for it.**

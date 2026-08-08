@@ -16,7 +16,7 @@ dependencies:
     satisfied_under: >-
       TASK-059 declares publication_class runtime, so ALL THREE of that class's conditions must hold
       and each must be checked INDEPENDENTLY by the Orchestrator rather than inferred from the others
-      - an immutable published commit, the branch agent/claude/devops/task-059 present on origin, and
+      - an immutable published commit, the branch agent/gpt/devops/task-059 present on origin, and
       an open or updated non-draft pull request against integration/autonomous-runtime whose
       headRefOid equals that commit. The bootstrap allowance of publication-classes rule 1 is NOT
       available to a runtime-class task. THIS IS THIS TASK'S ONLY SCHEDULING DEPENDENCY, and TASK-061's
@@ -106,7 +106,7 @@ review_target_commit: PENDING_TASK_059_PUBLICATION
 review_target_commit_note: >-
   UNBOUND until TASK-059 publishes. The Orchestrator binds it under the head-binding rule when it
   consumes that publication and pins the exact 40-hex value here. Do not begin against a branch name
-  and do not review agent/claude/devops/task-059 as a moving ref.
+  and do not review agent/gpt/devops/task-059 as a moving ref.
 review_target_base: d63864bcb25fc8897b21c09f8f687e390f85808d
 review_target_applicability: >-
   applicable and RESOLVED, and DELIBERATELY NOT TASK-059'S OWN BRANCH POINT. This round carries
@@ -131,7 +131,7 @@ scope_validation_note: >-
   IT RATHER THAN ASSUME IT: the integration branch has moved between every recent activation, and
   TASK-053's and TASK-057's records each carried the same instruction for exactly this reason - at
   TASK-057's round it had moved again, to 754d66a0f73b6405e3a81101e8c24302581c2ebc. Record the
-  resolved value in the report. DO NOT BRANCH FROM agent/claude/devops/task-059 and DO NOT MERGE THE
+  resolved value in the report. DO NOT BRANCH FROM agent/gpt/devops/task-059 and DO NOT MERGE THE
   UNREVIEWED IMPLEMENTATION INTO THIS BRANCH; read the target through Git object access or a detached
   worktree.
 blocked_reason: >-
@@ -139,7 +139,7 @@ blocked_reason: >-
   so there is no immutable target to review and no delta to diff. This is a genuine scheduling
   dependency and the only one this record declares.
 exit_condition: >-
-  TASK-059 publishes an immutable commit on agent/claude/devops/task-059, pushes the branch to origin,
+  TASK-059 publishes an immutable commit on agent/gpt/devops/task-059, pushes the branch to origin,
   and opens a non-draft pull request against integration/autonomous-runtime - ALL THREE
   INDEPENDENTLY, since publication_class runtime does not admit the bootstrap allowance - and the
   Orchestrator verifies each separately, binds this record's review_target_commit to the resolved
@@ -231,7 +231,7 @@ This task's single file is path-disjoint from TASK-053's `TASK-049-RELEASE-MERGE
 
 This task performs round 3 of `LIN-RELEASE-EXECUTOR-REVIEW`. TASK-049, TASK-056, and TASK-059 become integrable only when **both** of their pre-merge gates — this one and TASK-061's security gate — are closed at a passing verdict. Findings return to the Orchestrator under TASK-013; the reviewer never implements the fix. Publishing this report is itself the ingress fact that wakes TASK-013; this task never writes under `tasks/`.
 
-**Independence.** The author is `devops` / `claude` and this reviewer is `reviewer` / `gpt`: different roles, different execution contexts, and different LLM families. **This task must not run in TASK-059's, TASK-056's, TASK-049's, TASK-053's, TASK-054's, TASK-055's, TASK-057's, TASK-058's, or TASK-061's execution context**, nor in TASK-048's, TASK-050's, TASK-051's, or TASK-052's — it supersedes TASK-057's round, carries relations for TASK-049 and TASK-056, and the two executors implement one shared normative protocol.
+**Independence.** After the human-authorized provider reroute, the author is `devops` / `gpt` and this reviewer is `reviewer` / `gpt`: different roles and mandatory separate execution contexts, although the preferred cross-family separation does not hold. **This task must not run in TASK-059's, TASK-056's, TASK-049's, TASK-053's, TASK-054's, TASK-055's, TASK-057's, TASK-058's, or TASK-061's execution context**, nor in TASK-048's, TASK-050's, TASK-051's, or TASK-052's — it supersedes TASK-057's round, carries relations for TASK-049 and TASK-056, and the two executors implement one shared normative protocol.
 
 ## Task-record lifecycle
 
@@ -254,4 +254,4 @@ Maintained by the Orchestrator under TASK-013 from the reviewer's report and pul
 - Known risks:
 - **Created `blocked` at `ACT-031`**, on the unsatisfied `review_ready(TASK-059)` edge, as the successor round to TASK-057's `changes-required` verdict at `df3dafa5203ad02ebba89419c77b6a44efafd91a`. **A superseding round is a new task, never a re-entrant one**, and TASK-053's and TASK-057's verdicts both stay durable and unrewritten.
 - **Three fresh findings and two carried round-1 residues travel to this round unresolved.** F-057-01 and F-057-02 are High and block integration; F-057-03 is Medium. **None of the three has a formal-acceptance path of any kind** — they are `review` findings, and only a passing verdict of this lineage closes them.
-- Next owner: **TASK-059**, `devops` / `claude`, which must publish before this record can move. This record is not dispatchable and must not be started.
+- Next owner: **TASK-059**, `devops` / `gpt`, which must publish before this record can move. This record is not dispatchable and must not be started.
