@@ -3,9 +3,9 @@ task_id: TASK-062
 title: Release merge executor remediation for the round-3 Security findings
 status: ready
 owner_role: devops
-llm: claude
-branch: agent/claude/devops/task-062
-worktree: C:/Users/furko/Desktop/multi-agent-worktrees/claude-devops-task-062
+llm: gpt
+branch: agent/gpt/devops/task-062
+worktree: C:/Users/furko/Desktop/multi-agent-worktrees/gpt-devops-task-062
 write_scope:
   - scripts/release/integration-merge/**
 resource_lock: release-merge-executor
@@ -134,7 +134,7 @@ Remediate F-061-01, F-061-02, and F-061-03 in the dormant release merge executor
 
 ## Handoff
 
-- Commit or pull request: publish from `agent/claude/devops/task-062` against `integration/autonomous-runtime`; do not modify or merge PR 37 or PR 33.
+- Commit or pull request: publish from `agent/gpt/devops/task-062` against `integration/autonomous-runtime`; do not modify or merge PR 37 or PR 33.
 - Verification: module suite, exact counterexamples, repository security check, diff check, remote/head/PR/check evidence, and write-scope validation.
 - Known risks: three Critical findings remain blocking until TASK-063 records a passing verdict; live control-plane fixtures remain unexecuted; the executor remains dormant.
 - Next owner: TASK-063, Security, in a separate execution context.
