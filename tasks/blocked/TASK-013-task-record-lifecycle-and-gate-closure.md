@@ -3,9 +3,9 @@ task_id: TASK-013
 title: Own task-record lifecycle transitions, route validation findings, and close gates
 status: blocked
 owner_role: orchestrator
-llm: claude
-branch: agent/claude/orchestrator/task-013
-worktree: C:/Users/furko/Desktop/multi-agent-worktrees/claude-orchestrator-task-013
+llm: gpt
+branch: agent/gpt/orchestrator/task-013
+worktree: C:/Users/furko/Desktop/multi-agent-worktrees/gpt-orchestrator-task-013
 write_scope:
   - tasks/**
 resource_lock: task-records
@@ -43,6 +43,10 @@ exit_condition: An authorized producer publishes a new ingress fact inside its o
 ---
 
 # TASK-013: Own task-record lifecycle transitions, route validation findings, and close gates
+
+## Human-authorized execution-provider reroute
+
+On 2026-08-08 the user-authorized control session rerouted this task from `claude` to `gpt` after a non-interactive Claude Code attempt returned the provider's weekly-limit refusal. The attempt stopped before modifying any tracked file or creating a commit. The process tree was verified stopped, the TASK-013 lock and `task-records` resource lock were released normally with the matching session token, and the clean Claude worktree and branch remain preserved as provenance. GPT is the user's declared next provider priority after Claude and now owns the next complete activation on `agent/gpt/orchestrator/task-013` from the unchanged ACT-031 binding head. This reroute changes execution identity and provenance only; it changes no Orchestrator authority, activation rule, ingress fact, cursor, task scope, lifecycle transition, gate, finding, approval, or event classification.
 
 ## Objective
 
