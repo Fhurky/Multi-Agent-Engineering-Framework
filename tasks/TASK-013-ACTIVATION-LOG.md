@@ -3112,6 +3112,12 @@ PRs 44, 37, and 33 remain open and unmerged. ACT-035 performed, requested, and s
 
 The ACT-035 effects commit is authored over exact Orchestrator binding head `a1f5ab05433efa729ff5eb4a98f75cd31ad9b9b8` and changes only `tasks/**`. It carries this ledger row, cursor advance, two lifecycle transitions, exact target binding, scheduling edge satisfaction, current graph revision, and handoffs atomically. The commit cannot contain its own identifier; one binding-only follow-up records the exact effects commit without adding an effect, row, cursor movement, verdict, transition, or gate action.
 
+### Effects commit for ACT-035
+
+- Effects commit: `711fae21a99faa763ad8d379bacd4141a8849c9a`; this binding-only follow-up records the exact immutable ACT-035 effects commit.
+- Branch: `agent/gpt/orchestrator/task-013`; base binding head: `a1f5ab05433efa729ff5eb4a98f75cd31ad9b9b8`.
+- Scope: only `tasks/**`; this binding commit carries no ledger row, cursor movement, verdict, lifecycle transition, task creation, finding disposition, or gate action.
+
 ## Activation ACT-033
 
 - **Role:** `orchestrator` / `gpt`
