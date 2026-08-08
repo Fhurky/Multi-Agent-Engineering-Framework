@@ -74,6 +74,35 @@ review_target_ancestry_note: >-
   012bdb8360a7a1b4e61b362d9302f731ad817078 is this branch's first authored commit and is AUTHORING
   ANCESTRY, not the target. The two commits differ only in published-head-evidence.ts and its test.
   The unexecuted-fixture registry tests/live-control-plane.blocked.test.ts is byte-identical at both.
+dispatch_observation: >-
+  RECORDED AT ACT-029 AS AN OPERATIONAL CURRENT-STATE FACT. IT IS NOT QA EVIDENCE, NOT A VERDICT, NOT
+  A DISPOSITION, AND NOT AN INGRESS FACT OF ANY CLASS. This task was dispatched once, in its isolated
+  agent/gemini/qa/task-055 worktree with the assigned gemini family, and DID NOT RUN. Gemini CLI
+  0.53.1 exited before reading or changing the repository because no authentication method is
+  configured for the local CLI. The durable state corroborates the report of it exactly and was
+  checked rather than accepted - refs/heads/agent/gemini/qa/task-055 resolves to
+  1dd3b93e37a17e42c118c78c95515163783bdd45, which is the head of integration/autonomous-runtime
+  itself, so the branch carries NO authored commit; git ls-remote origin returns NO remote ref for
+  it; reports/qa/TASK-049-RELEASE-MERGE-EXECUTOR-QA.md does not exist at any commit in this
+  repository; no pull request was opened; and the shared lock directory holds no task-055.json. NO
+  TRACKED FILE CHANGED, NO REPORT, COMMIT, PUSH, APPROVAL, OR VERDICT WAS PRODUCED, and the TASK-055
+  lock was released after the process exited. The observation is reported by the control operator in
+  pull-request-30 comments 5223216058 and 5223230458, which state in their own words that the comment
+  "is a factual provider-dispatch observation only", that it "is not QA evidence and must not satisfy
+  negativeCapabilityTestAttestation or any gate", and that TASK-049 remains dormant and
+  non-integrable. WHY IT IS NOT AN INGRESS ENTRY - the epoch-2 ingress source set is closed and this
+  fact matches NO class in it. There is no commit, so no gate_verdict_recorded, artifact_published,
+  or remediation_completed; it is not a merge on integration/autonomous-runtime or of that branch
+  into main, so no branch_integrated; it is not a governance decision on a non-agent branch, so no
+  human_decision_recorded; and it is NOT dependency_unsatisfiable, because that class requires an
+  OWNER'S PUBLISHED HANDOFF reporting that a DECLARED DEPENDENCY cannot be satisfied, and this task
+  published no handoff and its one declared dependency, review_ready(TASK-049), is satisfied. A
+  provider that cannot authenticate is an execution-environment fact about a DISPATCH, not a fact
+  about this graph's state. ACT-029 DELIBERATELY INVENTED NO CLASS FOR IT, appended no entry, and
+  advanced the cursor by exactly the two entries it consumed. THIS RECORD REMAINS ready, ITS
+  RELATION REMAINS pending, AND NOTHING ABOUT IT IS MARKED PASSED, FAILED, OR DONE. Resume requires
+  an authenticated gemini session and a fresh TASK-055 claim against the same immutable target; the
+  target is NOT retargeted by this observation or by anything else.
 observed_test_result: >-
   RECORDED AS AN OBSERVATION FOR THIS ROUND TO JUDGE, NOT AS A RESULT THIS ROUND MAY INHERIT.
   scripts/release/integration-merge/run-tests.ps1 at the exact target returns exit 0 with tests 416,
@@ -95,7 +124,13 @@ scope_validation_note: >-
   git merge-base HEAD integration/autonomous-runtime, and pass that exact value to -BaseRef.
   Record the resolved value in the report.
 blocked_reason: >-
-  NOT BLOCKED. Cleared at ACT-028. The single edge review_ready(TASK-049) is satisfied at
+  NOT BLOCKED, and STILL NOT BLOCKED after the failed dispatch recorded at ACT-029. A provider
+  authentication failure is an execution-environment condition, not a dependency state: it did not
+  unsatisfy review_ready(TASK-049), it did not create a new dependency, and it is deliberately NOT
+  recorded as a blocked_reason, because doing so would move a record on the strength of a fact about
+  a CLI rather than about this graph. This task stays ready and dispatchable and its verdict is still
+  owed. See dispatch_observation. The superseded ACT-028 value read - NOT BLOCKED. Cleared at
+  ACT-028. The single edge review_ready(TASK-049) is satisfied at
   9fb2eb0ca7c02101fd067452824e2612fda5cc0c and this task is dispatchable. The absent control plane is
   an external human-controlled blocker on eleven fixture items, NOT a scheduling dependency, and it
   does not block this task from starting or from recording a verdict that states them unexecuted.
@@ -202,5 +237,7 @@ Maintained by the Orchestrator under TASK-013 from this owner's report and pull 
 - **Created `blocked` at `ACT-026`**, two steps out, on the unsatisfied `review_ready(TASK-049)` edge.
 - **Transition at `ACT-028`: `blocked` → `ready`, on ingress entry `seq` 38, class `artifact_published`.** TASK-049 published at **`9fb2eb0ca7c02101fd067452824e2612fda5cc0c`** and opened pull request 30, satisfying `review_ready(TASK-049)` — this record's **only** scheduling dependency — on all three `runtime`-class conditions checked individually. The target and base are pinned above and are never retargeted. **`ACT-028` recorded no verdict, resolved no finding, and closed no relation.**
 - **`control_plane_dependency` is unchanged and is now live rather than prospective.** `ACT-028` re-read the state that record field anticipated and found it as round 3 recorded it: `main` and `integration/autonomous-runtime` **unprotected**, the ruleset list **empty**, no required check pinned to an expected App source, no bypass-actor set, no executor GitHub Apps or token broker, no external evidence store, and **no provisioned `RepositoryPolicyAttestor`**. Evidence item 7's six live protected-branch fixtures and item 11's five attestor-boundary fixtures therefore **still cannot execute**, and the owner registered exactly those **11** as `todo` rather than stubbing them — which is what this record required. **`ACT-028` provisioned, configured, requested, and simulated none of it.**
-- **The 416 / 405 / 0 / 11 figures were reproduced three times and judged zero times.** The owner reported them, an independent control session reported them, and `ACT-028` reproduced them a third time by running `run-tests.ps1` read-only from an isolated `git archive` export of the module at the exact target — outside every worktree, touching no tracked file, exit 0. **Reproducing a count is not validating a suite**, and whether 405 executed cases plus 11 declared-unexecuted obligations can support a passing QA verdict is this round's judgment alone.
-- Next owner: **this task**, `qa` / `gemini`, `ready` and dispatchable, sole write scope `reports/qa/TASK-049-RELEASE-MERGE-EXECUTOR-QA.md`, no resource lock, branching from `integration/autonomous-runtime` with the branch point resolved inside its own worktree. It runs in parallel with TASK-053 and TASK-054 on the same target with pairwise-disjoint report paths, and **must not run in any of their execution contexts, nor in TASK-049's, nor in TASK-048's, TASK-050's, TASK-051's, or TASK-052's.** The superseded `ACT-026` statement read: **Next owner: nobody yet. TASK-049 must publish first, and TASK-049 is itself blocked.**
+- **The 416 / 405 / 0 / 11 figures were reproduced three times and judged zero times.** The owner reported them, an independent control session reported them, and `ACT-028` reproduced them a third time by running `run-tests.ps1` read-only from an isolated `git archive` export of the module at the exact target — outside every worktree, touching no tracked file, exit 0. **Reproducing a count is not validating a suite**, and whether 405 executed cases plus 11 declared-unexecuted obligations can support a passing QA verdict is this round's judgment alone. **At `ACT-029` a fourth and a fifth reproduction were added by the two gate rounds that did run** — TASK-053 recorded `416 total, 405 pass, 0 fail, 11 todo` from an isolated archive of the target on Node `v26.4.0`, and TASK-054 recorded `416 declared, 405 passed, 0 failed, 11 todo` from a detached worktree at the exact target. **Five concurring reproductions are still not a QA verdict**, and neither of those rounds performed this gate: TASK-053 states in terms that the eleven unexecuted fixtures "do block activation … until TASK-055 executes and validates them against the real control plane", and TASK-054 states that "those 11 obligations are not passing evidence". **Neither judgment is inherited here and neither may be.**
+- **`ACT-029` recorded ONE dispatch observation and NO verdict, and the distinction is the whole of what this record gained.** This task was dispatched once and **did not run**: the assigned `gemini` CLI had no configured authentication method and exited before reading or changing the repository. **No report, commit, push, approval, or verdict exists**, the branch carries no authored commit and no remote ref, and the durable state was checked rather than accepted. It is recorded in `dispatch_observation` as an operational current-state fact **only**. **It is not QA evidence, it satisfies and closes no gate, it produced no `negativeCapabilityTestAttestation`, it was appended to no ingress inbox and matches no class in the closed epoch-2 source set, and `ACT-029` invented no class for it.** **This relation is `pending`, this record is `ready`, and neither is marked passed, failed, blocked, or done.**
+- **This lineage is preserved intact and separate, and `LIN-RELEASE-EXECUTOR-QA` round 2 was DEFERRED rather than created.** Invariant 8 permits a lineage round greater than 1 **only** after the preceding round records a verdict, and round 1 has recorded none — so a round 2 is forbidden today whatever the review and security lineages did. The remediation record **TASK-056** therefore joins the review and security cohorts and **not** this one, and this record's target, base, round, relation, gate class, retrospective flag, scope, and acceptance criteria are **untouched**. **The obligation is recorded rather than discharged**: the activation that consumes this round's verdict decides whether this lineage's cohort grows to include TASK-056, and until then TASK-056 carries a stated deferred QA obligation rather than a silent absence. This is the same treatment `LIN-DECOMP-REVIEW` round 9 has had since `ACT-012`.
+- Next owner: **this task, unchanged**, `qa` / `gemini`, `ready` and dispatchable, sole write scope `reports/qa/TASK-049-RELEASE-MERGE-EXECUTOR-QA.md`, no resource lock, branching from `integration/autonomous-runtime` with the branch point resolved inside its own worktree. **Its immutable target stays `9fb2eb0c` over base `d63864bc` and is NOT retargeted to TASK-056's future publication**, under findings F-403 and A-209 — a remediation is a different artifact and would need its own round. It **requires an authenticated `gemini` session and a fresh TASK-055 claim**; that authentication is the user's to provide and **`ACT-029` neither provisioned, requested, configured, nor simulated any provider credential, and did not reassign this task to another family.** It now runs in parallel with TASK-056 rather than with TASK-053 and TASK-054, which are `done`, and it **must not run in TASK-049's, TASK-053's, TASK-054's, TASK-056's, TASK-057's, TASK-058's, or TASK-052's execution context.** The superseded `ACT-028` statement read: **Next owner: this task**, `qa` / `gemini`, `ready` and dispatchable … It runs in parallel with TASK-053 and TASK-054 on the same target with pairwise-disjoint report paths. The superseded `ACT-026` statement read: **Next owner: nobody yet. TASK-049 must publish first, and TASK-049 is itself blocked.**
