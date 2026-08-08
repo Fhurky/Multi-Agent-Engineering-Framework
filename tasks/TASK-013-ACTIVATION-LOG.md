@@ -3110,7 +3110,7 @@ The task-record identifiers are contiguous and unique through TASK-063. Lifecycl
 
 ### Effects commit for ACT-033
 
-- Effects commit: `[PENDING_ACT_033_EFFECTS_COMMIT]`; a binding-only commit replaces this placeholder after the effects commit exists.
+- Effects commit: `04fb64a4fb9fee9a3fab105bd4c502cb2bdd73f9`; a binding-only commit records this exact immutable ACT-033 effects commit.
 - Branch: `agent/gpt/orchestrator/task-013`; base binding head: `a64806cbb625e1aed6ea35e837b7026f920f47dd`.
 - Scope: only `tasks/**`; the binding commit carries no ledger row, cursor movement, verdict, lifecycle transition, task creation, or gate action.
 
