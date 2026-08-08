@@ -1,7 +1,7 @@
 ---
 task_id: TASK-063
 title: Security revalidation of the release merge executor, round 4
-status: ready
+status: done
 owner_role: security
 llm: gpt
 branch: agent/gpt/security/task-063
@@ -26,7 +26,10 @@ gate_for:
   - task: TASK-062
     gate: security
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 7e610fabd663779724a94deec0046981e997f298
+    remediated_by: TASK-064
+    revalidated_by: TASK-065
     relation_status: open
     gate_class: point
     retrospective: false
@@ -35,7 +38,10 @@ gate_for:
   - task: TASK-059
     gate: security
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 7e610fabd663779724a94deec0046981e997f298
+    remediated_by: TASK-064
+    revalidated_by: TASK-065
     relation_status: open
     gate_class: point
     retrospective: false
@@ -44,7 +50,10 @@ gate_for:
   - task: TASK-056
     gate: security
     round: 3
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 7e610fabd663779724a94deec0046981e997f298
+    remediated_by: TASK-064
+    revalidated_by: TASK-065
     relation_status: open
     gate_class: point
     retrospective: false
@@ -53,7 +62,10 @@ gate_for:
   - task: TASK-049
     gate: security
     round: 4
-    verdict: pending
+    verdict: changes-required
+    verdict_recorded_at: 7e610fabd663779724a94deec0046981e997f298
+    remediated_by: TASK-064
+    revalidated_by: TASK-065
     relation_status: open
     gate_class: point
     retrospective: false
@@ -62,6 +74,32 @@ gate_for:
 parent_task: TASK-001
 publication_class: bootstrap
 supersedes: TASK-061
+publication: published
+published_commit: 7e610fabd663779724a94deec0046981e997f298
+published_branch: agent/gpt/security/task-063
+published_remote_ref: refs/heads/agent/gpt/security/task-063
+pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/46
+gate_result: changes-required
+gate_result_note: >-
+  ACT-036 consumed one immutable gate_verdict_recorded fact. The one changes-required verdict applies
+  atomically to all four Security relations, which remain open together. F-063-01 and F-063-02 are
+  fresh Critical devops-owned findings. No risk acceptance exists or is recorded; PRs 44, 37, and
+  33 remain non-integrable and implementationSecurityReview remains forbidden.
+publication_evidence:
+  activation: ACT-036
+  ingress_seq: 50
+  ingress_class: gate_verdict_recorded
+  fact_id: 1a9dd6b766bac1494c8f783d41e3d1bdcbbacc2bc36da6693c40a3221a18dd3e
+  source_path: reports/security/TASK-062-RELEASE-MERGE-EXECUTOR-SECURITY-ROUND-4.md
+  source_bytes: 23493
+  content_hash: bfe73d241a3cbf84156d404b760a8d7effc2f90c273867832514708d0b8b42c1
+  branch_point: d7994690b40a4a29218c46b9e0c7bd234a56ceff
+  review_target: 19e75e996e8e116f74b4f8feb363ef13438a42b9
+  pull_request_state: OPEN, non-draft, MERGEABLE / CLEAN, exact head, unmerged
+  exact_head_checks:
+    - validate, check-run 93139476438, success
+    - security, check-run 93139476384, success
+  lock_release: normal; no TASK-063 lock remains in the shared lock directory
 verdict_cardinality_note: >-
   ONE VERDICT APPLIES ATOMICALLY TO ALL FOUR RELATIONS. TASK-062 r1, TASK-059 r2, TASK-056 r3,
   and TASK-049 r4 close together only on a contract-valid passing outcome; a split outcome is not
@@ -96,12 +134,10 @@ scope_validation_applicability: >-
   d7994690b40a4a29218c46b9e0c7bd234a56ceff, the effective integration branch/source and declared
   gate branch point, even if the moving integration ref later advances. Inspect TASK-062 through
   immutable Git object access or a detached worktree; do not merge it into this branch.
-ready_reason: >-
-  ACT-035 independently verified TASK-062's immutable target, exact origin ref, open non-draft PR 44
-  with exact head against integration/autonomous-runtime, exact-head validate and security checks,
-  clean 21-path authored scope, true ancestry, clean worktree, and normal lock release. This satisfies
-  only review_ready(TASK-062). Security remains open; this record carries no verdict until its owner
-  independently reproduces the required counterexamples and publishes the sole report artifact.
+completion_reason: >-
+  ACT-036 independently verified the report-only publication, exact remote and PR head, fixed branch
+  point, immutable review target, exact-head checks, clean owner worktree, and normal lock release,
+  then recorded the report's indivisible changes-required verdict without closing any relation.
 exit_condition: >-
   SATISFIED at ACT-035. TASK-013 independently verified TASK-062's immutable published commit,
   exact origin ref, open non-draft pull request with exact head, authored scope, exact-head checks,
@@ -154,3 +190,9 @@ Independently determine whether TASK-062 resolves F-061-01, F-061-02, and F-061-
   `d63864bcb25fc8897b21c09f8f687e390f85808d`, and its four Security relations remain pending/open.
 - Next owner: **this task**, `security` / `gpt`, in a new execution context. It alone may record one
   verdict atomically across TASK-062 r1, TASK-059 r2, TASK-056 r3, and TASK-049 r4.
+- **ACT-036 verdict routing.** Published at exact commit
+  `7e610fabd663779724a94deec0046981e997f298`, this record moved `ready` to `done` and recorded one
+  `changes-required` verdict atomically across all four relations. F-063-01 and F-063-02 are fresh
+  Critical findings, both open, blocking, unaccepted, and assigned to DevOps.
+- Next owners: **TASK-064**, `devops` / `gpt`, for one module remediation; then **TASK-065**,
+  `security` / `gpt`, in a separate execution context after immutable runtime publication.
