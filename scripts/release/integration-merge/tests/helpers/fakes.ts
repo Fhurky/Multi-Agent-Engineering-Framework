@@ -98,6 +98,18 @@ export class RecordingMergePort implements ReleasePullRequestMergePort {
     return this.calls.length;
   }
 
+  /** Configures the offline script after composition-root binding. */
+  setScript(
+    results: readonly ReleaseMergePortResult[],
+    fallback: ReleaseMergePortResult = { outcome: 'unsupported' },
+  ): void {
+    if (this.calls.length !== 0) {
+      throw new Error('cannot replace a merge-port script after the first call');
+    }
+    this.#results = [...results];
+    this.#fallback = fallback;
+  }
+
   async mergeIntegrationPullRequestIntoMain(
     request: ReleaseMergeRequest,
   ): Promise<ReleaseMergePortResult> {

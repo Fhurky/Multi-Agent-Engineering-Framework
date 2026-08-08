@@ -18,6 +18,8 @@ import {
   computeAdmissionContext,
   expectedIrreversibleAuthorizationScopeDigest,
 } from '../../admission.ts';
+import { createReleaseExecutorCompositionRoot } from '../../composition-capability.ts';
+import { DormantReleaseMergePort } from '../../merge-port.ts';
 import {
   canonicalBytes,
   canonicalJson,
@@ -59,11 +61,13 @@ import type {
   PublishedHeadCommandEvidence,
   ReleaseAdmissionInput,
   ReleaseAuthorityPort,
+  ReleaseExecutorCapability,
   ReleaseGateManifest,
   ReleaseGateRequirement,
   ReleaseIntegrationInventoryEntry,
   ReleaseRepositoryIdentity,
   ReleaseRequiredCheckObservation,
+  ReleasePullRequestMergePort,
   ReleaseSecurityFinding,
   RequiredGitHubPolicyProfile,
   Sha256Hex,
@@ -320,6 +324,11 @@ export const AUTHORITY_PORT_IDENTITY = Object.freeze({
   resolverIdentityDigest: digest('immutable-release-authority-resolver'),
 });
 
+export const RELEASE_CAPABILITY_BINDING = Object.freeze({
+  compositionRootId: 'release-control-deployment-root',
+  bindingDigest: digest('release-control-deployment-root-binding'),
+});
+
 /* ------------------------------------------------------------------------- *
  * Activation record
  * ------------------------------------------------------------------------- */
@@ -383,6 +392,7 @@ export function validActivationRecord(): MergeExecutorActivationRecord {
       ...provenancedRef('negative-capability-test-attestation', 'negative-capability'),
       attestedMergePortIdentity: MERGE_PORT_IDENTITY,
       attestedAuthorityPortIdentity: AUTHORITY_PORT_IDENTITY,
+      attestedCapabilityBinding: RELEASE_CAPABILITY_BINDING,
     },
     gateVocabularyCorrection: provenancedRef(
       'gate-vocabulary-correction',
@@ -1191,10 +1201,14 @@ export interface ScenarioOverrides {
   readonly policyControlFacts?: PolicyControlFacts;
   readonly evaluatedAtUtc?: string;
   readonly orderKey?: string;
+  /** Exact callable broker bound by the test-only deployment composition root. */
+  readonly mergePort?: ReleasePullRequestMergePort;
 }
 
 export type FixtureReleaseAdmissionInput = ReleaseAdmissionInput & {
   readonly authority: ReleaseAuthorityPort | null;
+  readonly mergePort: ReleasePullRequestMergePort | null;
+  readonly capability: ReleaseExecutorCapability | null;
 };
 
 export const ADMISSION_CONTEXT_NONCE = digest('admission-context-nonce');
@@ -1524,6 +1538,62 @@ class FixtureAuthorityPort implements ReleaseAuthorityPort {
   }
 }
 
+function bindFixtureCapability(
+  authority: ReleaseAuthorityPort,
+  mergePort: ReleasePullRequestMergePort,
+): ReleaseExecutorCapability {
+  // The fixture authenticator models provisioned composition-root registrations with
+  // exact object identity. Copying either identity label onto another object is not an
+  // authentication event and cannot produce a capability.
+  const root = createReleaseExecutorCompositionRoot({
+    authenticateAuthorityPort(candidate) {
+      return candidate === authority ? AUTHORITY_PORT_IDENTITY : null;
+    },
+    authenticateMergePort(candidate) {
+      return candidate === mergePort ? MERGE_PORT_IDENTITY : null;
+    },
+    authenticateComposition(candidateAuthority, candidateMergePort) {
+      return candidateAuthority === authority && candidateMergePort === mergePort
+        ? RELEASE_CAPABILITY_BINDING
+        : null;
+    },
+  });
+  const capability = root.bind(authority, mergePort);
+  if (capability === null) {
+    throw new Error('fixture composition root failed to bind trusted ports');
+  }
+  return capability;
+}
+
+/** Rebinds one fixture input to the exact callable broker used by execution tests. */
+export function withFixtureMergePort(
+  input: FixtureReleaseAdmissionInput,
+  mergePort: ReleasePullRequestMergePort,
+): FixtureReleaseAdmissionInput {
+  if (input.authority === null) {
+    return { ...input, mergePort, capability: null };
+  }
+  return {
+    ...input,
+    mergePort,
+    capability: bindFixtureCapability(input.authority, mergePort),
+  };
+}
+
+/** Registers an explicitly trusted offline resolver replacement for focused tests. */
+export function withFixtureAuthority(
+  input: FixtureReleaseAdmissionInput,
+  authority: ReleaseAuthorityPort,
+): FixtureReleaseAdmissionInput {
+  const mergePort = input.mergePort ?? new DormantReleaseMergePort();
+  return {
+    ...input,
+    authority,
+    mergePort,
+    capability: bindFixtureCapability(authority, mergePort),
+  };
+}
+
 /**
  * The success fixture: one release manifest covering all seven aggregate domains,
  * with every other admission input valid.
@@ -1603,11 +1673,20 @@ export function validScenario(
     orderKey: overrides.orderKey ?? '0009',
     admissionContextNonce: ADMISSION_CONTEXT_NONCE,
     authority: null,
+    mergePort: null,
+    capability: null,
   };
 
   if (overrides.policyControlFacts !== undefined) {
     const completed = { ...skeleton, policyControlFacts: overrides.policyControlFacts };
-    return { ...completed, authority: new FixtureAuthorityPort(completed) };
+    const authority = new FixtureAuthorityPort(completed);
+    const mergePort = overrides.mergePort ?? new DormantReleaseMergePort();
+    return {
+      ...completed,
+      authority,
+      mergePort,
+      capability: bindFixtureCapability(authority, mergePort),
+    };
   }
 
   const requiredPolicyProfileDigest =
@@ -1643,7 +1722,14 @@ export function validScenario(
       observation: { state: 'current_valid', attestation },
     },
   };
-  return { ...completed, authority: new FixtureAuthorityPort(completed) };
+  const authority = new FixtureAuthorityPort(completed);
+  const mergePort = overrides.mergePort ?? new DormantReleaseMergePort();
+  return {
+    ...completed,
+    authority,
+    mergePort,
+    capability: bindFixtureCapability(authority, mergePort),
+  };
 }
 
 /** The `pre_mutation` authorization for a scenario's admitted plan. */

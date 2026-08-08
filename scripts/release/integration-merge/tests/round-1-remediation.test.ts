@@ -83,6 +83,7 @@ import {
   validRequirements,
   validScenario,
   sealBundle,
+  withFixtureMergePort,
 } from './helpers/fixtures.ts';
 
 /* ------------------------------------------------------------------------- *
@@ -1080,8 +1081,9 @@ test('F-054-04: every plan field participates in the recomputed key', async () =
       [field]: typeof harness.plan[field] === 'number' ? 424242 : digest(`altered-${String(field)}`),
     } as ReleaseMergePlan;
     const port = new RecordingMergePort();
+    const rebound = withFixtureMergePort(harness.admissionInput as never, port);
     const result = await execute(
-      { ...harness.dependencies, mergePort: port },
+      { ...harness.dependencies, capability: rebound.capability! },
       { ...harness.executionInput, plan: substituted },
     );
     assert.equal(result.status, 'refused', String(field));
@@ -1103,7 +1105,13 @@ test('F-054-05: a retry after the protected base changes refuses instead of merg
   );
 
   const result = await execute(
-    { ...harness.dependencies, mergePort: port },
+    {
+      ...harness.dependencies,
+      capability: withFixtureMergePort(
+        harness.admissionInput as never,
+        port,
+      ).capability!,
+    },
     harness.executionInput,
   );
 

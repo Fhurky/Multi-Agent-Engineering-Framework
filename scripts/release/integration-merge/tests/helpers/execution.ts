@@ -28,14 +28,15 @@ import {
 } from './fakes.ts';
 import {
   BASE_TIME_MS,
-  MERGE_PORT_IDENTITY,
   oid,
   preMutationFacts,
   validBaseRef,
   validPullRequest,
   validRequiredChecks,
   validScenario,
+  withFixtureMergePort,
 } from './fixtures.ts';
+import type { FixtureReleaseAdmissionInput } from './fixtures.ts';
 
 export const MERGED_COMMIT_OID = oid('release-merge-commit');
 
@@ -105,7 +106,11 @@ export function admissionFactsFrom(
  * exercise the durable-intent, policy, mutation, and verification phases.
  */
 export function buildHarness(options: HarnessOptions = {}): Harness {
-  const admissionInput = options.scenario ?? validScenario();
+  // The merge object is created before admission and sealed into the same nominal
+  // capability later used for the actual call. It is not paired with a separate label.
+  const mergePort = new RecordingMergePort();
+  const baseScenario = (options.scenario ?? validScenario()) as FixtureReleaseAdmissionInput;
+  const admissionInput = withFixtureMergePort(baseScenario, mergePort);
   const admitted = admit(admissionInput);
   if (admitted.status !== 'admitted') {
     throw new Error(
@@ -116,7 +121,7 @@ export function buildHarness(options: HarnessOptions = {}): Harness {
 
   const clock = new FakeClock(BASE_TIME_MS + 5_000);
   const store = options.store ?? new InMemoryEvidenceStore();
-  const mergePort = new RecordingMergePort(
+  mergePort.setScript(
     options.mergeResults ?? [
       {
         outcome: 'merged',
@@ -157,11 +162,10 @@ export function buildHarness(options: HarnessOptions = {}): Harness {
     sleep: fakeSleep(clock),
     store,
     observation,
-    mergePort,
-    mergePortIdentity: options.mergePortIdentity ?? MERGE_PORT_IDENTITY,
-    authority: (admissionInput as ReleaseAdmissionInput & {
-      authority: NonNullable<ReleaseExecutionDependencies['authority']>;
-    }).authority,
+    capability:
+      options.mergePortIdentity === undefined
+        ? admissionInput.capability!
+        : Object.freeze({ schema: 'release-executor-capability/v1' }) as never,
     attestor,
     leases,
   };

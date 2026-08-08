@@ -29,7 +29,7 @@ function withoutMember(member: string): MergeExecutorActivationRecord {
 test('the complete fixture activation record validates', () => {
   const scenario = validScenario();
   assert.equal(
-    validateActivation(validActivationRecord(), scenario.authority).status,
+    validateActivation(validActivationRecord(), scenario.capability).status,
     'activated',
   );
 });

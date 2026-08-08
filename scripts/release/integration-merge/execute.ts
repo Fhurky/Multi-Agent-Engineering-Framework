@@ -70,6 +70,7 @@ import {
   nextRetryDecision,
   TOTAL_BUDGET_MS,
 } from './retry.ts';
+import { resolveReleaseExecutorCapability } from './composition-capability.ts';
 
 function evidenceRef(
   plan: ReleaseMergePlan,
@@ -400,7 +401,7 @@ async function revalidateAuthoritatively(
       dependencies.clock.nowIso(),
       preIntentPolicyFacts,
     ),
-    dependencies.authority,
+    dependencies.capability,
   );
 
   if (revalidated.status === 'refused') {
@@ -433,15 +434,23 @@ async function revalidateAuthoritatively(
   }
 
   const activation = facts.activation;
+  const capabilityRecord = resolveReleaseExecutorCapability(dependencies.capability);
   if (
     activation === null ||
     activation === undefined ||
-    activation.negativeCapabilityTestAttestation.attestedMergePortIdentity.brokerId !==
-      dependencies.mergePortIdentity.brokerId ||
-    activation.negativeCapabilityTestAttestation.attestedMergePortIdentity
-      .portIdentityDigest !== dependencies.mergePortIdentity.portIdentityDigest
+    capabilityRecord === null ||
+    canonicalJson(
+      activation.negativeCapabilityTestAttestation.attestedMergePortIdentity,
+    ) !== canonicalJson(capabilityRecord.mergePortIdentity) ||
+    canonicalJson(
+      activation.negativeCapabilityTestAttestation.attestedAuthorityPortIdentity,
+    ) !== canonicalJson(capabilityRecord.authorityIdentity) ||
+    canonicalJson(
+      activation.negativeCapabilityTestAttestation.attestedCapabilityBinding,
+    ) !== canonicalJson(capabilityRecord.capabilityBinding)
   ) {
-    // An injected adapter does not inherit the negative-capability attestation.
+    // A structurally compatible adapter or copied identity label does not inherit the
+    // composition-root seal or the negative-capability attestation.
     return {
       ok: false,
       result: {
@@ -543,7 +552,12 @@ async function authorizePreMutation(
 
   const activation = facts.activation;
   const profile = facts.requiredPolicyProfile;
-  if (activation === null || activation === undefined || profile === null || profile === undefined) {
+  const capabilityRecord = resolveReleaseExecutorCapability(dependencies.capability);
+  if (
+    activation === null || activation === undefined ||
+    profile === null || profile === undefined ||
+    capabilityRecord === null
+  ) {
     return {
       ok: false,
       result: await persistRefusal(
@@ -579,7 +593,7 @@ async function authorizePreMutation(
     profile as RequiredGitHubPolicyProfile,
     'pre_mutation',
     plan.policyGeneration,
-    dependencies.authority,
+    capabilityRecord.authority,
   );
 
   const normalized = normalizePolicyAttestation(
@@ -725,6 +739,19 @@ export async function execute(
     return {
       status: 'refused',
       refusal: buildRefusal(plan, 'IntentReceiptInvalid', planDefect, noSubjects),
+    };
+  }
+
+  const capabilityRecord = resolveReleaseExecutorCapability(dependencies.capability);
+  if (capabilityRecord === null) {
+    return {
+      status: 'refused',
+      refusal: buildRefusal(
+        plan,
+        'UnsupportedOperation',
+        'nominal_release_executor_capability_absent',
+        noSubjects,
+      ),
     };
   }
 
@@ -1136,6 +1163,18 @@ async function performBoundedMerge(
   retryDeadlineUtc: string,
 ): Promise<ReleaseExecutionResult> {
   const request = buildReleaseMergeRequest(plan);
+  const capabilityRecord = resolveReleaseExecutorCapability(dependencies.capability);
+  if (capabilityRecord === null) {
+    return {
+      status: 'refused',
+      refusal: buildRefusal(
+        plan,
+        'UnsupportedOperation',
+        'nominal_release_executor_capability_absent',
+        subjects,
+      ),
+    };
+  }
   const startedAtMs = Date.parse(retryStartedAtUtc);
   const deadlineMs = Date.parse(retryDeadlineUtc);
 
@@ -1221,7 +1260,7 @@ async function performBoundedMerge(
     }
 
     const result =
-      await dependencies.mergePort.mergeIntegrationPullRequestIntoMain(request);
+      await capabilityRecord.mergePort.mergeIntegrationPullRequestIntoMain(request);
 
     if (result.outcome === 'merged') {
       const verified = await verifyMergedResult(

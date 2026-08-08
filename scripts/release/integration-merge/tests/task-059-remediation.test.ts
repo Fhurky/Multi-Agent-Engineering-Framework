@@ -41,6 +41,7 @@ import {
   validGateSnapshot,
   validManifest,
   validScenario,
+  withFixtureAuthority,
 } from './helpers/fixtures.ts';
 
 function refusalCode(input: ReleaseAdmissionInput): string {
@@ -102,7 +103,7 @@ test('F-057-01: unrelated lineage, target, and producer all remain dormant', () 
   ];
   for (const activation of probes) {
     assert.equal(
-      validateActivation(activation, scenario.authority).status,
+      validateActivation(activation, scenario.capability).status,
       'not_activated',
     );
     assert.equal(refusalCode({ ...scenario, activation }), 'AuthorityNotActivated');
@@ -160,7 +161,7 @@ test('F-058-01: an unresolvable activation record cannot self-authenticate', () 
         : base.resolveArtifact(ref),
   });
   assert.equal(
-    refusalCode({ ...scenario, authority }),
+    refusalCode(withFixtureAuthority(scenario, authority)),
     'AuthorityNotActivated',
   );
 });
@@ -240,7 +241,7 @@ test('F-058-02: independently revoked issuer status overrides a signed active cl
     },
   });
   assert.equal(
-    refusalCode({ ...scenario, authority }),
+    refusalCode(withFixtureAuthority(scenario, authority)),
     'PolicyAttestationInvalid',
   );
 });
@@ -277,7 +278,10 @@ test('F-058-03: an authority artifact with a different producer is rejected', ()
         : resolved;
     },
   });
-  assert.equal(refusalCode({ ...scenario, authority }), 'SourceRecordInvalid');
+  assert.equal(
+    refusalCode(withFixtureAuthority(scenario, authority)),
+    'SourceRecordInvalid',
+  );
 });
 
 test('F-058-03: an unresolvable human decision cannot authorize production coupling', () => {
@@ -294,7 +298,7 @@ test('F-058-03: an unresolvable human decision cannot authorize production coupl
   const authority = authorityOverride(scenario.authority!, {
     resolveHumanDecision: () => null,
   });
-  const result = admit({ ...scenario, authority });
+  const result = admit(withFixtureAuthority(scenario, authority));
   assert.equal(result.status, 'human_exception_required');
   if (result.status === 'human_exception_required') {
     assert.equal(result.exception.classification, 'unclassifiable');
@@ -321,7 +325,7 @@ test('F-058-03: an unresolvable accepted-risk decision cannot waive a finding', 
     resolveAcceptedRisk: () => null,
   });
   assert.equal(
-    refusalCode({ ...scenario, authority }),
+    refusalCode(withFixtureAuthority(scenario, authority)),
     'SecurityRiskAcceptanceInvalid',
   );
 });

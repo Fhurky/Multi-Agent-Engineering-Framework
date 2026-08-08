@@ -36,7 +36,7 @@ import type {
   ImmutablePolicyAttestorTrustRootRef,
   ImmutableProvenancedArtifactRef,
   MergeExecutorActivationRecord,
-  ReleaseAuthorityPort,
+  ReleaseExecutorCapability,
 } from './contracts.ts';
 import {
   canonicalJson,
@@ -49,6 +49,7 @@ import {
   sha256Canonical,
   omitTopLevel,
 } from './canonical-json.ts';
+import { resolveReleaseExecutorCapability } from './composition-capability.ts';
 
 export const APPROVED_ARCHITECTURE_SOURCE =
   'f148567d716c00d7a24783318c8d6d7031492e7b';
@@ -75,6 +76,7 @@ export type ActivationDefectReason =
   | 'record_source_mismatch'
   | 'authority_resolver_absent'
   | 'authority_resolver_mismatch'
+  | 'capability_binding_mismatch'
   | 'member_unresolvable'
   | 'producer_unauthenticated'
   | 'issuer_invalid'
@@ -278,6 +280,28 @@ function validateMergePortBinding(
   if (!isSha256Hex(identity.portIdentityDigest)) {
     defects.push({ member, reason: 'member_unpinned' });
   }
+
+  const authorityIdentity = ref.attestedAuthorityPortIdentity;
+  if (
+    !isRecordObject(authorityIdentity) ||
+    typeof authorityIdentity.resolverId !== 'string' ||
+    authorityIdentity.resolverId.length === 0 ||
+    hasControlCharacters(authorityIdentity.resolverId) ||
+    !isSha256Hex(authorityIdentity.resolverIdentityDigest)
+  ) {
+    defects.push({ member, reason: 'member_unpinned' });
+  }
+
+  const binding = ref.attestedCapabilityBinding;
+  if (
+    !isRecordObject(binding) ||
+    typeof binding.compositionRootId !== 'string' ||
+    binding.compositionRootId.length === 0 ||
+    hasControlCharacters(binding.compositionRootId) ||
+    !isSha256Hex(binding.bindingDigest)
+  ) {
+    defects.push({ member, reason: 'member_unpinned' });
+  }
 }
 
 function validateTrustRoot(value: unknown, defects: ActivationDefect[]): void {
@@ -366,7 +390,7 @@ function validateIssuer(value: unknown, defects: ActivationDefect[]): void {
  */
 export function validateActivation(
   activation: MergeExecutorActivationRecord | null | undefined,
-  authority?: ReleaseAuthorityPort | null,
+  capability?: ReleaseExecutorCapability | null,
 ): ActivationValidation {
   const defects: ActivationDefect[] = [];
 
@@ -432,23 +456,38 @@ export function validateActivation(
 
   const complete = activation as MergeExecutorActivationRecord;
 
-  if (!isRecordObject(authority)) {
+  const capabilityRecord = resolveReleaseExecutorCapability(capability);
+  if (capabilityRecord === null) {
     return {
       status: 'not_activated',
       defects: [{ member: 'recordSource', reason: 'authority_resolver_absent' }],
     };
   }
+  const authority = capabilityRecord.authority;
 
   const attestedAuthority =
     complete.negativeCapabilityTestAttestation.attestedAuthorityPortIdentity;
   if (
     !isRecordObject(attestedAuthority) ||
-    !isRecordObject(authority.identity) ||
-    canonicalJson(attestedAuthority) !== canonicalJson(authority.identity)
+    canonicalJson(attestedAuthority) !==
+      canonicalJson(capabilityRecord.authorityIdentity)
   ) {
     return {
       status: 'not_activated',
       defects: [{ member: 'recordSource', reason: 'authority_resolver_mismatch' }],
+    };
+  }
+  if (
+    canonicalJson(
+      complete.negativeCapabilityTestAttestation.attestedMergePortIdentity,
+    ) !== canonicalJson(capabilityRecord.mergePortIdentity) ||
+    canonicalJson(
+      complete.negativeCapabilityTestAttestation.attestedCapabilityBinding,
+    ) !== canonicalJson(capabilityRecord.capabilityBinding)
+  ) {
+    return {
+      status: 'not_activated',
+      defects: [{ member: 'recordSource', reason: 'capability_binding_mismatch' }],
     };
   }
 

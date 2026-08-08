@@ -154,6 +154,29 @@ export interface ImmutableMergePortIdentity {
 }
 
 /**
+ * Identity of one independently authenticated composition of the authority resolver
+ * and the concrete callable merge broker. The digest is produced by the composition
+ * root after authenticating both object references; it is not a label supplied by the
+ * release-control caller or by either port under validation.
+ */
+export interface ImmutableReleaseCapabilityBinding {
+  readonly compositionRootId: string;
+  readonly bindingDigest: Sha256Hex;
+}
+
+declare const releaseExecutorCapabilityBrand: unique symbol;
+
+/**
+ * Opaque nominal capability accepted by admission and execution. A structurally
+ * compatible object is insufficient: the implementation recognizes only instances
+ * sealed in its private composition-root registry.
+ */
+export interface ReleaseExecutorCapability {
+  readonly schema: 'release-executor-capability/v1';
+  readonly [releaseExecutorCapabilityBrand]: true;
+}
+
+/**
  * The negative-capability attestation additionally binds the concrete broker and port
  * identity the attested evidence was produced against, so an arbitrary injected adapter
  * cannot inherit that attestation.
@@ -162,6 +185,7 @@ export interface ImmutableNegativeCapabilityAttestationRef
   extends ImmutableProvenancedArtifactRef {
   readonly attestedMergePortIdentity: ImmutableMergePortIdentity;
   readonly attestedAuthorityPortIdentity: ImmutableAuthorityPortIdentity;
+  readonly attestedCapabilityBinding: ImmutableReleaseCapabilityBinding;
 }
 
 /** Opaque identity of the independently provisioned, read-only authority resolver. */
@@ -1437,10 +1461,12 @@ export interface ReleaseExecutionDependencies {
   readonly sleep: (milliseconds: number) => Promise<void>;
   readonly store: MergeEvidenceStore;
   readonly observation: ReleaseObservationPort;
-  readonly mergePort: ReleasePullRequestMergePort;
-  /** Identity of the concrete broker and port; bound to the activation attestation. */
-  readonly mergePortIdentity: ImmutableMergePortIdentity;
-  readonly authority: ReleaseAuthorityPort;
+  /**
+   * One composition-root-sealed capability binds the independently authenticated
+   * resolver and the actual callable merge broker. Raw ports and identity labels are
+   * intentionally absent from this caller-supplied dependency surface.
+   */
+  readonly capability: ReleaseExecutorCapability;
   readonly attestor: ReleaseAttestationRequestChannel;
   readonly leases: ReleaseExecutorLeaseManager;
 }

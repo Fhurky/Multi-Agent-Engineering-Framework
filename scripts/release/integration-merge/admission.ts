@@ -57,6 +57,7 @@ import type {
   ReleaseAdmissionInput,
   ReleaseAdmissionResult,
   ReleaseAuthorityPort,
+  ReleaseExecutorCapability,
   ReleaseGateManifest,
   ReleaseMergePlan,
   RequiredGitHubPolicyProfile,
@@ -72,6 +73,7 @@ import {
   sha256Canonical,
 } from './canonical-json.ts';
 import { validateActivation } from './activation.ts';
+import { resolveReleaseExecutorCapability } from './composition-capability.ts';
 import {
   classifyPolicyControl,
   executorPermissionMapIsConfined,
@@ -346,14 +348,14 @@ function exception(record: HumanExceptionRecord): ReleaseAdmissionResult {
 export function admit(input: ReleaseAdmissionInput): ReleaseAdmissionResult;
 export function admit(
   input: ReleaseAdmissionInput,
-  authority: ReleaseAuthorityPort | null,
+  capability: ReleaseExecutorCapability | null,
 ): ReleaseAdmissionResult;
 export function admit(
   input: ReleaseAdmissionInput,
-  authority: ReleaseAuthorityPort | null = null,
+  capability: ReleaseExecutorCapability | null = null,
 ): ReleaseAdmissionResult {
   try {
-    return admitOrdered(input, authority);
+    return admitOrdered(input, capability);
   }
   catch {
     // Backstop for a value no canonical encoder can represent, such as a symbol or a
@@ -372,7 +374,7 @@ export function admit(
 
 function admitOrdered(
   input: ReleaseAdmissionInput,
-  authorityDependency: ReleaseAuthorityPort | null,
+  capabilityDependency: ReleaseExecutorCapability | null,
 ): ReleaseAdmissionResult {
   /* --- Step 0: complete runtime input shape ----------------------------- */
 
@@ -463,7 +465,7 @@ function admitOrdered(
 
   /* --- Step 2: activation and the pinned required-policy profile -------- */
 
-  const activation = validateActivation(input.activation, authorityDependency);
+  const activation = validateActivation(input.activation, capabilityDependency);
   if (activation.status === 'not_activated') {
     return refusal(
       'AuthorityNotActivated',
@@ -477,7 +479,14 @@ function admitOrdered(
     );
   }
   const activationRecord = activation.record;
-  const authority = authorityDependency as ReleaseAuthorityPort;
+  const capabilityRecord = resolveReleaseExecutorCapability(capabilityDependency);
+  if (capabilityRecord === null) {
+    return refusal(
+      'AuthorityNotActivated', repositoryId, keyMaterial, subjects, null,
+      'nominal_release_executor_capability_absent',
+    );
+  }
+  const authority = capabilityRecord.authority;
 
   const profileSourceDefect = provenancedArtifactDefect(
     input.requiredPolicyProfileSource,
