@@ -1,0 +1,25 @@
+{
+  "$comment": "Shared configuration for the runtime toolchain quality entry points. Owned by TASK-018 (devops).",
+  "runtime": {
+    "sourceRoots": ["src", "tests"],
+    "sourceExtensions": [".ts"],
+    "testFileSuffix": ".test.ts",
+    "outputDirectory": "dist"
+  },
+  "format": {
+    "roots": ["src", "tests", "scripts/ci", "scripts/quality"],
+    "extensions": [".ts", ".mts", ".mjs", ".js", ".json"],
+    "lineEnding": "lf",
+    "indentWidth": 2,
+    "requireFinalNewline": true,
+    "forbidTrailingWhitespace": true,
+    "forbidTabIndentation": true,
+    "forbidByteOrderMark": true
+  },
+  "lint": {
+    "maxLineLength": 120,
+    "allowedBareImportPrefixes": ["node:"],
+    "relativeImportExtension": ".js"
+  },
+  "ignoredDirectories": ["node_modules", "dist", "coverage", ".git", ".agent-runtime"]
+}
