@@ -1,7 +1,7 @@
 ---
 task_id: TASK-057
 title: Independent review of the remediated release merge executor, round 2
-status: ready
+status: done
 owner_role: reviewer
 llm: gpt
 branch: agent/gpt/reviewer/task-057
@@ -33,24 +33,84 @@ gate_for:
   - task: TASK-056
     gate: review
     round: 1
-    verdict: pending
+    verdict: changes-required
+    verdict_at: df3dafa5203ad02ebba89419c77b6a44efafd91a
     relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-RELEASE-EXECUTOR-REVIEW
     lineage_round: 2
+    remediated_by: TASK-059
+    revalidated_by: TASK-060
   - task: TASK-049
     gate: review
     round: 2
-    verdict: pending
+    verdict: changes-required
+    verdict_at: df3dafa5203ad02ebba89419c77b6a44efafd91a
     relation_status: open
     gate_class: point
     retrospective: false
     gate_lineage: LIN-RELEASE-EXECUTOR-REVIEW
     lineage_round: 2
+    remediated_by: TASK-059
+    revalidated_by: TASK-060
+recorded_verdict: >-
+  changes-required, ONE verdict applied ATOMICALLY to both relations under gate-round rule 5, recorded
+  at df3dafa5203ad02ebba89419c77b6a44efafd91a in
+  reports/code-review/TASK-056-RELEASE-MERGE-EXECUTOR-REVIEW-ROUND-2.md. The report states that this
+  is "one verdict applied atomically to both relations" and that "a split disposition is not
+  represented or implied". BOTH RELATIONS STAY OPEN TOGETHER. Integration is not allowed and the
+  implementationReview member "must not be produced". THIS RECORD REACHING done DOES NOT CLOSE EITHER
+  GATE - done describes a gate TASK, and under gate-round rule 3 a gate closes only at approved,
+  approved-with-findings with every blocking finding resolved, or a formal human acceptance, none of
+  which occurred. TASK-053's round-1 verdict at 7e78f1405e40e29034673944949c3851e466cf3c stays
+  durable, superseded by this round and never rewritten.
+findings_recorded: >-
+  THREE FRESH FINDINGS, ALL NAMING devops - F-057-01 and F-057-02 High and F-057-03 Medium. F-057-01:
+  activation accepts unrelated gate identities, targets, and bearer-declared producers - four direct
+  validateActivation probes from the valid fixture with only recordSource.digest recomputed returned
+  baseline activated, unrelatedLineage activated, unrelatedTarget activated, and unrelatedProducer
+  activated, so the round-1 copy-substitution and producedByExecutor probes now refuse while the
+  required identity and provenance bindings remain absent. F-057-02: the global 120-second retry
+  wall-clock budget resets on process restart - performBoundedMerge re-initializes startedMs from a
+  new process's monotonic clock, and the authenticated MergeEvidenceHistory persists attempts and no
+  temporal value at all, so a fresh harness admitted attempt 2 from a one-attempt history that could
+  have been recorded arbitrarily long before. F-057-03: literal NUL bytes make gate-admissibility.ts
+  binary to Git, so --numstat reports - / - and --text does not change it, hiding a reconstructed
+  +146 / -4 remediation patch in a security-critical admission path from line-diff review. NONE OF THE
+  THREE HAS A FORMAL-ACCEPTANCE PATH: they are review findings, not security findings, and they close
+  only when a later round of this lineage records a passing verdict.
+round_1_dispositions: >-
+  ALL EIGHT F-053-* FINDINGS WERE DISPOSITIONED INDIVIDUALLY WITH FILE-AND-LINE EVIDENCE AT THE NEW
+  TARGET, and the report states that each was decided by reconstructing round 1's own counterexample
+  against the new code rather than by observing that a test now passes - which is the discipline this
+  record required in advance. SIX ARE resolved: F-053-01, F-053-02, F-053-03, F-053-05, F-053-07, and
+  F-053-08. TWO ARE partially resolved WITH THEIR RESIDUES NAMED BY THE ROUND ITSELF: F-053-04 to
+  F-057-01, and F-053-06 to F-057-02. NO F-054-* FINDING WAS DISPOSITIONED HERE, which the report
+  states explicitly - that lineage belongs to TASK-058.
+domain_and_scope_results: >-
+  ALL SEVEN AGGREGATE RELEASE DOMAINS ARE INDIVIDUALLY met - review, security, qa, performance,
+  documentation, deployment, and rollback - each tested with a conflicting same-round duplicate in
+  append, reverse, and verdict-commit-sorted permutations returning PreMergeGateOpen, and with a
+  separate mutable-verdict case returning PreMergeGateNotPassing. FOURTEEN SCOPE ITEMS WERE JUDGED
+  INDIVIDUALLY: ten met and four not met. The four not met are the counterexample-reconstruction item,
+  carried by F-057-01 and F-057-02; the durable-retry-contract item, carried by F-057-02; the
+  activation and dormancy item, carried by F-057-01; and the literal-NUL maintainability item, carried
+  by F-057-03.
+second_path_result: >-
+  RE-ESTABLISHED AGAINST THE NEW CODE RATHER THAN INHERITED FROM ROUND 1, which this record required.
+  The report found NO path by which the executor can reach main other than the exact-head pull-request
+  merge port: the complete enumerated mutation list is Object.freeze(['mergeIntegrationPullRequestIntoMain'])
+  with exactly one call site, no generic HTTP, Git or gh, child process, socket, ref update, push,
+  force, hook bypass, administrator override, required-check mutation, branch-protection or ruleset
+  mutation, policy mutation, gate mutation, task mutation, or lock release, and the surface is not
+  wider than at the remediation parent. THE REPORT IMMEDIATELY REFUSES TO LET THAT STAND AS A
+  MITIGATION: "this result does not cure F-057-01: the alternate defect is admission to the sole port,
+  not a second port."
 parent_task: TASK-001
 publication_class: bootstrap
 supersedes: TASK-053
+superseded_by: TASK-060
 verdict_cardinality_note: >-
   ONE VERDICT, APPLIED ATOMICALLY TO BOTH RELATIONS. Under gate-round rule 5 a gate task carrying more
   than one gate_for relation records a single verdict once and applies it to every relation it
@@ -94,17 +154,25 @@ review_target_applicability: >-
   origin/main, and NOT this task's own branch point. This is the construction TASK-044 used with
   c95ce600 and TASK-047 reused.
 branch_point_of: integration/autonomous-runtime
-scope_validation_base: git merge-base HEAD integration/autonomous-runtime
+scope_validation_base: 754d66a0f73b6405e3a81101e8c24302581c2ebc
 scope_validation_applicability: >-
-  applicable, declared as a reproducible expression because this task's branch does not exist yet.
-  It is this task's own branch point and is unrelated to review_target_base above.
+  applicable and RESOLVED at ACT-031 from the declared expression. Read two independent ways and the
+  two agree: git merge-base df3dafa5 integration/autonomous-runtime, and the literal single parent of
+  df3dafa5 from git rev-list --parents. The owner resolved the same value inside its own worktree and
+  recorded it in the report. IT IS DELIBERATELY NOT review_target_base ABOVE - 754d66a0 against
+  d63864bc - which is what findings F-403 and A-209 required the separation for. TASK-058's branch
+  point resolves to the SAME commit, which is a coincidence of scheduling and not a relation between
+  the two deltas. The superseded value read - git merge-base HEAD integration/autonomous-runtime,
+  declared as a reproducible expression because this task's branch did not exist yet.
 scope_validation_note: >-
-  Branch from integration/autonomous-runtime, resolve the branch point inside the worktree with
-  git merge-base HEAD integration/autonomous-runtime, and pass that exact value to -BaseRef. RESOLVE
-  IT RATHER THAN ASSUME IT: the integration branch has moved between every recent activation, and
-  TASK-053's record carried the same instruction for exactly this reason. Record the resolved value
-  in the report. DO NOT BRANCH FROM agent/claude/devops/task-056 and DO NOT MERGE THE UNREVIEWED
-  IMPLEMENTATION INTO THIS BRANCH; read the target through Git object access or a detached worktree.
+  DISCHARGED. The owner branched from integration/autonomous-runtime, resolved the branch point inside
+  its own worktree with git merge-base HEAD integration/autonomous-runtime, obtained
+  754d66a0f73b6405e3a81101e8c24302581c2ebc - which the instruction to resolve rather than assume was
+  written for, since the integration branch had moved again since TASK-053's round - passed that exact
+  value to -BaseRef, and recorded both the resolved value and the validator result in the report. It
+  did NOT branch from agent/claude/devops/task-056 and did NOT merge the unreviewed implementation into
+  its branch; it read the target through Git object access. The authored delta is ONE path with residue
+  empty by filtering, zero paths deleted, and git diff --check exit 0.
 observed_delta: >-
   RECORDED AT ACT-030 AS AN OBSERVATION FOR THIS ROUND TO JUDGE, NOT AS A RESULT THIS ROUND MAY
   INHERIT, and every figure was derived from the repository rather than from the owner's summary. The
@@ -143,21 +211,59 @@ nul_byte_observation: >-
   of this is acceptable - embedded NUL bytes in TypeScript source, a printable sentinel instead, and
   the reviewability of a binary-classified file in a security-critical admission path - IS THIS
   ROUND'S JUDGMENT.
+published_commit: df3dafa5203ad02ebba89419c77b6a44efafd91a
+published_branch: agent/gpt/reviewer/task-057
+published_remote_ref: refs/heads/agent/gpt/reviewer/task-057
+pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/35
+publication: published
+publication_note: >-
+  All three bootstrap conditions hold INDEPENDENTLY, verified at ACT-031 rather than inferred, so the
+  rule 1 allowance was available and UNUSED. Immutable published commit
+  df3dafa5203ad02ebba89419c77b6a44efafd91a, this branch's ONLY authored commit -
+  git rev-list --count 754d66a0..df3dafa5 returns 1, so the head-binding rule had a single candidate.
+  refs/heads/agent/gpt/reviewer/task-057 on origin resolves to the same object under git ls-remote and
+  under the local remote-tracking ref. Pull request 35 is OPEN, NOT A DRAFT, MERGEABLE with
+  mergeStateStatus CLEAN, base integration/autonomous-runtime, headRefOid df3dafa5, created
+  2026-08-08T09:15:29Z, changedFiles 1, additions 221, deletions 0. This record's own report stated its
+  publication and the durable state agrees in the published direction.
+authored_delta: >-
+  1 path, 221 insertions, 0 deletions against the resolved branch point
+  754d66a0f73b6405e3a81101e8c24302581c2ebc. The single path is
+  reports/code-review/TASK-056-RELEASE-MERGE-EXECUTOR-REVIEW-ROUND-2.md, which is this task's entire
+  declared write scope and its sole Expected artifacts entry. Residue empty by filtering the
+  changed-path list rather than by assertion, ZERO paths deleted, git diff --check exit 0. The
+  artifact is 28171 bytes at the source commit.
+check_run_evidence: >-
+  GitHub created TWO check runs at the exact head df3dafa5203ad02ebba89419c77b6a44efafd91a and both
+  concluded success - validate id 93085194112 completed 2026-08-08T09:15:47Z, and security id
+  93085194097 completed 09:15:50Z, total_count 2, app github-actions, each with head_sha equal to the
+  target. The legacy combined-status surface returns state pending with total_count 0 and ZERO
+  contexts; both surfaces were read at ACT-031 and the empty rollup is recorded as an ABSENCE, never
+  as a success. This is evidence about this report's own publication and not about the artifact the
+  report judges - the report says so itself: "CI success is evidence, not this review verdict."
 blocked_reason: >-
-  NOT BLOCKED. Moved from blocked to ready at ACT-030 on the satisfied review_ready(TASK-056) edge,
-  which was the only scheduling dependency this record declares. The superseded value read -
-  review_ready(TASK-056) is unsatisfied. TASK-056 is ready and dispatchable but has published
-  nothing, so there is no immutable target to review and no delta to diff. This is a genuine
-  scheduling dependency and the only one this record declares.
+  NOT BLOCKED AND NOT APPLICABLE. This record is done. It moved from blocked to ready at ACT-030 on
+  the satisfied review_ready(TASK-056) edge and from ready to done at ACT-031 on its own recorded
+  verdict. The superseded value read - NOT BLOCKED. Moved from blocked to ready at ACT-030 on the
+  satisfied review_ready(TASK-056) edge, which was the only scheduling dependency this record
+  declares.
 exit_condition: >-
-  This task records ONE verdict on LIN-RELEASE-EXECUTOR-REVIEW round 2, applied ATOMICALLY to
-  (TASK-056, review, round 1) and (TASK-049, review, round 2), publishes the report at its declared
-  path, and publishes the commit as the environment permits. THE PUBLICATION PRECONDITION IS
-  DISCHARGED and is retained here for provenance: TASK-056 published an immutable commit on
-  agent/claude/devops/task-056, pushed the branch to origin, and opened pull request 33 against
-  integration/autonomous-runtime - all three independently, verified at ACT-030, and the Orchestrator
-  then bound this record's review_target_commit. REACHING READY AUTHORIZED AN INDEPENDENT REVIEW AND
-  NOTHING ELSE - no approval, no merge, no integration, and no activation-record member.
+  DISCHARGED AT ACT-031, and every clause was checked individually rather than accepted as a whole.
+  This task recorded ONE verdict on LIN-RELEASE-EXECUTOR-REVIEW round 2, changes-required, applied
+  ATOMICALLY to (TASK-056, review, round 1) and (TASK-049, review, round 2); published the report at
+  its declared path and nowhere else; and published the commit, the branch on origin, and pull request
+  35. RECORDING THAT VERDICT CLOSED NO GATE - both relations stay OPEN, because changes-required is
+  not a passing verdict. THE PUBLICATION PRECONDITION IS RETAINED HERE FOR PROVENANCE: TASK-056
+  published an immutable commit on agent/claude/devops/task-056, pushed the branch to origin, and
+  opened pull request 33 - all three independently, verified at ACT-030. REACHING READY AUTHORIZED AN
+  INDEPENDENT REVIEW AND NOTHING ELSE, and reaching done authorized nothing further - no approval, no
+  merge, no integration, and no activation-record member.
+verdict_authority_outcome: >-
+  THE implementationReview MEMBER WAS NOT PRODUCED AND MAY NOT BE. This task alone could have produced
+  it, and only by recording a passing verdict of its own; it recorded changes-required and states
+  explicitly that the member "must not be produced". That is the second consecutive refusal in this
+  lineage after TASK-053's, and the member remains exactly what LIN-RELEASE-EXECUTOR-REVIEW round 3 at
+  TASK-060 may or may not produce.
 verdict_authority_note: >-
   THIS TASK ALONE may produce the implementationReview member of the approved
   MergeExecutorActivationRecord for the release executor, superseding TASK-053's refusal to produce
@@ -253,10 +359,15 @@ Do not move this record between lifecycle directories and do not edit its `statu
 
 Maintained by the Orchestrator under TASK-013 from the reviewer's report and pull request.
 
-- Commit or pull request:
-- Verification:
-- Known risks:
+- Commit or pull request: **`df3dafa5203ad02ebba89419c77b6a44efafd91a`** on `agent/gpt/reviewer/task-057`, its only authored commit over resolved branch point `754d66a0f73b6405e3a81101e8c24302581c2ebc`, published at `refs/heads/agent/gpt/reviewer/task-057` on `origin` and opened as **pull request 35**, `OPEN` / non-draft / `MERGEABLE` / `CLEAN` against `integration/autonomous-runtime`. `changedFiles` 1, `additions` 221, `deletions` 0.
+- Verification, transcribed as **this owner's** claims and each independently reproduced or checked at `ACT-031` where it was checkable from outside the owner's execution: the exact-target suite at `522 / 511 / 0 / 11` exit 0; a targeted `^F-053-` reconstruction at **50 / 50 passing**; a dedicated activation, dormancy, negative-capability, and static-dependency selection at **74 / 74 passing**; the exact-parent suite at `416 / 405 / 0 / 11`; the three independent activation substitutions that all reproduced `activated`; the recovered-retry probe that admitted attempt 2 from a timestamp-free history; a raw-byte NUL scan and in-memory line reconstruction reproducing all nine NULs and the hidden `+146 / -4` resolver delta; `validate-assignment.ps1 -Role reviewer -Llm gpt` valid; `validate-framework.ps1` passing for 13 roles; `test-orchestration.ps1` passing; `test-check-run-evidence.ps1` passing with 82 assertions; `check-repository.ps1` passing, which the report itself qualifies as "a repository baseline check, not the separate Security role or gate"; both `git diff --check` ranges passing; the exact-head GitHub check-run, status, pull-request, and remote-ref queries; an independent decode and digest verification of the owner's `published-head-evidence/v2` bundle **using a serializer re-implemented rather than imported from the module under review**; the resolved branch point `754d66a0…`; and `validate-write-scope.ps1 -IncludeWorkingTree -BaseRef 754d66a0…` reporting `valid: True` with `changedFiles` 1. **The Orchestrator reproduced the publication, delta, residue, `diff --check`, pull-request, and exact-head check-run facts independently; it did NOT re-run the owner's counterexample reconstructions, because reconstructing a counterexample is this gate's work and not the Orchestrator's.**
+- Known risks, as the owner recorded them: **F-057-01 and F-057-02 are unresolved blockers**, and **F-057-03 also requires remediation before the critical resolver is maintainably reviewable as text**. Integration allowed: **no**. `implementationReview` may be produced: **no**.
+- **Verdict recorded at `ACT-031`: `changes-required`**, one verdict applied **atomically** to `(TASK-056, review, round 1)` and `(TASK-049, review, round 2)`. **BOTH RELATIONS STAY OPEN.** **This record reaching `done` closes neither gate.**
+- **Six of round 1's eight findings are `resolved` and two are `partially resolved`**, each by reconstructing round 1's own counterexample against the new code rather than by observing that a test now passes — which is exactly what this record required in advance, and it is the first time in this graph that the instruction and the practice can be checked against each other in the same document.
+- **All seven aggregate release domains are individually `met`, and the second-path result was re-established rather than inherited** — with the report immediately refusing to let it function as a mitigation. **Ten of fourteen scope items are `met` and four are `not met`**, each of the four traced to a named fresh finding.
+- **What this record does NOT do.** It dispositions no `F-054-*` finding, which it states explicitly; TASK-058's security verdict was recorded in a separate execution context in a separate lineage and is neither an input to this one nor derived from it. It creates no task, provisions nothing, and merges nothing.
 - **Created `blocked` at `ACT-029`**, on the unsatisfied `review_ready(TASK-056)` edge, as the successor round to TASK-053's `changes-required` verdict at `7e78f1405e40e29034673944949c3851e466cf3c`. **A superseding round is a new task, never a re-entrant one**, and TASK-053's verdict stays durable and unrewritten.
 - **Moved `blocked` → `ready` at `ACT-030`**, on ingress entry `seq` 41, class `artifact_published`, at `85f5d265c888f899332a99b15a7d9c8aa959be00`. `review_target_commit` bound to that head; `review_target_base` **unchanged at `d63864bc` and deliberately not retargeted**. The two-relation cohort, the atomic-verdict rule, the `reviewer` / `gpt` execution context, the single-file write scope, and every obligation above are **unchanged** — reaching `ready` changed this record's dispatchability and nothing about what it must judge.
 - **What reaching `ready` does not mean.** **None of the sixteen round-1 findings is resolved**, and eight of them are this round's to disposition. TASK-056's own test results, its exact-head check runs, its `published-head-evidence/v2` bundle, its owner-recorded verification, and **every figure the Orchestrator reproduced at `ACT-030`** are owner-side or consumer-side evidence. **Judge them; do not inherit them.** TASK-058's security verdict is a separate gate in a separate lineage, is not an input to this one, and is not predictable from it.
-- Next owner: **this task**, `reviewer` / `gpt`, `ready` and dispatchable, sole write scope `reports/code-review/TASK-056-RELEASE-MERGE-EXECUTOR-REVIEW-ROUND-2.md`, no resource lock, branching from `integration/autonomous-runtime` with the branch point resolved inside its own worktree. **Its execution context must be disjoint from TASK-058's, which is `ready` at the same time.**
+- **Moved `ready` → `done` at `ACT-031`**, on ingress entry `seq` 43, class `gate_verdict_recorded`, at `df3dafa5203ad02ebba89419c77b6a44efafd91a`. Its exit condition is discharged in every clause. **The superseded next-owner statement read** — Next owner: **this task**, `reviewer` / `gpt`, `ready` and dispatchable, sole write scope `reports/code-review/TASK-056-RELEASE-MERGE-EXECUTOR-REVIEW-ROUND-2.md`, no resource lock, branching from `integration/autonomous-runtime` with the branch point resolved inside its own worktree. **Its execution context must be disjoint from TASK-058's, which is `ready` at the same time.**
+- Next owner: **TASK-059**, `devops` / `claude`, `ready` and dispatchable, which carries the required remedies for F-057-01, F-057-02, and F-057-03 alongside TASK-058's five, with the two partial `F-053-*` findings linked to the residues that carry them. **TASK-060**, `reviewer` / `gpt`, is created `blocked` on `review_ready(TASK-059)` to record `LIN-RELEASE-EXECUTOR-REVIEW` round 3 over three relations — TASK-059 at its round 1, TASK-056 at its round 2, and TASK-049 at its round 3 — and **it must run in an execution context disjoint from this one, from TASK-059's, and from TASK-061's.** This record is durable and is never re-entered.
