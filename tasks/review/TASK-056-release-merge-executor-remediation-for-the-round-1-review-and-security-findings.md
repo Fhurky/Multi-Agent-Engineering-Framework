@@ -81,7 +81,7 @@ gate_tasks:
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 3
 gate_status_round_2: >-
-  OPEN ON ALL FOUR RELATIONS AT ACT-031 AND NOT ONE OF THEM IS CLOSED. BOTH ROUND-2 GATES RECORDED
+  OPEN ON ALL FOUR HISTORICAL RELATIONS AT ACT-032 AND NOT ONE OF THEM IS CLOSED. BOTH ROUND-2 GATES RECORDED
   changes-required - TASK-057 at df3dafa5203ad02ebba89419c77b6a44efafd91a over (review, round 1) and
   TASK-058 at 0a44bb0f6a1405bf49fa536d1149f122f52e4bbb over (security, round 1), each applying ONE
   verdict ATOMICALLY to this record's relation and to TASK-049's round-2 relation, so both relations
@@ -89,7 +89,9 @@ gate_status_round_2: >-
   approved-with-findings with every blocking finding resolved, or a formal human acceptance, and NONE
   of the three occurred. Both verdicts are DURABLE and are superseded by round 3 rather than
   rewritten. Two new pending round-3 relations were added, TASK-060 for review and TASK-061 for
-  security, and both are OPEN and blocked on review_ready(TASK-059). NINE of the sixteen findings this
+  security, and both are OPEN and separately READY at the immutable TASK-059 target
+  126f2fa9939b8ac6db4764241952dafbda50e9f4 over base
+  d63864bcb25fc8897b21c09f8f687e390f85808d. NINE of the sixteen findings this
   record remediated are now resolved and SEVEN are partially resolved with residues carried by eight
   fresh findings; that is the most any remediation in this graph has closed and it did not close a
   gate. integrable is FALSE and PULL REQUEST 33 MUST NOT BE MERGED. The qa gate stays DEFERRED by
@@ -479,3 +481,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - **The recurring shape is worth recording because it is what a third round has to answer.** The three fresh Critical findings each name a boundary this remediation built **correctly** and then **accepted from the caller** — real Ed25519 verification against a caller-supplied key, exact digest recomputation over caller-supplied bytes, exact field binding on artifacts the caller names but nobody dereferences. TASK-058 demonstrated it with a probe in which a caller-generated key, caller-computed self-digests, and **nine nonexistent OID-shaped commits** produced `activated` and then `admitted`. **That is an observation transcribed from a gate owner's report, not a judgment this role formed.**
 - **The suite grew from 416 to 522 and the verdict was `changes-required` both times.** `ACT-030` recorded that a passing owner suite is not a passing gate; `ACT-031` is where that became a measured fact rather than a caution. The eleven live control-plane and attestor fixtures are still registered, still unexecuted, and still not passing, and TASK-058 confirmed with read-only queries that the control plane they need is still absent — HTTP 404 `Branch not protected` for both `main` and `integration/autonomous-runtime`, and a ruleset count of zero.
 - Next owner: **TASK-059**, `devops` / `claude`, `ready` and dispatchable, branching from **this record's own published head `85f5d265`** so the second remediation reaches this artifact by **true ancestry**, carrying the exact required remedies for all eight fresh findings with the seven partial round-1 findings linked to the residues that carry them. **TASK-060** and **TASK-061** are created `blocked` on `review_ready(TASK-059)`, each carrying **three** relations — TASK-059 r1, this record r2, and TASK-049 r3 — against the unchanged base `d63864bc`. **This record's `qa` gate stays deferred by invariant 8 and no QA successor was created.**
+- **ACT-032 publication routing.** TASK-059 published at `126f2fa9939b8ac6db4764241952dafbda50e9f4`; TASK-060 and TASK-061 are now separately `ready`, each over the immutable review base `d63864bcb25fc8897b21c09f8f687e390f85808d`, and each still carries this record's round-2 relation inside its own atomic three-relation cohort. This record remains in `review`, `integrable: false`; all round-1 and round-2 verdicts and dispositions remain durable and unchanged. Pull requests 37 and 33 remain unmerged.
+- Next owners: **TASK-060** (`reviewer` / `gpt`) and **TASK-061** (`security` / `gpt`) in distinct execution contexts. This record's QA gate remains deferred by invariant 8, no QA successor was created, and TASK-055 remains bound to the older TASK-049 target.
