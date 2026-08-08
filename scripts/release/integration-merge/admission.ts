@@ -525,10 +525,7 @@ function admitOrdered(
       'required_policy_profile_not_the_activation_pinned_artifact',
     );
   }
-  if (
-    !artifactAuthentic(authority, manifestSource) ||
-    !artifactAuthentic(authority, profileSource)
-  ) {
+  if (!artifactAuthentic(authority, profileSource)) {
     return refusal(
       'AuthorityNotActivated',
       repositoryId,
@@ -536,6 +533,16 @@ function admitOrdered(
       subjects,
       null,
       'activation_pinned_source_unresolvable',
+    );
+  }
+  if (!artifactAuthentic(authority, manifestSource)) {
+    return refusal(
+      'SourceRecordInvalid',
+      repositoryId,
+      keyMaterial,
+      subjects,
+      null,
+      'manifest_source_unresolvable_or_producer_unauthenticated',
     );
   }
   if (profile.repositoryId !== manifest.repositoryId) {

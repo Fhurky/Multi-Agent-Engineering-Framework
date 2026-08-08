@@ -258,6 +258,28 @@ test('F-058-03: caller-resealed authority data cannot narrow the gate universe',
   );
 });
 
+test('F-058-03: an authority artifact with a different producer is rejected', () => {
+  const scenario = validScenario();
+  const base = scenario.authority!;
+  const manifestSource = scenario.manifestSource!;
+  const authority = authorityOverride(base, {
+    resolveArtifact: (ref) => {
+      const resolved = base.resolveArtifact(ref);
+      return resolved !== null && ref.commit === manifestSource.commit
+        ? {
+            ...resolved,
+            producer: {
+              principalId: 'untrusted-producer',
+              principalType: 'agent_role' as const,
+              authorizationCommit: oid('untrusted-producer-authorization'),
+            },
+          }
+        : resolved;
+    },
+  });
+  assert.equal(refusalCode({ ...scenario, authority }), 'SourceRecordInvalid');
+});
+
 test('F-058-03: an unresolvable human decision cannot authorize production coupling', () => {
   const policyCommit = oid('deployment-policy');
   const scenario = validScenario({
