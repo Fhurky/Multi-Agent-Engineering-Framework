@@ -3128,7 +3128,7 @@ The ACT-037 effects commit is authored over exact Orchestrator binding head `e3a
 
 ### Effects commit for ACT-037
 
-- The effects commit is created by this activation and cannot contain its own identifier. One binding-only follow-up records the exact immutable hash here and in TASK-013's Handoff.
+- Effects commit: `525f36430b4aaf7549f8f5670f7391510dba96cb`; this binding-only follow-up records the exact immutable ACT-037 effects commit.
 - Branch: `agent/gpt/orchestrator/task-013`; base binding head: `e3a2814e5ace2f6e7f57e8433443bc8dd8ff70bf`.
 - Scope: only `tasks/**`; the binding commit carries no ledger row, cursor movement, verdict, lifecycle transition, task creation, finding disposition, or gate action.
 
