@@ -1,0 +1,464 @@
+/**
+ * `ExecutorGateAdmissibility` — executor-local, stricter than generic graph
+ * satisfaction.
+ *
+ * `gate_passed` from the task graph is an input fact for graph and lifecycle
+ * compatibility. It is never sufficient to construct an executor plan. This module
+ * derives the closed result below from the complete authoritative relation set, and
+ * the same exhaustive rule applies to every one of the seven release aggregate gates.
+ *
+ * The `accepted_security_risk` alternative exists only for HUMAN-004's first
+ * exception. The executor cannot author or broaden it.
+ */
+
+import {
+  compareStringTuples,
+  hasControlCharacters,
+  isGitOid,
+  isSha256Hex,
+  sha256Canonical,
+} from './canonical-json.ts';
+import { GATE_VERDICT_STATES } from './contracts.ts';
+import type {
+  AcceptedBlockingSecurityRiskRecord,
+  AggregateGateRelation,
+  ExecutorGateAdmissibility,
+  GateLineageId,
+  GateName,
+  GitOid,
+  ImmutableAggregateGateSnapshot,
+  ReleaseSecurityFinding,
+  Sha256Hex,
+} from './contracts.ts';
+
+/** Resolution of the authoritative round for one lineage and gate. */
+export type AuthoritativeRoundResolution =
+  | {
+      readonly status: 'resolved';
+      readonly round: number;
+      readonly relation: AggregateGateRelation;
+    }
+  | { readonly status: 'no_relation' }
+  | { readonly status: 'not_contiguous'; readonly observedRounds: readonly number[] }
+  | {
+      readonly status: 'ambiguous';
+      readonly round: number;
+      readonly count: number;
+    }
+  | { readonly status: 'invalid_relation'; readonly reason: string };
+
+function isRecordObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Canonical digest of an aggregate gate relation set. Recomputing it is what binds a
+ * snapshot's declared digest to its actual canonical bytes; a fabricated relation set
+ * therefore cannot keep the digest the signed admission context covers.
+ */
+export function aggregateGateSnapshotDigest(
+  relations: readonly AggregateGateRelation[],
+): Sha256Hex {
+  return sha256Canonical({
+    schema: 'aggregate-gate-snapshot/v1',
+    relations: [...relations]
+      .map((relation) => ({
+        lineage: relation.lineage,
+        lineageRound: relation.lineageRound,
+        gate: relation.gate,
+        gateClass: relation.gateClass,
+        ownerForm: relation.ownerForm,
+        verdictState: relation.verdictState,
+        verdictCommit: relation.verdictCommit,
+        relationSetComplete: relation.relationSetComplete,
+        acceptedRisks: relation.acceptedRisks,
+      }))
+      .sort((left, right) => {
+        return compareStringTuples(
+          [left.lineage, left.gate, String(left.lineageRound), left.verdictCommit],
+          [right.lineage, right.gate, String(right.lineageRound), right.verdictCommit],
+        );
+      }),
+  });
+}
+
+/** Canonical digest of a release security finding set, order-independent. */
+export function releaseSecuritySnapshotDigest(
+  findings: readonly ReleaseSecurityFinding[],
+): Sha256Hex {
+  return sha256Canonical({
+    schema: 'release-security-snapshot/v1',
+    findings: [...findings]
+      .map((finding) => ({
+        findingId: finding.findingId,
+        severity: finding.severity,
+        resolved: finding.resolved,
+        appliesToRelease: finding.appliesToRelease,
+        targetCommit: finding.targetCommit,
+        evidenceDigest: finding.evidenceDigest,
+        securityLineage: finding.securityLineage,
+        securityLineageRound: finding.securityLineageRound,
+        securityVerdictCommit: finding.securityVerdictCommit,
+      }))
+      .sort((left, right) => {
+        return compareStringTuples(
+          [left.findingId, left.evidenceDigest],
+          [right.findingId, right.evidenceDigest],
+        );
+      }),
+  });
+}
+
+/** Rejects ambiguous or non-immutable external finding identifiers before use. */
+export function releaseSecurityFindingDefect(
+  value: unknown,
+): string | null {
+  if (!isRecordObject(value)) {
+    return 'finding_not_an_object';
+  }
+  const finding = value as unknown as ReleaseSecurityFinding;
+  if (
+    typeof finding.findingId !== 'string' ||
+    finding.findingId.length === 0 ||
+    hasControlCharacters(finding.findingId)
+  ) {
+    return 'finding_id_invalid';
+  }
+  if (
+    typeof finding.securityLineage !== 'string' ||
+    finding.securityLineage.length === 0 ||
+    hasControlCharacters(finding.securityLineage)
+  ) {
+    return 'finding_lineage_invalid';
+  }
+  if (
+    !isGitOid(finding.targetCommit) ||
+    !isGitOid(finding.securityVerdictCommit) ||
+    !isSha256Hex(finding.evidenceDigest)
+  ) {
+    return 'finding_immutable_identity_invalid';
+  }
+  return null;
+}
+
+/**
+ * Every relation in the claimed complete set is validated, not only the one the
+ * resolver happens to select. A mutable verdict ref, an unknown verdict state, or a
+ * malformed relation makes the set unusable rather than skippable.
+ */
+export function relationDefect(relation: unknown): string | null {
+  if (!isRecordObject(relation)) {
+    return 'relation_not_an_object';
+  }
+  const candidate = relation as unknown as AggregateGateRelation;
+  if (
+    typeof candidate.lineage !== 'string' ||
+    candidate.lineage.length === 0 ||
+    hasControlCharacters(candidate.lineage)
+  ) {
+    return 'relation_lineage_missing';
+  }
+  if (
+    !Number.isSafeInteger(candidate.lineageRound) ||
+    candidate.lineageRound < 1
+  ) {
+    return 'relation_round_invalid';
+  }
+  if (
+    typeof candidate.gate !== 'string' ||
+    candidate.gate.length === 0 ||
+    hasControlCharacters(candidate.gate)
+  ) {
+    return 'relation_gate_missing';
+  }
+  if (candidate.gateClass !== 'aggregate' && candidate.gateClass !== 'point') {
+    return 'relation_gate_class_invalid';
+  }
+  if (candidate.ownerForm !== true && candidate.ownerForm !== false) {
+    return 'relation_owner_form_invalid';
+  }
+  if (
+    !(GATE_VERDICT_STATES as readonly string[]).includes(candidate.verdictState)
+  ) {
+    return 'relation_verdict_state_invalid';
+  }
+  if (!isGitOid(candidate.verdictCommit)) {
+    // A mutable ref where the contract requires an immutable verdict commit.
+    return 'relation_verdict_commit_mutable';
+  }
+  if (
+    candidate.relationSetComplete !== true &&
+    candidate.relationSetComplete !== false
+  ) {
+    return 'relation_set_completeness_missing';
+  }
+  if (!Array.isArray(candidate.acceptedRisks)) {
+    return 'relation_accepted_risks_missing';
+  }
+  return null;
+}
+
+/**
+ * The authoritative round is the greatest contiguous round declared for the lineage
+ * and gate, counting from round 1. A round declared above a gap is not authoritative,
+ * because the relation set between it and the floor is not complete.
+ *
+ * Resolution is permutation-independent. More than one relation for any
+ * `(lineage, gate, lineageRound)` is ambiguous and refuses; the earlier `find()`
+ * selected whichever conflicting relation happened to appear first in the array.
+ */
+export function resolveAuthoritativeRound(
+  snapshot: ImmutableAggregateGateSnapshot,
+  lineage: GateLineageId,
+  gate: GateName,
+): AuthoritativeRoundResolution {
+  if (!isRecordObject(snapshot) || !Array.isArray(snapshot.relations)) {
+    return { status: 'invalid_relation', reason: 'snapshot_relations_missing' };
+  }
+
+  for (const relation of snapshot.relations) {
+    const defect = relationDefect(relation);
+    if (defect !== null) {
+      return { status: 'invalid_relation', reason: defect };
+    }
+  }
+
+  const matching = snapshot.relations.filter(
+    (relation) => relation.lineage === lineage && relation.gate === gate,
+  );
+
+  if (matching.length === 0) {
+    return { status: 'no_relation' };
+  }
+
+  const perRound = new Map<number, number>();
+  for (const relation of matching) {
+    perRound.set(
+      relation.lineageRound,
+      (perRound.get(relation.lineageRound) ?? 0) + 1,
+    );
+  }
+  for (const [round, count] of [...perRound].sort((left, right) => left[0] - right[0])) {
+    if (count > 1) {
+      return { status: 'ambiguous', round, count };
+    }
+  }
+
+  const rounds = [...perRound.keys()].sort((left, right) => left - right);
+
+  let greatestContiguous = 0;
+  for (let expected = 1; expected <= rounds.length; expected += 1) {
+    if (rounds[expected - 1] === expected) {
+      greatestContiguous = expected;
+      continue;
+    }
+    break;
+  }
+
+  if (greatestContiguous === 0) {
+    return { status: 'not_contiguous', observedRounds: rounds };
+  }
+
+  const relation = matching.find(
+    (candidate) => candidate.lineageRound === greatestContiguous,
+  );
+
+  if (relation === undefined) {
+    return { status: 'not_contiguous', observedRounds: rounds };
+  }
+
+  return { status: 'resolved', round: greatestContiguous, relation };
+}
+
+/**
+ * The exact scope an `accepted-blocking-security-risk/v1` record may discharge.
+ * A record whose `acceptanceScopeDigest` differs purports to waive something other
+ * than the named finding on the named target, and is invalid.
+ */
+export function expectedAcceptanceScopeDigest(
+  finding: ReleaseSecurityFinding,
+): Sha256Hex {
+  return sha256Canonical({
+    schema: 'accepted-blocking-security-risk/v1',
+    findingId: finding.findingId,
+    findingSeverity: finding.severity,
+    findingEvidenceDigest: finding.evidenceDigest,
+    targetCommit: finding.targetCommit,
+    securityLineage: finding.securityLineage,
+    securityLineageRound: finding.securityLineageRound,
+    securityVerdictCommit: finding.securityVerdictCommit,
+  });
+}
+
+/** Unresolved blocking High or Critical findings that apply to the release target. */
+export function matchingBlockingFindings(
+  findings: readonly ReleaseSecurityFinding[],
+  releaseTargetCommit: GitOid,
+): readonly ReleaseSecurityFinding[] {
+  return findings.filter(
+    (finding) =>
+      finding.resolved === false &&
+      finding.appliesToRelease === true &&
+      (finding.severity === 'high' || finding.severity === 'critical') &&
+      finding.targetCommit === releaseTargetCommit,
+  );
+}
+
+function recordBindsFinding(
+  record: AcceptedBlockingSecurityRiskRecord,
+  finding: ReleaseSecurityFinding,
+  relation: AggregateGateRelation,
+): boolean {
+  if (record.schema !== 'accepted-blocking-security-risk/v1') {
+    return false;
+  }
+  // A mutable ref where the contract requires an immutable commit is invalid.
+  if (
+    !isGitOid(record.recordCommit) ||
+    !isGitOid(record.acceptanceDecisionCommit) ||
+    !isGitOid(record.targetCommit) ||
+    !isGitOid(record.securityVerdictCommit)
+  ) {
+    return false;
+  }
+  if (record.acceptedBy === undefined || record.acceptedBy === null) {
+    return false;
+  }
+  if (record.acceptedBy.principalType !== 'human') {
+    return false;
+  }
+  if (!isGitOid(record.acceptedBy.authorizationCommit)) {
+    return false;
+  }
+  if (record.findingSeverity !== 'high' && record.findingSeverity !== 'critical') {
+    return false;
+  }
+  if (record.findingId !== finding.findingId) {
+    return false;
+  }
+  if (
+    hasControlCharacters(record.findingId) ||
+    hasControlCharacters(record.securityLineage) ||
+    hasControlCharacters(record.acceptedBy.principalId)
+  ) {
+    return false;
+  }
+  if (record.findingSeverity !== finding.severity) {
+    return false;
+  }
+  if (!isSha256Hex(record.findingEvidenceDigest)) {
+    return false;
+  }
+  if (record.findingEvidenceDigest !== finding.evidenceDigest) {
+    return false;
+  }
+  if (record.targetCommit !== finding.targetCommit) {
+    return false;
+  }
+  if (record.securityLineage !== finding.securityLineage) {
+    return false;
+  }
+  if (record.securityLineageRound !== finding.securityLineageRound) {
+    return false;
+  }
+  if (record.securityVerdictCommit !== finding.securityVerdictCommit) {
+    return false;
+  }
+  if (record.securityLineage !== relation.lineage) {
+    return false;
+  }
+  if (record.securityLineageRound !== relation.lineageRound) {
+    return false;
+  }
+  if (record.securityVerdictCommit !== relation.verdictCommit) {
+    return false;
+  }
+  if (record.acceptanceScopeDigest !== expectedAcceptanceScopeDigest(finding)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Evaluates one authoritative relation.
+ *
+ * `changes_required`, `failed`, `pending`, `open`, a missing or partially closed
+ * relation set, a generic `formally_accepted`, and every formal acceptance for a
+ * non-security gate are not admissible. Only an exact, complete, immutable,
+ * authorized-human accepted-risk set on a security relation is the alternative.
+ */
+export function evaluateRelation(
+  relation: AggregateGateRelation,
+  securityFindings: readonly ReleaseSecurityFinding[],
+  releaseTargetCommit: GitOid,
+): ExecutorGateAdmissibility {
+  if (relation.relationSetComplete !== true) {
+    return { status: 'not_admissible', code: 'PreMergeGateOpen' };
+  }
+
+  if (relation.verdictState === 'open' || relation.verdictState === 'pending') {
+    return { status: 'not_admissible', code: 'PreMergeGateOpen' };
+  }
+
+  if (relation.verdictState === 'passing') {
+    return {
+      status: 'passing',
+      gate: relation.gate,
+      lineage: relation.lineage,
+      lineageRound: relation.lineageRound,
+      authoritativeVerdictCommit: relation.verdictCommit,
+    };
+  }
+
+  if (relation.verdictState !== 'formally_accepted') {
+    // `changes_required` and `failed`.
+    return { status: 'not_admissible', code: 'PreMergeGateNotPassing' };
+  }
+
+  // Every formal acceptance for a non-security gate is inadmissible.
+  if (relation.gate !== 'security') {
+    return { status: 'not_admissible', code: 'PreMergeGateNotPassing' };
+  }
+
+  const records = relation.acceptedRisks;
+
+  // A bare generic formal acceptance carries no accepted-risk record at all.
+  if (records.length === 0) {
+    return { status: 'not_admissible', code: 'PreMergeGateNotPassing' };
+  }
+
+  const matching = matchingBlockingFindings(securityFindings, releaseTargetCommit);
+
+  // An extra record: acceptance evidence exists for something that is not a matching
+  // unresolved blocking finding.
+  if (records.length !== matching.length) {
+    return { status: 'not_admissible', code: 'SecurityRiskAcceptanceInvalid' };
+  }
+
+  const consumed = new Set<string>();
+  for (const finding of matching) {
+    const record = records.find(
+      (candidate) =>
+        !consumed.has(candidate.recordCommit) &&
+        recordBindsFinding(candidate, finding, relation),
+    );
+    if (record === undefined) {
+      return { status: 'not_admissible', code: 'SecurityRiskAcceptanceInvalid' };
+    }
+    consumed.add(record.recordCommit);
+  }
+
+  if (consumed.size !== records.length) {
+    return { status: 'not_admissible', code: 'SecurityRiskAcceptanceInvalid' };
+  }
+
+  return {
+    status: 'accepted_security_risk',
+    gate: 'security',
+    lineage: relation.lineage,
+    lineageRound: relation.lineageRound,
+    authoritativeVerdictState: 'formally_accepted',
+    authoritativeVerdictCommit: relation.verdictCommit,
+    acceptedRisks: records,
+  };
+}

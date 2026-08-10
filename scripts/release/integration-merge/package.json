@@ -1,0 +1,30 @@
+{
+  "name": "@multi-agent/release-integration-merge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "activation.ts",
+    "admission.ts",
+    "canonical-json.ts",
+    "capability-registry.ts",
+    "composition-capability.ts",
+    "contracts.ts",
+    "execute.ts",
+    "gate-admissibility.ts",
+    "immutable-diff.ts",
+    "index.ts",
+    "merge-port.ts",
+    "policy-control.ts",
+    "protected-paths.ts",
+    "published-head-evidence.ts",
+    "release-lineage.ts",
+    "release-manifest.ts",
+    "remediation.ts",
+    "required-checks.ts",
+    "retry.ts"
+  ]
+}
