@@ -1,7 +1,7 @@
 ---
 task_id: TASK-065
 title: Security revalidation of the release merge executor, round 5
-status: blocked
+status: ready
 owner_role: security
 llm: gpt
 branch: agent/gpt/security/task-065
@@ -12,9 +12,9 @@ resource_lock: null
 dependencies:
   - task: TASK-064
     edge: review_ready
-    satisfied: false
-    satisfied_at: null
-    satisfied_by: null
+    satisfied: true
+    satisfied_at: 610716aabc9a6cdf455fe45c32c88eeb20caa588
+    satisfied_by: ACT-037 consuming ingress entry seq 51, class artifact_published
     satisfied_under: >-
       TASK-064 declares publication_class runtime, so review_ready requires an immutable published
       commit, the exact origin branch, and an open or updated non-draft pull request against
@@ -93,7 +93,7 @@ findings_carried: >-
   Disposition F-063-01 and F-063-02 individually. Re-derive F-061-01 through F-061-03, every carried
   partial from TASK-058 and TASK-054, every previously resolved finding, all HUMAN-004 prohibitions,
   dormancy, and the unexecuted live fixtures. No Reviewer finding belongs to this task.
-review_target_commit: pending; bind to the exact TASK-064 runtime publication before dispatch
+review_target_commit: 610716aabc9a6cdf455fe45c32c88eeb20caa588
 review_target_base: d63864bcb25fc8897b21c09f8f687e390f85808d
 review_target_applicability: >-
   Applicable. Assess the complete executor from TASK-049's immutable pre-lineage base so the
@@ -104,13 +104,17 @@ scope_validation_applicability: >-
   Applicable and fixed by ACT-036. Create this report branch from exact effective integration head
   6e92459621cdb7e45839d53fa5ba8d5d59113f83 even if the moving ref later advances. Inspect TASK-064
   through immutable Git object access or a detached worktree; never merge it into this branch.
-blocked_reason: >-
-  review_ready(TASK-064) is unsatisfied because TASK-064 has not published an immutable runtime-class
-  target. This record is not dispatchable and carries no verdict.
+ready_reason: >-
+  ACT-037 independently verified TASK-064's immutable target, exact origin ref, open non-draft PR 48
+  with exact head against integration/autonomous-runtime, exact-head validate and security checks,
+  clean 19-path authored scope, true ancestry, clean worktree, and normal lock release. This satisfies
+  only review_ready(TASK-064). Security remains open; this record carries no verdict until its owner
+  independently reproduces the required counterexamples and publishes the sole report artifact.
 exit_condition: >-
-  TASK-013 independently verifies TASK-064's immutable target, exact origin ref, open non-draft pull
-  request with exact head, authored scope, checks, clean state, and lock release, then binds that
-  commit and changes only this scheduling edge from unsatisfied to satisfied.
+  SATISFIED at ACT-037. TASK-013 independently verified TASK-064's immutable target, exact origin
+  ref, open non-draft pull request with exact head, authored scope, checks, clean state, true
+  ancestry, and lock release, then bound that commit and changed only this scheduling edge from
+  unsatisfied to satisfied. This task is ready and dispatchable.
 verdict_authority_note: >-
   This task alone may produce implementationSecurityReview after a passing verdict. It may not
   implement remediation, perform Review or QA, accept risk, mutate credentials or repository policy,
@@ -150,3 +154,10 @@ Independently determine whether TASK-064 resolves F-063-01 and F-063-02 without 
 - Verification: exact-target independent Security assessment, report-only scope validation from fixed branch point `6e92459621cdb7e45839d53fa5ba8d5d59113f83`, and exact-head publication evidence.
 - Known risks: all five Security relations remain open and two Critical findings remain blocking until this task records a passing verdict or an authorized human separately records formal acceptance.
 - Next owner: TASK-013 Orchestrator to consume and route the verdict.
+- **ACT-037 dispatch binding.** `review_ready(TASK-064)` is satisfied at exact target
+  `610716aabc9a6cdf455fe45c32c88eeb20caa588`; this record moved `blocked` to `ready`. Its branch point
+  remains exactly `6e92459621cdb7e45839d53fa5ba8d5d59113f83`, its cumulative review base remains
+  `d63864bcb25fc8897b21c09f8f687e390f85808d`, and its five Security relations remain pending/open.
+- Next owner: **this task**, `security` / `gpt`, in a new execution context separate from TASK-064
+  and all earlier Security rounds. It alone may record one verdict atomically across TASK-064 r1,
+  TASK-062 r2, TASK-059 r3, TASK-056 r4, and TASK-049 r5.
