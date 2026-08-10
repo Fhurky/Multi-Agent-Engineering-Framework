@@ -129,9 +129,10 @@ gate_status_round_2: >-
   invariant 8 and no QA successor was created.
 gate_status: >-
   ACT-036 records TASK-063 changes-required and leaves this record's round-3 Security relation open.
-  TASK-065 adds an open pending round-4 relation, blocked on TASK-064 publication. Review remains
-  approved/closed; Security remains blocking. F-063-01 and F-063-02 are Critical, open, DevOps-owned,
-  and unaccepted. This record remains non-integrable and PRs 44, 37, and 33 remain forbidden.
+  ACT-037 binds TASK-065 Security round 5 to exact TASK-064 target 610716a and makes its owner ready;
+  this record's round-4 relation remains open and pending. Review remains approved/closed; Security
+  remains blocking. F-063-01 and F-063-02 are Critical, open, DevOps-owned, and unaccepted. This
+  record remains non-integrable and PRs 48, 44, 37, and 33 remain forbidden.
 superseded_gate_status_act_030: >-
   OPEN on both relations and pending on both at ACT-030, and BOTH OWNERS ARE NOW DISPATCHABLE because
   this task published at 85f5d265c888f899332a99b15a7d9c8aa959be00. NOTHING ELSE CHANGED: no verdict
@@ -538,3 +539,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - Next owner: **TASK-063**, `security` / `gpt`, in a separate execution context. Review is not reopened and QA remains deferred.
 - **ACT-036 Security routing.** TASK-063 recorded `changes-required` at `7e610fabd663779724a94deec0046981e997f298`; this record's round-3 relation remains open and TASK-065 adds its pending round-4 relation. F-063-01 and F-063-02 route together to TASK-064. Review is not reopened and QA remains deferred.
 - Next owners: **TASK-064**, `devops` / `gpt`, then **TASK-065**, `security` / `gpt`.
+- **ACT-037 publication routing.** TASK-064 published exact target `610716aabc9a6cdf455fe45c32c88eeb20caa588`; TASK-065 is now `ready` and carries this record's pending Security round-4 relation. No verdict or finding disposition changed. This record remains `review` and `integrable: false`; PRs 48, 44, 37, and 33 remain open, unmerged, and forbidden.
+- Next owner: **TASK-065**, `security` / `gpt`, in a separate execution context. Review is not reopened and QA remains deferred.

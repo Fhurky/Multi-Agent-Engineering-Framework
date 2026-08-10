@@ -84,10 +84,11 @@ gate_tasks:
     lineage_round: 5
 gate_status: >-
   ACT-036 records TASK-063 changes-required and leaves this record's round-2 Security relation open.
-  TASK-065 adds an open pending round-3 relation, blocked on TASK-064 publication. Review remains
-  approved/closed; Security remains blocking. F-063-01 and F-063-02 are Critical, DevOps-owned,
-  open, and unaccepted. This record remains NON-INTEGRABLE; PRs 44, 37, and 33 remain open and MUST
-  NOT be merged. The superseded ACT-032 value read - OPEN on both relations and
+  ACT-037 binds TASK-065 Security round 5 to exact TASK-064 target 610716a and makes its owner ready;
+  this record's round-3 relation remains open and pending. Review remains approved/closed; Security
+  remains blocking. F-063-01 and F-063-02 are Critical, DevOps-owned, open, and unaccepted. This
+  record remains NON-INTEGRABLE; PRs 48, 44, 37, and 33 remain open and MUST NOT be merged. The
+  superseded ACT-032 value read - OPEN on both relations and
   pending on both at ACT-032. BOTH OWNERS ARE READY after this task's
   runtime-class publication independently satisfied each review_ready edge. TASK-060 and TASK-061
   remain separate roles and mandatory separate execution contexts; neither gate is satisfied by
@@ -464,3 +465,5 @@ Maintained by the Orchestrator under TASK-013 from this owner's commit, pull req
 - Next owner: **TASK-063**, `security` / `gpt`, in a separate execution context. Review remains closed and no Reviewer successor exists.
 - **ACT-036 Security routing.** TASK-063 recorded `changes-required` at `7e610fabd663779724a94deec0046981e997f298`; this record's round-2 relation remains open and TASK-065 adds its pending round-3 relation. Both fresh Critical findings route to TASK-064. This record remains `review` and non-integrable.
 - Next owners: **TASK-064**, `devops` / `gpt`, then **TASK-065**, `security` / `gpt`. Review remains closed and no Reviewer successor exists.
+- **ACT-037 publication routing.** TASK-064 published exact target `610716aabc9a6cdf455fe45c32c88eeb20caa588`; TASK-065 is now `ready` and carries this record's pending Security round-3 relation. No verdict or finding disposition changed. This record remains `review` and `integrable: false`; PRs 48, 44, 37, and 33 remain open, unmerged, and forbidden.
+- Next owner: **TASK-065**, `security` / `gpt`, in a separate execution context. Review remains closed and no Reviewer successor exists.

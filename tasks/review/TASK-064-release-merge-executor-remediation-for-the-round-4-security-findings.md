@@ -1,7 +1,7 @@
 ---
 task_id: TASK-064
 title: Release merge executor remediation for the round-4 Security findings
-status: ready
+status: review
 owner_role: devops
 llm: gpt
 branch: agent/gpt/devops/task-064
@@ -34,10 +34,12 @@ gate_tasks:
     gate_lineage: LIN-RELEASE-EXECUTOR-SECURITY
     lineage_round: 5
 gate_status: >-
-  OPEN on TASK-065 Security round 5. TASK-065 is blocked on review_ready(TASK-064) and will apply
-  one future verdict atomically to TASK-064 r1, TASK-062 r2, TASK-059 r3, TASK-056 r4, and TASK-049
-  r5. Review remains approved/closed and returned no finding, so no Reviewer successor exists. QA
-  round 2 remains forbidden until TASK-055 records round 1.
+  OPEN on TASK-065 Security round 5. ACT-037 independently satisfied only
+  review_ready(TASK-064), so TASK-065 is ready to apply one future verdict atomically to TASK-064
+  r1, TASK-062 r2, TASK-059 r3, TASK-056 r4, and TASK-049 r5. Publication, owner tests, passing CI,
+  and this routing activation are not a Security verdict. Review remains approved/closed and
+  returned no finding, so no Reviewer successor exists. QA round 2 remains forbidden until
+  TASK-055 records round 1.
 integrable: false
 parent_task: TASK-001
 publication_class: runtime
@@ -93,14 +95,52 @@ scope_validation_note: >-
   Verify git merge-base HEAD agent/gpt/devops/task-062 equals the literal ancestry base above and run
   validate-write-scope.ps1 with that exact BaseRef. Only scripts/release/integration-merge/** may
   change.
-ready_reason: >-
-  ACT-036 consumed TASK-063's immutable report and both fresh findings name this owner. The
-  release-merge-executor lock is free. This task may remediate only those findings and publish a
-  runtime-class artifact; it may not merge, approve, activate, accept risk, or mutate policy.
-exit_condition: >-
-  Publish an immutable runtime-class target by true ancestry from 19e75e996e8e116f74b4f8feb363ef13438a42b9,
-  with the exact origin ref, an open non-draft pull request to integration/autonomous-runtime,
-  exact-head checks, clean scope evidence, and normal task and resource-lock release.
+published_commit: 610716aabc9a6cdf455fe45c32c88eeb20caa588
+published_branch: agent/gpt/devops/task-064
+published_remote_ref: refs/heads/agent/gpt/devops/task-064
+pull_request: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/48
+publication: published
+publication_note: >-
+  ACT-037 independently satisfied all runtime publication conditions: the immutable target equals
+  the local branch, origin tracking ref, git ls-remote result, and open non-draft PR 48 head against
+  integration/autonomous-runtime. PR 48 is unmerged and remains non-integrable pending TASK-065.
+review_target_commit: 610716aabc9a6cdf455fe45c32c88eeb20caa588
+review_target_commit_note: >-
+  Bound by ACT-037 to the exact one-commit owner publication over immutable ancestry base
+  19e75e996e8e116f74b4f8feb363ef13438a42b9. The binding is an immutable commit, never a moving ref.
+authored_delta: >-
+  19 paths, all under scripts/release/integration-merge/**, from
+  19e75e996e8e116f74b4f8feb363ef13438a42b9 to the exact target; zero residue and zero deleted paths.
+cumulative_review_delta: >-
+  52 paths, all under scripts/release/integration-merge/**, from immutable review base
+  d63864bcb25fc8897b21c09f8f687e390f85808d to the exact target; zero residue.
+publication_evidence:
+  activation: ACT-037
+  ingress_seq: 51
+  ingress_class: artifact_published
+  fact_id: fbe7499c16044a7de86ea9ab0076e19d8444b3a9b9fdba19fcc6fcd42b8ecc87
+  source_path: scripts/release/integration-merge/index.ts
+  source_bytes: 7316
+  content_hash: 8a52f399917ff5461445ed7ba7d907cc21a2e66fd0ae7061ce4e69276bbc4d02
+  commits_over_ancestry_base: 1
+  target_commit: 610716aabc9a6cdf455fe45c32c88eeb20caa588
+  ancestry_base: 19e75e996e8e116f74b4f8feb363ef13438a42b9
+  review_base: d63864bcb25fc8897b21c09f8f687e390f85808d
+  pull_request: 48
+  pull_request_state: OPEN, non-draft, MERGEABLE / CLEAN, unmerged
+  pull_request_comment: https://github.com/Fhurky/Multi-Agent-Engineering-Framework/pull/48#issuecomment-5239545242
+  exact_head_checks:
+    - CI / validate, run 31383815860, check-run 93439659714, success
+    - Security / security, run 31383815859, check-run 93439659618, success
+  authored_delta: 19 paths, all under scripts/release/integration-merge/**
+  cumulative_review_delta: 52 paths, all under scripts/release/integration-merge/**
+  focused_suite: 6 declared, 6 passed, 0 failed
+  module_suite: 556 declared, 545 passed, 0 failed, 11 explicitly unexecuted live fixtures
+  lock_release: normal; TASK-064 and release-merge-executor locks absent, owner worktree clean and exact
+integrability_note: >-
+  TASK-065 has not recorded a verdict. F-063-01 and F-063-02 remain Critical, open, blocking, and
+  unaccepted. PRs 48, 44, 37, and 33 remain open and MUST NOT be merged. Publication and passing
+  checks resolve no finding, close no gate, activate no executor, and accept no risk.
 ---
 
 # TASK-064: Release merge executor remediation for the round-4 Security findings
@@ -138,3 +178,15 @@ Remediate F-063-01 and F-063-02 in the dormant release merge executor without wi
 - Verification: exact counterexamples, module suite, repository security, diff and write-scope checks, true ancestry, and exact-head publication evidence.
 - Known risks: F-063-01 and F-063-02 remain Critical and unaccepted until TASK-065 records a passing Security verdict.
 - Next owner: TASK-065, Security/GPT, in a separate execution context after TASK-013 binds the immutable publication.
+- **ACT-037 publication routing.** This record moved `ready` to `review` on ingress `seq` 51,
+  class `artifact_published`, exact target `610716aabc9a6cdf455fe45c32c88eeb20caa588`, fact
+  `fbe7499c16044a7de86ea9ab0076e19d8444b3a9b9fdba19fcc6fcd42b8ecc87`. The runtime publication
+  conditions, true ancestry, 19-path authored scope, exact-head checks, clean state, and normal lock
+  release were independently verified. Owner evidence records 6/6 focused checks and 556 declared /
+  545 passed / 0 failed / 11 explicitly unexecuted live fixtures for the complete module suite.
+- **No gate effect.** Owner evidence claims remedies for F-063-01 and F-063-02; only TASK-065 may
+  disposition them. Security remains open, the executor remains dormant, no risk is accepted, and
+  PRs 48, 44, 37, and 33 remain unmerged and non-integrable.
+- Next owner: **TASK-065**, `security` / `gpt`, now `ready` in a separate execution context at fixed
+  branch point `6e92459621cdb7e45839d53fa5ba8d5d59113f83`, assessing exact target `610716a...`
+  over cumulative base `d63864bcb25fc8897b21c09f8f687e390f85808d` across its five-relation cohort.
