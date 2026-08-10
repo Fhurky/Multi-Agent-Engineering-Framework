@@ -23,18 +23,18 @@ activation:
   cursor_field: last_consumed_event_seq
   ingress_epoch: 2
   ingress_epoch_seq_base: 6
-  last_consumed_event_seq: 50
-  ingress_seq: 50
+  last_consumed_event_seq: 51
+  ingress_seq: 51
   ingress_seq_definition: max(seq) over the durable append-only ingress inbox; never a count over a ref scan, a branch set, or a commit timestamp
   dispatch_condition: ingress_seq > last_consumed_event_seq
   bootstrap_dispatch_contract: interim-operator-authorized
   activation_current_note: >-
-    ACT-036 ran under the unchanged interim operator-authorized bootstrap contract and consumed
-    gate_verdict_recorded seq 50 for TASK-063 at exact source 7e610fabd663779724a94deec0046981e997f298.
-    TASK-063 moves ready to done and records one atomic changes-required verdict across four open
-    Security relations. Critical F-063-01 and F-063-02 route together to ready TASK-064, followed by
-    blocked TASK-065 with a five-relation Security cohort. No gate closes, no risk is accepted, and
-    PRs 46, 44, 37, and 33 remain open and non-integrable.
+    ACT-037 ran under the unchanged interim operator-authorized bootstrap contract and consumed
+    artifact_published seq 51 for TASK-064 at exact target 610716aabc9a6cdf455fe45c32c88eeb20caa588.
+    TASK-064 moves ready to review; only review_ready(TASK-064) becomes satisfied; TASK-065 moves
+    blocked to ready with that immutable target, fixed branch point 6e924596, cumulative review base
+    d63864bc, and all five Security relations pending/open. No gate closes, no finding is
+    dispositioned, no risk is accepted, and PRs 48, 44, 37, and 33 remain open and non-integrable.
   provider_alignment_correction: >-
     MC-020 / ACT-034 corrects TASK-062 from devops/claude to devops/gpt before dispatch because
     config/agents/settings.yaml assigns devops to gpt. The correction changes only execution identity;
@@ -259,6 +259,7 @@ Each activation appends its outcome to `tasks/TASK-013-ACTIVATION-LOG.md`.
 
 | Activation | Facts consumed | Cursor after | Outcome |
 |---|---|---|---|
+| `ACT-037` | 51 | 51 | Consumed TASK-064's runtime publication at `610716aabc9a6cdf455fe45c32c88eeb20caa588`. Moved TASK-064 `ready` to `review`; satisfied only `review_ready(TASK-064)`; moved TASK-065 `blocked` to `ready` and bound its exact target while preserving fixed branch point `6e924596`, cumulative base `d63864bc`, separate Security context, sole report scope, and five-relation cohort. No finding disposition, verdict, gate closure, risk acceptance, merge, approval, activation, credential/policy action, implementation, or report edit occurred. PRs 48, 44, 37, and 33 remain open and non-integrable. |
 | `ACT-036` | 50 | 50 | Consumed TASK-063 Security round 4 at `7e610fabd663779724a94deec0046981e997f298`. Moved TASK-063 `ready` to `done`; recorded one atomic `changes-required` verdict across TASK-062 r1, TASK-059 r2, TASK-056 r3, and TASK-049 r4, leaving all four relations open. Routed Critical F-063-01 and F-063-02 together to ready TASK-064 and created blocked TASK-065 with a monotonically grown five-relation Security cohort. Review remains closed and QA deferred; no Reviewer, Architect, or QA task was created. No gate closed, risk was accepted, PR merged or approved, executor activated, policy/credential state changed, or implementation/report/governance file edited. |
 | `ACT-035` | 49 | 49 | Consumed TASK-062's runtime publication at `19e75e996e8e116f74b4f8feb363ef13438a42b9`. Moved TASK-062 `ready` to `review`; satisfied only `review_ready(TASK-062)`; moved TASK-063 `blocked` to `ready` and bound its exact target while preserving branch point `d7994690`, cumulative base `d63864bc`, separate Security context, sole report scope, and four-relation cohort. No finding disposition, verdict, gate closure, risk acceptance, merge, approval, activation, credential/policy action, implementation, or report edit occurred. PRs 44, 37, and 33 remain open and non-integrable. |
 | `ACT-033` | 47 ... 48 | 48 | Consumed TASK-061 Security round 3 at `17cdf4f040f7b0e89ad51f9db40d67f7ae11a615`, then TASK-060 Review round 3 at `fa766a2401bcafa663f1eee32f4363325d145c5c`, ordered by ascending full source commit. Moved both gate tasks `ready` to `done`. Closed all three Review relations at approved with no findings; left all three Security relations open at changes-required. Routed Critical DevOps findings F-061-01 through F-061-03 to ready TASK-062 and created blocked Security successor TASK-063 with a four-relation round-4 cohort. TASK-049, TASK-056, and TASK-059 remain `review` and non-integrable; PRs 37 and 33 remain open and unmerged. No Architect or Reviewer successor was created, no risk accepted, and no merge, approval, activation, credential/policy mutation, source implementation, or report/governance edit occurred. |
@@ -309,6 +310,8 @@ This record's `status` field, its lifecycle directory, and its activation cursor
 
 ## Handoff
 
+- **ACT-037 effects binding:** `525f36430b4aaf7549f8f5670f7391510dba96cb`. This binding-only follow-up records the exact effects commit and carries no ledger row, cursor movement, verdict, lifecycle transition, task creation, finding disposition, or gate action.
+- **ACT-037 effects:** one commit on `agent/gpt/orchestrator/task-013` over exact binding head `e3a2814e5ace2f6e7f57e8433443bc8dd8ff70bf`, carrying ledger row 51, cursor advance to 51, TASK-064 `ready` to `review`, TASK-065 `blocked` to `ready`, exact target and edge binding, dependency-graph revision 37, and cohort handoffs. Only `tasks/**` changes. No gate, verdict, disposition, finding, risk acceptance, merge, approval, activation, policy/credential state, implementation, or report changes. A binding-only follow-up records the exact effects hash.
 - **ACT-036 effects binding:** `dc51b0583da6e8fbd8b11f8b63f57e955b61fb29`. This binding-only follow-up records the exact effects commit and carries no ledger row, cursor movement, verdict, lifecycle transition, task creation, finding disposition, or gate action.
 - **ACT-036 effects:** one commit on `agent/gpt/orchestrator/task-013` over exact binding head `9a6cbcbf50d14ebb0528e2c4f2ea59fc50b53eac`, carrying ledger row 50, cursor advance, TASK-063 `ready` to `done`, the atomic changes-required verdict, TASK-064 and TASK-065 creation, five new Security relation pairs, dependency-graph revision 36, and cohort handoffs. Only `tasks/**` changes. No gate closure, risk acceptance, merge, approval, activation, policy/credential state, implementation, or report change. A binding-only follow-up records the exact effects hash.
 - **ACT-035 effects binding:** `711fae21a99faa763ad8d379bacd4141a8849c9a`. This binding-only follow-up records the exact effects commit and carries no ledger row, cursor movement, verdict, lifecycle transition, task creation, finding disposition, or gate action.

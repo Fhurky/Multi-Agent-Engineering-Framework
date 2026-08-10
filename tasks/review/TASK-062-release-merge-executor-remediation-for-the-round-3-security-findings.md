@@ -47,10 +47,10 @@ gate_tasks:
     lineage_round: 5
 gate_status: >-
   TASK-063 recorded changes-required at ACT-036, so this record's round-1 relation remains OPEN.
-  TASK-065 adds an open pending round-2 relation, blocked on TASK-064 publication, and will carry
-  the five-member Security cohort. F-063-01 and F-063-02 are Critical, open, blocking, DevOps-owned,
-  and unaccepted. Review remains approved/closed with no successor. QA round 2 remains forbidden
-  until TASK-055 records round 1.
+  ACT-037 binds TASK-065 Security round 5 to exact TASK-064 target 610716a and makes its owner ready;
+  this record's round-2 relation remains open and pending inside the five-member Security cohort.
+  F-063-01 and F-063-02 are Critical, open, blocking, DevOps-owned, and unaccepted. Review remains
+  approved/closed with no successor. QA round 2 remains forbidden until TASK-055 records round 1.
 integrable: false
 parent_task: TASK-001
 publication_class: runtime
@@ -206,3 +206,9 @@ Remediate F-061-01, F-061-02, and F-061-03 in the dormant release merge executor
   adds its pending round-2 relation. F-063-01 and F-063-02 route together to TASK-064.
 - Next owners: **TASK-064**, `devops` / `gpt`, then **TASK-065**, `security` / `gpt`, in a separate
   context after TASK-064 publishes. PRs 44, 37, and 33 remain forbidden.
+- **ACT-037 publication routing.** TASK-064 published exact target
+  `610716aabc9a6cdf455fe45c32c88eeb20caa588`; TASK-065 is now `ready` and carries this record's
+  pending Security round-2 relation. No verdict or finding disposition changed. This record remains
+  `review` and `integrable: false`; PRs 48, 44, 37, and 33 remain open, unmerged, and forbidden.
+- Next owner: **TASK-065**, `security` / `gpt`, in a separate execution context over the immutable
+  five-member cohort. Review remains closed and QA remains deferred.
